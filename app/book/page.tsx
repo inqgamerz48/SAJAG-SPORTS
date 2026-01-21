@@ -14,19 +14,18 @@ export default function BookingPage() {
   return (
     <div className="min-h-screen bg-white py-12 px-4">
       <div className="mx-auto max-w-5xl">
-        {/* Header */}
-        <div className="mb-12 text-center">
-          <h1 className="mb-4 text-4xl font-bold text-gray-900 md:text-5xl">
-            Book a Service
-          </h1>
-          <p className="mx-auto max-w-2xl text-lg text-gray-600">
-            Choose the service you need for your racquet
-          </p>
-        </div>
-
         {!serviceType ? (
-          /* Service Selection */
-          <div className="grid gap-6 md:grid-cols-2">
+          <>
+            {/* Header (only for selection step) */}
+            <div className="mb-12 text-center">
+              <h1 className="mb-4 text-4xl font-bold text-gray-900 md:text-5xl">Book a Service</h1>
+              <p className="mx-auto max-w-2xl text-lg text-gray-600">
+                Choose the service you need for your racquet
+              </p>
+            </div>
+
+            {/* Service Selection */}
+            <div className="grid gap-6 md:grid-cols-2">
             {/* Repair Service Card */}
             <Card 
               className="border-2 border-gray-200 bg-white cursor-pointer transition-all duration-300 hover:border-brand-orange hover:scale-105 hover:shadow-xl"
@@ -106,18 +105,11 @@ export default function BookingPage() {
                 </ul>
               </CardContent>
             </Card>
-          </div>
+            </div>
+          </>
         ) : (
           /* Form Display */
           <div>
-            <div className="mb-6">
-              <button
-                onClick={() => setServiceType(null)}
-                className="text-brand-orange hover:text-brand-orange/80 font-medium flex items-center gap-2"
-              >
-                ← Back to Service Selection
-              </button>
-            </div>
             {serviceType === 'repair' ? <RepairForm /> : <StringingForm />}
           </div>
         )}
