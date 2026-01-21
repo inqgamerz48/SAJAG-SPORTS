@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
@@ -26,6 +26,24 @@ import { BeforeAfterSlider } from '@/components/before-after-slider'
 export default function HomePage() {
   const [email, setEmail] = useState('')
   const [submitted, setSubmitted] = useState(false)
+  const [scrollProgress, setScrollProgress] = useState(0)
+
+  // Scroll progress indicator for a modern UX touch
+  useEffect(() => {
+    const handleScroll = () => {
+      const scrollable = document.documentElement.scrollHeight - window.innerHeight
+      if (scrollable <= 0) {
+        setScrollProgress(0)
+        return
+      }
+      const progress = (window.scrollY / scrollable) * 100
+      setScrollProgress(Math.min(100, Math.max(0, progress)))
+    }
+
+    handleScroll()
+    window.addEventListener('scroll', handleScroll, { passive: true })
+    return () => window.removeEventListener('scroll', handleScroll)
+  }, [])
 
   async function handleWaitlistSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -45,6 +63,12 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-white">
+      {/* Scroll progress bar */}
+      <div
+        className="fixed top-0 left-0 z-50 h-1 bg-gradient-to-r from-brand-orange via-brand-blue to-brand-red transition-[width] duration-150 ease-out"
+        style={{ width: `${scrollProgress}%` }}
+        aria-hidden
+      />
       <Header />
 
       <HeroSlider />

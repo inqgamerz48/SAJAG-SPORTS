@@ -45,9 +45,6 @@ export function Header() {
             >
               Services
             </button>
-            <Link href="/book" className="text-gray-700 hover:text-brand-orange transition-colors font-medium">
-              Track Repair Status
-            </Link>
             <Link href="#contact" className="text-gray-700 hover:text-brand-orange transition-colors font-medium">
               Contact
             </Link>
@@ -87,13 +84,6 @@ export function Header() {
               >
                 Services
               </button>
-              <Link
-                href="/book"
-                className="text-gray-700 hover:text-brand-orange transition-colors font-medium"
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                Track Repair Status
-              </Link>
               <Link
                 href="#contact"
                 className="text-gray-700 hover:text-brand-orange transition-colors font-medium"
