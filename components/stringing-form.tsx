@@ -75,6 +75,16 @@ export function StringingForm() {
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Info text */}
+          <div className="rounded-lg border border-brand-blue/30 bg-brand-blue/5 p-4 text-sm text-gray-700">
+            <p className="font-semibold mb-1">24-Hour Pick-Up &amp; Delivery (Pune City)</p>
+            <p className="mb-1">
+              We provide professional racket stringing services in Pune with fast 24-hour pick-up and delivery.
+            </p>
+            <p>
+              Designed for players who want consistent tension, precision stringing, and zero hassle.
+            </p>
+          </div>
           {/* Name */}
           <div>
             <Label htmlFor="stringing-name" className="text-gray-700">
@@ -150,7 +160,7 @@ export function StringingForm() {
               </div>
               {formData.tension[0] > 28 && (
                 <p className="text-sm text-orange-600 font-medium">
-                  ⚠️ High tension (&gt;28 lbs) may reduce string durability
+                  ⚠️ High tension (&gt;28 lbs) may reduce string durability and is not recommended for repaired rackets.
                 </p>
               )}
             </div>

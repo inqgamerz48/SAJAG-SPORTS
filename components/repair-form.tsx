@@ -83,11 +83,19 @@ export function RepairForm() {
       <CardHeader>
         <CardTitle className="text-2xl font-bold text-gray-900">Racquet Repair Request</CardTitle>
         <CardDescription className="text-gray-600">
-          Fill in the details below to request a repair service. We&apos;ll provide pickup service for your racquet.
+          Fill in the details below to request a crack racket repair. We&apos;ll guide you for safe post-repair tension limits.
         </CardDescription>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Tension & safety notice */}
+          <div className="rounded-lg border border-brand-orange/30 bg-brand-orange/5 p-4 text-sm text-gray-700">
+            <p className="font-semibold mb-2">Important Tension Guidelines (After Repair)</p>
+            <p className="mb-1">⚠️ Tension limits after repair are strictly followed for player safety and racket durability.</p>
+            <p className="mb-1">• Rackets with 2 cracks: <span className="font-medium">Maximum 24 lbs</span></p>
+            <p className="mb-1">• Rackets with broken frame (after repair): <span className="font-medium">Maximum 26 lbs</span></p>
+            <p>✅ For safer performance and longer racket life, we recommend stringing at <span className="font-medium">25 lbs or below</span>.</p>
+          </div>
           {/* Name */}
           <div>
             <Label htmlFor="repair-name" className="text-gray-700">

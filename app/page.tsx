@@ -83,7 +83,7 @@ export default function HomePage() {
               Our Services
             </h2>
             <p className="mx-auto max-w-2xl text-lg text-gray-600">
-              Professional racquet services tailored to your needs
+              Professional racket stringing in Pune and crack repair across India, with clear safety-first tension guidelines.
             </p>
           </div>
 
@@ -109,22 +109,31 @@ export default function HomePage() {
                   </div>
                 </div>
                 <p className="text-gray-700 mb-4">
-                  Professional stringing service with same-day pickup and drop. Choose from a wide range of premium strings and custom tension settings.
+                  We provide professional racket stringing services in Pune with fast 24-hour pick-up and delivery. Perfect for players who want consistent tension, precision stringing, and zero hassle.
                 </p>
-                <ul className="space-y-2 mb-6">
+                <ul className="space-y-2 mb-4">
                   <li className="flex items-center gap-2 text-sm text-gray-600">
                     <span className="text-brand-blue font-bold">✓</span>
-                    Same day pickup & drop
+                    24-hour pick-up & delivery in Pune City
                   </li>
                   <li className="flex items-center gap-2 text-sm text-gray-600">
                     <span className="text-brand-blue font-bold">✓</span>
-                    Wide range of premium strings
+                    Accurate tension with professional digital machines
                   </li>
                   <li className="flex items-center gap-2 text-sm text-gray-600">
                     <span className="text-brand-blue font-bold">✓</span>
-                    Custom tension settings (20-32 lbs)
+                    Suitable for beginners to tournament players
+                  </li>
+                  <li className="flex items-center gap-2 text-sm text-gray-600">
+                    <span className="text-brand-blue font-bold">✓</span>
+                    Trusted by club & academy players
                   </li>
                 </ul>
+                <div className="mb-6 rounded-lg border border-brand-blue/30 bg-brand-blue/5 p-4 text-left text-sm text-gray-700">
+                  <p className="font-semibold mb-1">Service Snapshot</p>
+                  <p>📍 <span className="font-medium">Service Area:</span> Pune City</p>
+                  <p>⏱️ <span className="font-medium">Turnaround Time:</span> Within 24 hours</p>
+                </div>
                 <Button variant="brand" className="w-full" asChild>
                   <Link href="/book?service=stringing">Book Stringing Service</Link>
                 </Button>
@@ -144,9 +153,9 @@ export default function HomePage() {
                   </div>
                 </div>
                 <p className="text-gray-700 mb-4">
-                  Expert carbon frame restoration and repair services. We pick up your racquet from anywhere in India and deliver it back after repair.
+                  We offer crack racket repair services across India. Courier your racket to us, and our experts will repair and return it safely, with clear post-repair tension limits for durability and safety.
                 </p>
-                <ul className="space-y-2 mb-6">
+                <ul className="space-y-2 mb-4">
                   <li className="flex items-center gap-2 text-sm text-gray-600">
                     <span className="text-brand-orange font-bold">✓</span>
                     Carbon frame restoration
@@ -157,9 +166,16 @@ export default function HomePage() {
                   </li>
                   <li className="flex items-center gap-2 text-sm text-gray-600">
                     <span className="text-brand-orange font-bold">✓</span>
-                    Pickup & delivery available
+                    Pickup & delivery / courier options available
                   </li>
                 </ul>
+                <div className="mb-4 rounded-lg border border-brand-orange/30 bg-brand-orange/5 p-4 text-left text-sm text-gray-700">
+                  <p className="font-semibold mb-2">Important Tension Guidelines (After Repair)</p>
+                  <p className="mb-1">⚠️ Tension limits after repair are strictly followed for player safety and racket durability.</p>
+                  <p className="mb-1">• Rackets with 2 cracks: <span className="font-medium">Max 24 lbs</span></p>
+                  <p className="mb-1">• Rackets with broken frame (after full repair): <span className="font-medium">Max 26 lbs</span></p>
+                  <p>✅ For safer performance and longer racket life, we strongly recommend stringing at <span className="font-medium">25 lbs or below</span>.</p>
+                </div>
                 <Button variant="brand" className="w-full" asChild>
                   <Link href="/book?service=repair">Book Repair Service</Link>
                 </Button>
