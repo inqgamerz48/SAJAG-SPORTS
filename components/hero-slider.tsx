@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import Image from 'next/image'
@@ -109,17 +110,12 @@ export function HeroSlider() {
                 </Button>
                 {slide.highlightBadge && (
                   <Button
-                    variant="outline"
+                    asChild
+                    variant="brand"
                     size="lg"
-                    onClick={() => {
-                      const servicesSection = document.getElementById('services')
-                      if (servicesSection) {
-                        servicesSection.scrollIntoView({ behavior: 'smooth' })
-                      }
-                    }}
-                    className="text-lg px-8 py-6 border-2 border-white text-white hover:bg-white/20"
+                    className="text-lg px-8 py-6 animate-pulse-glow"
                   >
-                    Book Stringing Service
+                    <Link href="/book?service=stringing">Book Stringing Service</Link>
                   </Button>
                 )}
               </div>
