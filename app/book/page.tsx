@@ -1,6 +1,7 @@
 'use client'
 
-import { useState } from 'react'
+import { Suspense, useState, useEffect } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { RepairForm } from '@/components/repair-form'
 import { StringingForm } from '@/components/stringing-form'
@@ -9,7 +10,25 @@ import { Wrench, Scissors, MapPin } from 'lucide-react'
 type ServiceType = 'repair' | 'stringing' | null
 
 export default function BookingPage() {
+  // Wrap hook-using content in Suspense to satisfy useSearchParams requirement
+  return (
+    <Suspense fallback={<div className="py-12 text-center text-gray-600">Loading...</div>}>
+      <BookingPageContent />
+    </Suspense>
+  )
+}
+
+function BookingPageContent() {
+  const searchParams = useSearchParams()
   const [serviceType, setServiceType] = useState<ServiceType>(null)
+
+  // Preselect service when landing with ?service=stringing or ?service=repair
+  useEffect(() => {
+    const service = searchParams.get('service')
+    if (service === 'stringing' || service === 'repair') {
+      setServiceType(service)
+    }
+  }, [searchParams])
 
   return (
     <div className="min-h-screen bg-white py-12 px-4">

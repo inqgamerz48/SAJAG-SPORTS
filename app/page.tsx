@@ -102,7 +102,7 @@ export default function HomePage() {
                   </li>
                 </ul>
                 <Button variant="brand" className="w-full" asChild>
-                  <Link href="/book">Book Stringing Service</Link>
+                  <Link href="/book?service=stringing">Book Stringing Service</Link>
                 </Button>
               </CardContent>
             </Card>
@@ -137,7 +137,7 @@ export default function HomePage() {
                   </li>
                 </ul>
                 <Button variant="brand" className="w-full" asChild>
-                  <Link href="/book">Book Repair Service</Link>
+                  <Link href="/book?service=repair">Book Repair Service</Link>
                 </Button>
               </CardContent>
             </Card>
