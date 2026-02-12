@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { toast } from 'sonner'
 import { STRING_PRICES, formatCurrency } from '@/lib/pricing'
+import { useAuth } from '@/components/providers/auth-provider'
 
 interface RepairFormData {
   name: string
@@ -44,8 +45,15 @@ export function RepairForm() {
   })
   const [loading, setLoading] = useState(false)
 
+  const { user, openAuthModal } = useAuth()
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+
+    if (!user) {
+      openAuthModal()
+      return
+    }
 
     // 1. Pincode Validation
     const pincode = formData.address.match(/\b\d{6}\b/)?.[0]
