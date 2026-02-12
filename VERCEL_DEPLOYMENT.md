@@ -16,17 +16,46 @@ To deploy successfully to Vercel, you need to add the following environment vari
 
 ### Optional Environment Variables (for payment integration)
 
-3. **RAZORPAY_KEY_ID**
+3. **NEXT_PUBLIC_RAZORPAY_KEY_ID**
+   - Your Razorpay Public Key ID (starts with `rzp_`)
+   - Required for Razorpay checkout on the frontend
+   - Found in Razorpay Dashboard > Settings > API Keys
+
+4. **RAZORPAY_KEY_ID**
    - Your Razorpay API Key ID
-   - Required for payment processing
+   - Required for server-side payment processing
 
-4. **RAZORPAY_KEY_SECRET**
+5. **RAZORPAY_KEY_SECRET**
    - Your Razorpay API Key Secret
-   - Required for payment processing
+   - Required for server-side payment processing
 
-5. **RAZORPAY_WEBHOOK_SECRET**
+6. **RAZORPAY_WEBHOOK_SECRET**
    - Your Razorpay Webhook Secret
    - Required for webhook verification
+
+### Optional Environment Variables (for logistics integration)
+
+7. **SHIPROCKET_EMAIL**
+   - Your Shiprocket account email
+   - Required for Shiprocket API authentication
+
+8. **SHIPROCKET_PASSWORD**
+   - Your Shiprocket account password
+   - Required for Shiprocket API authentication
+
+9. **SHIPROCKET_PICKUP_PINCODE** (optional)
+   - Your lab/workshop pincode for reverse pickup
+   - Default: `411028` (Pune)
+   - Used as destination for round-trip shipping calculations
+
+10. **SHIPROCKET_PICKUP_ADDRESS** (optional)
+    - Your lab/workshop address
+    - Default: `Manjri Arena, Pune`
+    - Used in Shiprocket order creation
+
+11. **SHIPROCKET_PICKUP_PHONE** (optional)
+    - Your lab/workshop contact phone
+    - Used in Shiprocket order creation
 
 ### How to Add Environment Variables in Vercel
 

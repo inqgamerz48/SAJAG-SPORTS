@@ -12,6 +12,8 @@ import { Badge } from '@/components/ui/badge'
 
 interface StringingFormData {
   name: string
+  email: string
+  phone: string
   address: string
   stringName: string
   tension: number[]
@@ -33,6 +35,8 @@ export function StringingForm() {
   const router = useRouter()
   const [formData, setFormData] = useState<StringingFormData>({
     name: '',
+    email: '',
+    phone: '',
     address: '',
     stringName: '',
     tension: [24],
@@ -47,6 +51,8 @@ export function StringingForm() {
     const formDataToStore = {
       serviceType: 'stringing',
       name: formData.name,
+      email: formData.email,
+      phone: formData.phone,
       address: formData.address,
       stringName: formData.stringName,
       tension: formData.tension[0],
@@ -98,6 +104,36 @@ export function StringingForm() {
               required
               className="mt-2"
               placeholder="Enter your full name"
+            />
+          </div>
+          {/* Email */}
+          <div>
+            <Label htmlFor="stringing-email" className="text-gray-700">
+              Email *
+            </Label>
+            <Input
+              id="stringing-email"
+              type="email"
+              value={formData.email}
+              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+              required
+              className="mt-2"
+              placeholder="your@email.com"
+            />
+          </div>
+          {/* Phone */}
+          <div>
+            <Label htmlFor="stringing-phone" className="text-gray-700">
+              Phone (WhatsApp) *
+            </Label>
+            <Input
+              id="stringing-phone"
+              type="tel"
+              value={formData.phone}
+              onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+              required
+              className="mt-2"
+              placeholder="10-digit mobile number"
             />
           </div>
 

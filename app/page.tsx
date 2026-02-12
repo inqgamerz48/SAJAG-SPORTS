@@ -591,8 +591,8 @@ export default function HomePage() {
                 <Link href="/book" className="block text-gray-600 hover:text-brand-orange transition-colors">
                   Book a Service
                 </Link>
-                <Link href="/book" className="block text-gray-600 hover:text-brand-orange transition-colors">
-                  Track Repair Status
+                <Link href="/track" className="block text-gray-600 hover:text-brand-orange transition-colors">
+                  Track Order
                 </Link>
               </div>
             </div>
