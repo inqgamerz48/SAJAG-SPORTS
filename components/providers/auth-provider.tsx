@@ -1,6 +1,6 @@
 "use client"
 
-import { createContext, useContext, useEffect, useState, ReactNode } from "react"
+import { createContext, useContext, useEffect, useState, useCallback, ReactNode } from "react"
 import { createBrowserClient } from "@supabase/ssr"
 import { User, Session } from "@supabase/supabase-js"
 import { AuthModal } from "@/components/auth/auth-modal"
@@ -28,6 +28,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
         process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
     )
+
+    const fetchRole = useCallback(async (userId: string) => {
+        try {
+            // First check user metadata as it might be faster if synced
+            // Otherwise fetch from profiles
+            const { data, error } = await supabase
+                .from('profiles')
+                .select('role')
+                .eq('id', userId)
+                .single()
+
+            if (error) {
+                console.error("Error fetching role:", error)
+                return
+            }
+
+            if (data) {
+                setRole(data.role as "admin" | "customer")
+            }
+        } catch (error) {
+            console.error("Error in fetchRole:", error)
+        }
+    }, [supabase])
 
     useEffect(() => {
         const fetchSession = async () => {
@@ -64,30 +87,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return () => {
             subscription.unsubscribe()
         }
-    }, [])
-
-    const fetchRole = async (userId: string) => {
-        try {
-            // First check user metadata as it might be faster if synced
-            // Otherwise fetch from profiles
-            const { data, error } = await supabase
-                .from('profiles')
-                .select('role')
-                .eq('id', userId)
-                .single()
-
-            if (error) {
-                console.error("Error fetching role:", error)
-                return
-            }
-
-            if (data) {
-                setRole(data.role as "admin" | "customer")
-            }
-        } catch (error) {
-            console.error("Error in fetchRole:", error)
-        }
-    }
+    }, [supabase, fetchRole])
 
     const signOut = async () => {
         await supabase.auth.signOut()

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, Suspense } from 'react'
+import { useState, useEffect, Suspense, useCallback } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -49,28 +49,7 @@ function QuoteContent() {
     const pickupPincode = searchParams.get('pickupPincode')
     const orderId = searchParams.get('orderId')
 
-    useEffect(() => {
-        // Load Razorpay script
-        const script = document.createElement('script')
-        script.src = 'https://checkout.razorpay.com/v1/checkout.js'
-        script.async = true
-        document.body.appendChild(script)
-
-        script.onload = () => {
-            setLoading(false)
-            if (racquetValue && numberOfCracks && pickupPincode) {
-                calculateQuote()
-            }
-        }
-
-        return () => {
-            if (document.body.contains(script)) {
-                document.body.removeChild(script)
-            }
-        }
-    }, [])
-
-    const calculateQuote = async () => {
+    const calculateQuote = useCallback(async () => {
         setCalculating(true)
         setError(null)
 
@@ -98,7 +77,32 @@ function QuoteContent() {
         } finally {
             setCalculating(false)
         }
-    }
+    }, [racquetValue, numberOfCracks, stringType, pickupPincode])
+
+    // Effect for calculating quote when params change
+    useEffect(() => {
+        if (racquetValue && numberOfCracks && pickupPincode) {
+            calculateQuote()
+        }
+    }, [racquetValue, numberOfCracks, pickupPincode, calculateQuote])
+
+    // Effect for loading Razorpay script
+    useEffect(() => {
+        const script = document.createElement('script')
+        script.src = 'https://checkout.razorpay.com/v1/checkout.js'
+        script.async = true
+        document.body.appendChild(script)
+
+        script.onload = () => {
+            setLoading(false)
+        }
+
+        return () => {
+            if (document.body.contains(script)) {
+                document.body.removeChild(script)
+            }
+        }
+    }, [])
 
     const handlePayment = async () => {
         if (!breakdown || !orderId) return

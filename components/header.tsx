@@ -1,12 +1,15 @@
 'use client'
 
 import Link from 'next/link'
+import Image from 'next/image'
 import { Button } from '@/components/ui/button'
-import { Menu, X } from 'lucide-react'
+import { Menu, X, User, LogOut, LayoutDashboard } from 'lucide-react'
 import { useState } from 'react'
+import { useAuth } from '@/components/providers/auth-provider'
 
 export function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const { user, role, openAuthModal, signOut } = useAuth()
 
   const scrollToServices = () => {
     const servicesSection = document.getElementById('services')
@@ -23,10 +26,13 @@ export function Header() {
           {/* Logo */}
           <Link href="/" className="flex items-center">
             <span className="flex items-center gap-3">
-              <img
+              <Image
                 src="/logo.heic"
                 alt="Sajag Sports logo"
+                width={40}
+                height={40}
                 className="h-10 w-auto object-contain"
+                unoptimized
               />
               <span className="text-xl font-semibold text-gray-900">
                 Sajag Sports
@@ -51,6 +57,27 @@ export function Header() {
             <Button variant="brand" size="sm" asChild className="animate-pulse-glow">
               <Link href="/book">Book a Service</Link>
             </Button>
+
+            {/* Auth Buttons */}
+            {user ? (
+              <div className="flex items-center gap-4">
+                <Button variant="ghost" size="sm" asChild>
+                  <Link href={role === 'admin' ? '/admin/dashboard' : '/dashboard'}>
+                    <LayoutDashboard className="h-4 w-4 mr-2" />
+                    Dashboard
+                  </Link>
+                </Button>
+                <Button variant="ghost" size="sm" onClick={() => signOut()}>
+                  <LogOut className="h-4 w-4 mr-2" />
+                  Sign Out
+                </Button>
+              </div>
+            ) : (
+              <Button variant="outline" size="sm" onClick={openAuthModal}>
+                <User className="h-4 w-4 mr-2" />
+                Login
+              </Button>
+            )}
           </nav>
 
           {/* Mobile Menu Button */}
@@ -96,6 +123,41 @@ export function Header() {
                   Book a Service
                 </Link>
               </Button>
+
+              {/* Mobile Auth Buttons */}
+              {user ? (
+                <>
+                  <Link
+                    href={role === 'admin' ? '/admin/dashboard' : '/dashboard'}
+                    className="text-gray-700 hover:text-brand-orange transition-colors font-medium flex items-center"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    <LayoutDashboard className="h-4 w-4 mr-2" />
+                    Dashboard
+                  </Link>
+                  <button
+                    onClick={() => {
+                      signOut()
+                      setMobileMenuOpen(false)
+                    }}
+                    className="text-left text-gray-700 hover:text-brand-orange transition-colors font-medium flex items-center"
+                  >
+                    <LogOut className="h-4 w-4 mr-2" />
+                    Sign Out
+                  </button>
+                </>
+              ) : (
+                <button
+                  onClick={() => {
+                    openAuthModal()
+                    setMobileMenuOpen(false)
+                  }}
+                  className="text-left text-gray-700 hover:text-brand-orange transition-colors font-medium flex items-center"
+                >
+                  <User className="h-4 w-4 mr-2" />
+                  Login
+                </button>
+              )}
             </nav>
           </div>
         )}

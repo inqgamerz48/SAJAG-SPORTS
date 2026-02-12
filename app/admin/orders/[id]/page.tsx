@@ -17,6 +17,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import Link from 'next/link'
+import Image from 'next/image'
 import OrderStatusUpdater from '@/components/admin/order-status-updater'
 
 export default async function AdminOrderDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -151,8 +152,14 @@ export default async function AdminOrderDetailPage({ params }: { params: Promise
                                 <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">Media Evidence</p>
                                 <div className="grid grid-cols-3 gap-4">
                                     {order.media_evidence.map((media: any) => (
-                                        <div key={media.id} className="aspect-square bg-slate-100 rounded-lg overflow-hidden border border-slate-200">
-                                            <img src={media.file_url} alt="racquet damage" className="w-full h-full object-cover" />
+                                        <div key={media.id} className="relative aspect-square bg-slate-100 rounded-lg overflow-hidden border border-slate-200">
+                                            <Image
+                                                src={media.file_url}
+                                                alt="racquet damage"
+                                                fill
+                                                className="object-cover"
+                                                unoptimized
+                                            />
                                         </div>
                                     ))}
                                 </div>

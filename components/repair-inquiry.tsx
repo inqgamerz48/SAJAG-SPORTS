@@ -111,11 +111,10 @@ export function RepairInquiry() {
                       onDragOver={handleDragOver}
                       onDragLeave={handleDragLeave}
                       onClick={() => fileInputRef.current?.click()}
-                      className={`mt-2 flex min-h-[200px] cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed transition-all ${
-                        isDragging
+                      className={`mt-2 flex min-h-[200px] cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed transition-all ${isDragging
                           ? 'border-brand-orange bg-brand-orange/10 brand-glow-orange'
                           : 'border-gray-300 bg-gray-50 hover:border-brand-orange hover:bg-blue-50'
-                      }`}
+                        }`}
                     >
                       <input
                         ref={fileInputRef}
@@ -143,6 +142,7 @@ export function RepairInquiry() {
                         {files.map((file, index) => (
                           <div key={index} className="relative group">
                             <div className="relative aspect-square overflow-hidden rounded-lg border border-gray-200 bg-gray-100">
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
                               <img
                                 src={URL.createObjectURL(file)}
                                 alt={`Upload ${index + 1}`}

@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -28,7 +28,7 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true)
   const supabase = createClient()
 
-  const fetchOrders = async () => {
+  const fetchOrders = useCallback(async () => {
     setLoading(true)
     const { data, error } = await supabase
       .from('orders')
@@ -45,11 +45,11 @@ export default function AdminDashboard() {
       setOrders(data || [])
     }
     setLoading(false)
-  }
+  }, [supabase])
 
   useEffect(() => {
     fetchOrders()
-  }, [])
+  }, [fetchOrders])
 
   const updateStatus = async (orderId: string, newStatus: string) => {
     try {

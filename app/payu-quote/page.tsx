@@ -49,40 +49,40 @@ function PayUQuoteContent() {
     const tension = searchParams.get('tension')
 
     useEffect(() => {
+        const calculateQuote = async () => {
+            setCalculating(true)
+            setError(null)
+
+            try {
+                const response = await fetch('/api/calculate-quote', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        racquetValue: Number(racquetValue),
+                        numberOfCracks: Number(numberOfCracks),
+                        stringType,
+                        pickupPincode,
+                    }),
+                })
+
+                const data = await response.json()
+
+                if (!data.success) {
+                    throw new Error(data.error || 'Failed to calculate quote')
+                }
+
+                setBreakdown(data.breakdown)
+            } catch (err: any) {
+                setError(err.message || 'Failed to calculate quote')
+            } finally {
+                setCalculating(false)
+            }
+        }
+
         if (racquetValue && numberOfCracks && pickupPincode) {
             calculateQuote()
         }
-    }, [])
-
-    const calculateQuote = async () => {
-        setCalculating(true)
-        setError(null)
-
-        try {
-            const response = await fetch('/api/calculate-quote', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    racquetValue: Number(racquetValue),
-                    numberOfCracks: Number(numberOfCracks),
-                    stringType,
-                    pickupPincode,
-                }),
-            })
-
-            const data = await response.json()
-
-            if (!data.success) {
-                throw new Error(data.error || 'Failed to calculate quote')
-            }
-
-            setBreakdown(data.breakdown)
-        } catch (err: any) {
-            setError(err.message || 'Failed to calculate quote')
-        } finally {
-            setCalculating(false)
-        }
-    }
+    }, [racquetValue, numberOfCracks, stringType, pickupPincode])
 
     const handlePayment = async () => {
         if (!breakdown) return

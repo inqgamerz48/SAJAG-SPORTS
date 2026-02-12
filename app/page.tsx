@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -486,9 +487,11 @@ export default function HomePage() {
             {/* Main Arena Photo */}
             <div className="lg:col-span-2 animate-fade-in-up">
               <div className="overflow-hidden rounded-2xl border-2 border-brand-orange/30 shadow-xl transition-all duration-300 hover:border-brand-orange hover:scale-[1.02]">
-                <img
+                <Image
                   src="/arena main.webp"
                   alt="Sajag Badminton Arena main view"
+                  width={1200}
+                  height={800}
                   className="h-full w-full object-cover"
                 />
               </div>
@@ -498,16 +501,20 @@ export default function HomePage() {
             <div className="space-y-6 animate-slide-in-right">
               <div className="grid grid-cols-2 gap-4">
                 <div className="overflow-hidden rounded-2xl border-2 border-brand-blue/30 shadow-md transition-all duration-300 hover:border-brand-blue hover:scale-105">
-                  <img
+                  <Image
                     src="/arena 1.jpg"
                     alt="Sajag Badminton Arena court view"
+                    width={600}
+                    height={400}
                     className="h-full w-full object-cover"
                   />
                 </div>
                 <div className="overflow-hidden rounded-2xl border-2 border-brand-orange/30 shadow-md transition-all duration-300 hover:border-brand-orange hover:scale-105">
-                  <img
+                  <Image
                     src="/arena 2.jpg"
                     alt="Sajag Badminton Arena facilities"
+                    width={600}
+                    height={400}
                     className="h-full w-full object-cover"
                   />
                 </div>

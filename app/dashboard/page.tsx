@@ -13,32 +13,32 @@ export default function CustomerDashboard() {
     const [loading, setLoading] = useState(true)
     const supabase = createClient()
 
-    const fetchMyOrders = async () => {
-        setLoading(true)
-        const { data: { user } } = await supabase.auth.getUser()
-        if (!user) return
-
-        const { data, error } = await supabase
-            .from('orders')
-            .select(`
-        *,
-        racquet_specs (brand, model, tension_lbs, knot_type),
-        shipments (awb_code, shipment_status, is_reverse)
-      `)
-            .eq('customer_id', user.id)
-            .order('created_at', { ascending: false })
-
-        if (error) {
-            toast.error('Failed to fetch your orders')
-        } else {
-            setOrders(data || [])
-        }
-        setLoading(false)
-    }
-
     useEffect(() => {
+        const fetchMyOrders = async () => {
+            setLoading(true)
+            const { data: { user } } = await supabase.auth.getUser()
+            if (!user) return
+
+            const { data, error } = await supabase
+                .from('orders')
+                .select(`
+            *,
+            racquet_specs (brand, model, tension_lbs, knot_type),
+            shipments (awb_code, shipment_status, is_reverse)
+          `)
+                .eq('customer_id', user.id)
+                .order('created_at', { ascending: false })
+
+            if (error) {
+                toast.error('Failed to fetch your orders')
+            } else {
+                setOrders(data || [])
+            }
+            setLoading(false)
+        }
+
         fetchMyOrders()
-    }, [])
+    }, [supabase])
 
     return (
         <div className="container mx-auto px-4 py-8 space-y-12">

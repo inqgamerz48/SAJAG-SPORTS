@@ -16,30 +16,30 @@ export default function ManualPaymentPage() {
     const [order, setOrder] = useState<any>(null)
 
     useEffect(() => {
+        async function fetchOrder() {
+            try {
+                const res = await fetch(`/api/track-order`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ orderId, phone: 'PAYMENT_FLOW' }), // Special bypass for payment flow
+                })
+                const data = await res.json()
+                if (data.success) {
+                    setOrder(data.order)
+                } else {
+                    setError(data.error || 'Order not found')
+                }
+            } catch (err) {
+                setError('Failed to load order details')
+            } finally {
+                setLoading(false)
+            }
+        }
+
         if (orderId) {
             fetchOrder()
         }
     }, [orderId])
-
-    async function fetchOrder() {
-        try {
-            const res = await fetch(`/api/track-order`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ orderId, phone: 'PAYMENT_FLOW' }), // Special bypass for payment flow
-            })
-            const data = await res.json()
-            if (data.success) {
-                setOrder(data.order)
-            } else {
-                setError(data.error || 'Order not found')
-            }
-        } catch (err) {
-            setError('Failed to load order details')
-        } finally {
-            setLoading(false)
-        }
-    }
 
     const handlePayment = async () => {
         if (!order) return
