@@ -15,9 +15,9 @@ export const products: Product[] = [
         price: 0,
         category: 'Accessories',
         images: [
-            '/products/Racquet keychain.jpeg',
-            '/products/racquet Keychain-1.jpeg',
-            '/products/racquet keychain-2.jpeg',
+            '/products/racquet-keychain.jpeg',
+            '/products/racquet-keychain-1.jpeg',
+            '/products/racquet-keychain-2.jpeg',
         ],
     },
     {
@@ -27,8 +27,8 @@ export const products: Product[] = [
         price: 0,
         category: 'Collectibles',
         images: [
-            '/products/badminton court.jpeg',
-            '/products/badminton court-1.jpeg',
+            '/products/badminton-court.jpeg',
+            '/products/badminton-court-1.jpeg',
         ],
     },
     {
@@ -49,8 +49,8 @@ export const products: Product[] = [
         price: 0,
         category: 'Accessories',
         images: [
-            '/products/cushion wrap.jpeg',
-            '/products/cushion wrap-1jpeg.jpeg',
+            '/products/cushion-wrap.jpeg',
+            '/products/cushion-wrap-1.jpeg',
         ],
     },
 ]
