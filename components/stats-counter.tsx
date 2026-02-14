@@ -14,7 +14,7 @@ interface Stat {
 const stats: Stat[] = [
   {
     icon: <Wrench className="h-8 w-8" />,
-    value: 500,
+    value: 450,
     suffix: '+',
     label: 'Racquets Repaired',
     color: 'text-brand-orange',
@@ -35,7 +35,7 @@ const stats: Stat[] = [
   },
   {
     icon: <TrendingUp className="h-8 w-8" />,
-    value: 1000,
+    value: 900,
     suffix: '+',
     label: 'Happy Customers',
     color: 'text-brand-orange',
@@ -69,13 +69,13 @@ function useCountUp(end: number, duration: number = 2000, start: number = 0) {
 
 function StatItem({ stat }: { stat: Stat }) {
   const count = useCountUp(stat.value)
-  
+
   const getGradientClass = () => {
     if (stat.color.includes('orange')) return 'gradient-orange brand-glow-orange'
     if (stat.color.includes('blue')) return 'gradient-blue brand-glow-blue'
     return 'gradient-red brand-glow-red'
   }
-  
+
   return (
     <div className="text-center animate-fade-in-up" style={{ animationDelay: `${stat.value * 0.1}s` }}>
       <div className={`mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full shadow-lg animate-float ${getGradientClass()}`}>
