@@ -162,15 +162,25 @@ const Threads = ({ color = [1, 1, 1], amplitude = 1, distance = 0, enableMouseIn
 
         const mesh = new Mesh(gl, { geometry, program });
 
+        let resizeTimeout: NodeJS.Timeout;
+
         function resize() {
             if (!container) return;
             const { clientWidth, clientHeight } = container;
+            const dpr = Math.min(window.devicePixelRatio, 2); // Limit DPR for performance
+            renderer.dpr = dpr;
             renderer.setSize(clientWidth, clientHeight);
-            program.uniforms.iResolution.value.r = clientWidth;
-            program.uniforms.iResolution.value.g = clientHeight;
+            program.uniforms.iResolution.value.r = clientWidth * dpr;
+            program.uniforms.iResolution.value.g = clientHeight * dpr;
             program.uniforms.iResolution.value.b = clientWidth / clientHeight;
         }
-        window.addEventListener('resize', resize);
+
+        function handleResize() {
+            clearTimeout(resizeTimeout);
+            resizeTimeout = setTimeout(resize, 100);
+        }
+
+        window.addEventListener('resize', handleResize);
         resize();
 
         let currentMouse = [0.5, 0.5];
@@ -211,7 +221,8 @@ const Threads = ({ color = [1, 1, 1], amplitude = 1, distance = 0, enableMouseIn
 
         return () => {
             if (animationFrameId.current) cancelAnimationFrame(animationFrameId.current);
-            window.removeEventListener('resize', resize);
+            window.removeEventListener('resize', handleResize);
+            clearTimeout(resizeTimeout);
 
             if (enableMouseInteraction) {
                 container.removeEventListener('mousemove', handleMouseMove);
