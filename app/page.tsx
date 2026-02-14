@@ -545,9 +545,19 @@ export default function HomePage() {
           <div className="grid gap-8 md:grid-cols-3">
             {/* Brand */}
             <div className="animate-fade-in-up">
-              <h3 className="mb-4 text-xl font-bold text-gray-900">
-                Sajag Sports
-              </h3>
+              <div className="mb-4 flex items-center gap-2">
+                <Image
+                  src="/logo.jpeg"
+                  alt="Sajag Sports logo"
+                  width={40}
+                  height={40}
+                  className="h-10 w-auto object-contain"
+                  unoptimized
+                />
+                <h3 className="text-xl font-bold text-gray-900">
+                  Sajag Sports
+                </h3>
+              </div>
               <p className="mb-2 text-sm text-gray-600">The Badminton Surgeon</p>
               <div className="mt-4 inline-block rounded-full bg-gradient-to-r from-brand-orange to-brand-red px-4 py-1 shadow-lg">
                 <span className="text-xs font-semibold text-white">Store Coming Soon</span>

@@ -9,6 +9,11 @@ const inter = Inter({ subsets: ["latin"] })
 export const metadata: Metadata = {
   title: "Sajag Sports - The Badminton Surgeon",
   description: "Professional Stringing & Carbon Repair. Premium badminton equipment services.",
+  icons: {
+    icon: "/logo.jpeg",
+    shortcut: "/logo.jpeg",
+    apple: "/logo.jpeg",
+  },
 }
 
 export default function RootLayout({
