@@ -188,6 +188,32 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* Products Section */}
+      <section className="py-20 px-4 bg-gray-50">
+        <div className="mx-auto max-w-7xl">
+          <div className="mb-12 text-center animate-fade-in-up">
+            <h2 className="mb-4 text-4xl font-bold text-gray-900 md:text-5xl">
+              Shop Accessories
+            </h2>
+            <p className="mx-auto max-w-2xl text-lg text-gray-600">
+              Premium badminton accessories to enhance your game. Add to your repair order or buy separately.
+            </p>
+          </div>
+
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+            {products.map((product) => (
+              <ProductCard key={product.id} product={product} />
+            ))}
+          </div>
+
+          <div className="mt-12 text-center">
+            <Button variant="outline" size="lg" asChild className="animate-pulse-glow">
+              <Link href="/products">View All Products</Link>
+            </Button>
+          </div>
+        </div>
+      </section>
+
       {/* Before/After Gallery Section */}
       <section className="py-20 px-4 bg-white">
         <div className="mx-auto max-w-7xl">
