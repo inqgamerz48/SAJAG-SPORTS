@@ -9,6 +9,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Slider } from '@/components/ui/slider'
 import { Badge } from '@/components/ui/badge'
+import { useCart } from '@/components/products/cart-context'
+import { Trash2 } from 'lucide-react'
 
 interface StringingFormData {
   name: string
@@ -42,6 +44,7 @@ export function StringingForm() {
     tension: [24],
   })
   const [loading, setLoading] = useState(false)
+  const { selectedProducts, removeProduct } = useCart()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -56,10 +59,11 @@ export function StringingForm() {
       address: formData.address,
       stringName: formData.stringName,
       tension: formData.tension[0],
+      products: selectedProducts.map(p => p.id),
     }
-    
+
     sessionStorage.setItem('stringingFormData', JSON.stringify(formDataToStore))
-    
+
     // Redirect to payment page
     router.push('/payment')
   }
@@ -202,6 +206,38 @@ export function StringingForm() {
             </div>
           </div>
 
+          {/* Selected Products Section */}
+          {selectedProducts.length > 0 && (
+            <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
+              <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                <span className="text-xl">🛍️</span> Added to Order
+              </h3>
+              <div className="space-y-2">
+                {selectedProducts.map((product) => (
+                  <div key={product.id} className="flex items-center justify-between bg-white p-3 rounded-md border border-gray-200 shadow-sm">
+                    <div className="flex items-center gap-3">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={product.images[0]} alt={product.name} className="h-10 w-10 object-cover rounded-md" />
+                      <div>
+                        <p className="font-medium text-gray-900">{product.name}</p>
+                        <p className="text-xs text-gray-500">{product.category}</p>
+                      </div>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => removeProduct(product.id)}
+                      className="text-red-500 hover:text-red-600 hover:bg-red-50"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Submit Button */}
           <Button
             type="submit"
@@ -214,6 +250,6 @@ export function StringingForm() {
           </Button>
         </form>
       </CardContent>
-    </Card>
+    </Card >
   )
 }

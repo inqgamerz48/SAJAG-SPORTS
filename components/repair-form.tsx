@@ -11,6 +11,8 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { toast } from 'sonner'
 import { STRING_PRICES, formatCurrency } from '@/lib/pricing'
 import { useAuth } from '@/components/providers/auth-provider'
+import { useCart } from '@/components/products/cart-context'
+import { Trash2 } from 'lucide-react'
 
 interface RepairFormData {
   name: string
@@ -46,6 +48,7 @@ export function RepairForm() {
   const [loading, setLoading] = useState(false)
 
   const { user, openAuthModal } = useAuth()
+  const { selectedProducts, removeProduct } = useCart()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -92,6 +95,7 @@ export function RepairForm() {
         brand: formData.brand,
         model: formData.model,
         tension: formData.tension_lbs.toString(),
+        products: selectedProducts.map(p => p.id).join(','),
       })
 
       // 4. Redirect to PayU Quote Page
@@ -316,6 +320,38 @@ export function RepairForm() {
 
             </div>
           </div>
+
+          {/* Selected Products Section */}
+          {selectedProducts.length > 0 && (
+            <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
+              <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                <span className="text-xl">🛍️</span> Added to Order
+              </h3>
+              <div className="space-y-2">
+                {selectedProducts.map((product) => (
+                  <div key={product.id} className="flex items-center justify-between bg-white p-3 rounded-md border border-gray-200 shadow-sm">
+                    <div className="flex items-center gap-3">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={product.images[0]} alt={product.name} className="h-10 w-10 object-cover rounded-md" />
+                      <div>
+                        <p className="font-medium text-gray-900">{product.name}</p>
+                        <p className="text-xs text-gray-500">{product.category}</p>
+                      </div>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => removeProduct(product.id)}
+                      className="text-red-500 hover:text-red-600 hover:bg-red-50"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           <Button
             type="submit"

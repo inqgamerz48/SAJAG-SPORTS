@@ -47,6 +47,20 @@ function PayUQuoteContent() {
     const brand = searchParams.get('brand')
     const model = searchParams.get('model')
     const tension = searchParams.get('tension')
+    const productsParam = searchParams.get('products')
+
+    // Parse products
+    const [selectedProductDetails, setSelectedProductDetails] = useState<any[]>([])
+
+    useEffect(() => {
+        if (productsParam) {
+            import('@/lib/products').then(({ getProduct }) => {
+                const productIds = productsParam.split(',')
+                const products = productIds.map(id => getProduct(id)).filter(Boolean)
+                setSelectedProductDetails(products)
+            })
+        }
+    }, [productsParam])
 
     useEffect(() => {
         const calculateQuote = async () => {
@@ -254,6 +268,28 @@ function PayUQuoteContent() {
                                 </div>
 
                                 <Separator className="bg-zinc-700" />
+
+                                {/* Selected Products */}
+                                {selectedProductDetails.length > 0 && (
+                                    <>
+                                        <div className="space-y-2">
+                                            <p className="text-white font-medium flex items-center gap-2">
+                                                <span className="text-brand-orange">🛍️</span> Add-ons
+                                            </p>
+                                            {selectedProductDetails.map((product, idx) => (
+                                                <div key={idx} className="flex items-start justify-between pl-6">
+                                                    <div className="text-sm text-zinc-400">
+                                                        {product.name}
+                                                    </div>
+                                                    <div className="text-white font-medium">
+                                                        {product.price > 0 ? formatCurrency(product.price) : 'Added'}
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                        <Separator className="bg-zinc-700" />
+                                    </>
+                                )}
 
                                 {/* Grand Total */}
                                 <div className="flex items-center justify-between pt-2">

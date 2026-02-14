@@ -54,6 +54,9 @@ export function Header() {
             <Link href="#contact" className="text-gray-700 hover:text-brand-orange transition-colors font-medium">
               Contact
             </Link>
+            <Link href="/products" className="text-gray-700 hover:text-brand-orange transition-colors font-medium">
+              Shop
+            </Link>
             <Button variant="brand" size="sm" asChild className="animate-pulse-glow">
               <Link href="/book">Book a Service</Link>
             </Button>
@@ -117,6 +120,13 @@ export function Header() {
                 onClick={() => setMobileMenuOpen(false)}
               >
                 Contact
+              </Link>
+              <Link
+                href="/products"
+                className="text-gray-700 hover:text-brand-orange transition-colors font-medium"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                Shop
               </Link>
               <Button variant="brand" className="w-full mt-2 animate-pulse-glow" asChild>
                 <Link href="/book" onClick={() => setMobileMenuOpen(false)}>

@@ -21,6 +21,7 @@ interface PaymentData {
   stringName?: string
   tension?: number
   photoCount?: number
+  products?: string[]
 }
 
 interface CostBreakdown {
@@ -444,6 +445,16 @@ export default function PaymentPage() {
                       <Separator />
 
                       <div className="space-y-1">
+                        {paymentData.products && paymentData.products.length > 0 && (
+                          <div className="mb-4 pt-2 border-t border-gray-100">
+                            <p className="text-sm font-medium text-gray-900 mb-2">Add-ons:</p>
+                            <ul className="list-disc list-inside text-sm text-gray-600">
+                              {paymentData.products.map((pid, idx) => (
+                                <li key={idx}>Product ID: {pid} (Added)</li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
                         <div className="flex justify-between text-sm">
                           <span className="text-gray-600">Service:</span>
                           <span className="font-medium text-gray-900">₹{costBreakdown.serviceCost.toFixed(2)}</span>

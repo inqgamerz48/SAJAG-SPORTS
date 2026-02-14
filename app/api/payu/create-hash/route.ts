@@ -30,6 +30,7 @@ export async function POST(req: NextRequest) {
             pickupPincode,
             customerDetails,
             racquetDetails,
+            products, // Array of product IDs or names
         } = body
 
         // Calculate shipping cost
@@ -107,15 +108,13 @@ export async function POST(req: NextRequest) {
             key: merchantKey,
             txnid: `TXN${Date.now()}`,
             amount: breakdown.grandTotal.toString(),
-            productinfo: `Racquet Repair - ${racquetDetails.brand} ${racquetDetails.model}`,
+            productinfo: `Racquet Repair - ${racquetDetails.brand} ${racquetDetails.model}${products && products.length > 0 ? ` + ${products.length} Products` : ''}`,
             firstname: customerDetails.name,
             email: customerDetails.email,
             phone: customerDetails.phone,
             surl: `${process.env.NEXT_PUBLIC_APP_URL}/api/payu/verify`,
             furl: `${process.env.NEXT_PUBLIC_APP_URL}/book/failure`,
             udf1: order.id, // Store order ID
-            udf2: breakdown.category, // Store pricing category
-            udf3: numberOfCracks.toString(),
             udf4: stringType || 'none',
             udf5: pickupPincode,
             salt: merchantSalt,
