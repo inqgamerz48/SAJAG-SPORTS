@@ -23,6 +23,8 @@ import {
   Wrench,
 } from 'lucide-react'
 import { BeforeAfterSlider } from '@/components/before-after-slider'
+import { ProductCard } from '@/components/products/product-card'
+import { products } from '@/lib/products'
 
 export default function HomePage() {
   const [email, setEmail] = useState('')
