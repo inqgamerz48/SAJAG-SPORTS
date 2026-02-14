@@ -27,7 +27,7 @@ export function Header() {
           <Link href="/" className="flex items-center">
             <span className="flex items-center gap-3">
               <Image
-                src="/logo.heic"
+                src="/sajag-logo.png"
                 alt="Sajag Sports logo"
                 width={40}
                 height={40}
