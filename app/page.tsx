@@ -25,7 +25,7 @@ import {
 import { BeforeAfterSlider } from '@/components/before-after-slider'
 import { ProductCard } from '@/components/products/product-card'
 import { products } from '@/lib/products'
-import Threads from '@/components/ui/threads'
+
 
 export default function HomePage() {
   const [email, setEmail] = useState('')
@@ -80,16 +80,8 @@ export default function HomePage() {
       <StatsCounter />
 
       {/* Services Showcase Section */}
-      <section className="py-20 px-4 bg-white relative overflow-hidden">
-        <div className="absolute inset-0 w-full h-full">
-          <Threads
-            color={[0.29, 0.56, 0.88]}
-            amplitude={2.5}
-            distance={0.7}
-            enableMouseInteraction={true}
-          />
-        </div>
-        <div className="mx-auto max-w-7xl relative z-10">
+      <section className="py-20 px-4 bg-white">
+        <div className="mx-auto max-w-7xl">
           <div className="mb-12 text-center animate-fade-in-up">
             <h2 className="mb-4 text-4xl font-bold text-gray-900 md:text-5xl">
               Our Services
