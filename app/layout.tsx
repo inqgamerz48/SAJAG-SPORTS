@@ -1,13 +1,10 @@
 import type { Metadata } from "next"
-import { Inter } from "next/font/google"
 import { Toaster } from "@/components/ui/sonner"
 import { AuthProvider } from "@/components/providers/auth-provider"
 import { CartProvider } from "@/components/products/cart-context"
 import "./globals.css"
 import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
-
-const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
   title: "Sajag Sports - The Badminton Surgeon",
@@ -26,7 +23,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={inter.className}>
+      <body className="font-sans antialiased text-gray-900 bg-white">
         <AuthProvider>
           <CartProvider>
             <div className="flex min-h-screen flex-col">
