@@ -9,14 +9,14 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Slider } from '@/components/ui/slider'
 import { Badge } from '@/components/ui/badge'
-import { useCart } from '@/components/products/cart-context'
-import { Trash2 } from 'lucide-react'
+import { useCartStore } from '@/store/useCartStore'
+import { STRING_PRICES } from '@/lib/pricing'
 
 interface StringingFormData {
   name: string
   email: string
   phone: string
-  address: string
+  pincode: string
   stringName: string
   tension: number[]
 }
@@ -39,33 +39,35 @@ export function StringingForm() {
     name: '',
     email: '',
     phone: '',
-    address: '',
+    pincode: '',
     stringName: '',
     tension: [24],
   })
   const [loading, setLoading] = useState(false)
-  const { selectedProducts, removeProduct } = useCart()
+  const { addItem } = useCartStore()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
 
-    // Store form data in sessionStorage to pass to payment page
-    const formDataToStore = {
+    const stringPrice = STRING_PRICES[formData.stringName as keyof typeof STRING_PRICES] || 600
+
+    // Add to unified Cart instead of session storage
+    addItem({
+      name: `Racquet Stringing - ${formData.stringName}`,
+      price: stringPrice,
+      quantity: 1,
+      type: 'service',
       serviceType: 'stringing',
-      name: formData.name,
-      email: formData.email,
-      phone: formData.phone,
-      address: formData.address,
-      stringName: formData.stringName,
       tension: formData.tension[0],
-      products: selectedProducts.map(p => p.id),
-    }
+      customerName: formData.name,
+      customerEmail: formData.email,
+      customerPhone: formData.phone,
+      customerPincode: formData.pincode
+    })
 
-    sessionStorage.setItem('stringingFormData', JSON.stringify(formDataToStore))
-
-    // Redirect to payment page
-    router.push('/payment')
+    // Redirect to the unified cart page
+    router.push('/cart')
   }
 
   return (
@@ -141,18 +143,20 @@ export function StringingForm() {
             />
           </div>
 
-          {/* Address */}
+          {/* Pincode */}
           <div>
-            <Label htmlFor="stringing-address" className="text-gray-700">
-              Complete Address (Pune City Only) *
+            <Label htmlFor="stringing-pincode" className="text-gray-700">
+              Pickup Pincode (Pune City Only) *
             </Label>
-            <textarea
-              id="stringing-address"
-              value={formData.address}
-              onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+            <Input
+              id="stringing-pincode"
+              type="text"
+              maxLength={6}
+              value={formData.pincode}
+              onChange={(e) => setFormData({ ...formData, pincode: e.target.value.replace(/\D/g, '') })}
               required
-              className="mt-2 flex min-h-[100px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-              placeholder="Enter your complete address including pincode (Pune only)"
+              className="mt-2"
+              placeholder="e.g. 411001"
             />
           </div>
 
@@ -206,37 +210,7 @@ export function StringingForm() {
             </div>
           </div>
 
-          {/* Selected Products Section */}
-          {selectedProducts.length > 0 && (
-            <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
-              <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                <span className="text-xl">🛍️</span> Added to Order
-              </h3>
-              <div className="space-y-2">
-                {selectedProducts.map((product) => (
-                  <div key={product.id} className="flex items-center justify-between bg-white p-3 rounded-md border border-gray-200 shadow-sm">
-                    <div className="flex items-center gap-3">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={product.images[0]} alt={product.name} className="h-10 w-10 object-cover rounded-md" />
-                      <div>
-                        <p className="font-medium text-gray-900">{product.name}</p>
-                        <p className="text-xs text-gray-500">{product.category}</p>
-                      </div>
-                    </div>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => removeProduct(product.id)}
-                      className="text-red-500 hover:text-red-600 hover:bg-red-50"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
+
 
           {/* Submit Button */}
           <Button
@@ -246,7 +220,7 @@ export function StringingForm() {
             className="w-full animate-pulse-glow"
             disabled={loading || !formData.stringName}
           >
-            {loading ? 'Processing...' : 'Proceed to Payment'}
+            {loading ? 'Processing...' : 'Add to Cart'}
           </Button>
         </form>
       </CardContent>

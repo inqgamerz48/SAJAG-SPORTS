@@ -10,10 +10,10 @@ const slides = [
   {
     id: 1,
     image: '/hero main.png',
-    title: 'India\'s Premium Badminton Store is Getting an Upgrade',
-    subtitle: 'Our full range of Rackets, Shoes, and Gear will be online soon.',
+    title: 'India\'s Premium Badminton Store',
+    subtitle: 'Explore our hand-picked selection of Rackets, Shoes, and Gear.',
     overlay: true,
-    showServiceNote: true,
+    showServiceNote: false,
   },
   {
     id: 2,
@@ -62,9 +62,8 @@ export function HeroSlider() {
       {slides.map((slide, index) => (
         <div
           key={slide.id}
-          className={`absolute inset-0 transition-opacity duration-1000 ${
-            index === currentSlide ? 'opacity-100' : 'opacity-0'
-          }`}
+          className={`absolute inset-0 transition-opacity duration-1000 ${index === currentSlide ? 'opacity-100' : 'opacity-0'
+            }`}
         >
           {/* Background Image */}
           <div className="absolute inset-0">
@@ -151,9 +150,8 @@ export function HeroSlider() {
             <button
               key={index}
               onClick={() => goToSlide(index)}
-              className={`h-2 rounded-full transition-all ${
-                index === currentSlide ? 'w-8 bg-white' : 'w-2 bg-white/50'
-              }`}
+              className={`h-2 rounded-full transition-all ${index === currentSlide ? 'w-8 bg-white' : 'w-2 bg-white/50'
+                }`}
               aria-label={`Go to slide ${index + 1}`}
             />
           ))}

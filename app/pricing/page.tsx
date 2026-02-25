@@ -236,7 +236,7 @@ export default function PricingPage() {
                 <h2 className="text-2xl font-bold mb-8 italic text-slate-400">&quot;Quality repairs at prices that make sense.&quot;</h2>
                 <div className="flex flex-col md:flex-row gap-4 justify-center">
                     <Button asChild size="lg" className="bg-brand-blue px-10">
-                        <Link href="/checkout">PROCEED TO BOOKING</Link>
+                        <Link href="/book?service=repair">PROCEED TO BOOKING</Link>
                     </Button>
                     <Button asChild variant="outline" size="lg" className="border-brand-blue text-brand-blue hover:bg-brand-blue hover:text-white">
                         <Link href="/services">VIEW REPAIR DETAILS</Link>

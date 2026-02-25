@@ -61,6 +61,33 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
         }
     }
 
+    const handleMagicLink = async (e: React.FormEvent) => {
+        e.preventDefault()
+        if (!loginEmail) {
+            toast.error("Please enter your email first")
+            return
+        }
+        setLoading(true)
+
+        try {
+            const { error } = await supabase.auth.signInWithOtp({
+                email: loginEmail,
+                options: {
+                    emailRedirectTo: `${window.location.origin}/auth/callback`,
+                },
+            })
+
+            if (error) throw error
+
+            toast.success("Magic link sent! Please check your email.")
+            onClose()
+        } catch (error: any) {
+            toast.error(error.message || "Failed to send magic link")
+        } finally {
+            setLoading(false)
+        }
+    }
+
     const handleSignup = async (e: React.FormEvent) => {
         e.preventDefault()
         setLoading(true)
@@ -179,9 +206,27 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
                                         required
                                     />
                                 </div>
-                                <Button type="submit" className="w-full bg-brand-orange hover:bg-brand-orange/90" disabled={loading}>
+                                <Button type="submit" className="w-full bg-brand-orange hover:bg-brand-orange/90 text-white" disabled={loading}>
                                     {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                                    Login
+                                    Login with Password
+                                </Button>
+                                <div className="relative my-4">
+                                    <div className="absolute inset-0 flex items-center">
+                                        <span className="w-full border-t" />
+                                    </div>
+                                    <div className="relative flex justify-center text-xs uppercase">
+                                        <span className="bg-background px-2 text-muted-foreground">passwordless</span>
+                                    </div>
+                                </div>
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    className="w-full"
+                                    onClick={handleMagicLink}
+                                    disabled={loading}
+                                >
+                                    {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                                    Send Magic Link (OTP)
                                 </Button>
                             </form>
                         </div>

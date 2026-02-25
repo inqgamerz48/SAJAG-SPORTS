@@ -30,8 +30,8 @@ CREATE TABLE IF NOT EXISTS orders (
     
     -- Payment fields
     payment_status TEXT DEFAULT 'pending', -- 'pending', 'completed', 'failed'
-    razorpay_order_id TEXT,
-    razorpay_payment_id TEXT,
+    payu_transaction_id TEXT,
+    payu_payment_id TEXT,
     final_quote NUMERIC,
     
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
@@ -49,13 +49,13 @@ CREATE TABLE IF NOT EXISTS racquet_specs (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- 4. Shipments Table (supports both Shiprocket and Delhivery)
+-- 4. Shipments Table (supports Delhivery)
 CREATE TABLE IF NOT EXISTS shipments (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     order_id UUID REFERENCES orders(id) ON DELETE CASCADE,
     
-    -- Shiprocket fields (legacy, keep for backward compatibility)
-    shiprocket_order_id TEXT,
+    -- Delhivery fields
+    delhivery_order_id TEXT,
     awb_code TEXT,
     
     -- Delhivery fields

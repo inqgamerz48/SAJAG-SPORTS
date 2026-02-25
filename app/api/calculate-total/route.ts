@@ -5,7 +5,7 @@ import { calculateRoundTripShipping } from '@/lib/delhivery'
  * Calculate total for repair service:
  * - Repair price by racquet value: below ₹5K = ₹499, above ₹5K = ₹599
  * - Plus stringing cost if selected: BG65 (total ₹650 with repair), BG65 Titanium (total ₹700 with repair)
- * - Plus round-trip shipping (Shiprocket Leg A + Leg B)
+ * - Plus round-trip shipping (Delhivery Leg A + Leg B)
  * - PLUS 18% GST on shipping only
  */
 export async function POST(request: NextRequest) {
@@ -68,7 +68,7 @@ export async function POST(request: NextRequest) {
       serviceDescription = 'Repair + BG65 Titanium Stringing'
     }
 
-    // Step 2: Calculate Round-Trip Shipping via Shiprocket
+    // Step 2: Calculate Round-Trip Shipping via Delhivery
     let shippingCost = 0
     let legA = 0
     let legB = 0
@@ -85,7 +85,7 @@ export async function POST(request: NextRequest) {
         shippingMessage = shippingResult.error || 'Shipping rates unavailable for this pincode. You can self-ship or contact us.'
       }
     } catch (shipErr) {
-      console.error('Shiprocket calculation error:', shipErr)
+      console.error('Delhivery calculation error:', shipErr)
       shippingMessage = 'Could not fetch shipping rates. Please try again or contact us.'
     }
 

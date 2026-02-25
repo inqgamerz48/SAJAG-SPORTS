@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { verifyPayUResponseHash } from '@/lib/payu'
-import { createAdminClient } from '@/lib/supabase/admin'
+import { prisma } from '@/lib/prisma'
 import { createReversePickup } from '@/lib/delhivery'
 
 export async function POST(request: NextRequest) {
@@ -26,62 +26,58 @@ export async function POST(request: NextRequest) {
 
         const { status, txnid, mihpayid, amount, email, firstname, udf1: order_id } = data
 
-        const supabase = createAdminClient()
-
         if (status === 'success') {
-            // Update order status to Pickup_Pending (payment confirmed)
-            const { data: order, error: updateError } = await supabase
-                .from('orders')
-                .update({ status: 'Pickup_Pending', updated_at: new Date().toISOString() })
-                .eq('id', order_id)
-                .select(`
-                    *,
-                    profiles (full_name, email, phone, address, pincode)
-                `)
-                .single()
+            // Update order status via Prisma to secure complex nested relations
+            const order = await prisma.order.update({
+                where: { id: order_id },
+                data: {
+                    status: 'Pickup_Pending',
+                    paymentStatus: 'success'
+                },
+                include: {
+                    customer: true,
+                    orderItems: true
+                }
+            })
 
-            if (updateError) {
-                console.error('Error updating order:', updateError)
-            }
+            const profile = order.customer
 
-            if (order) {
-                const profile = order.profiles as any
+            // If ANY item in the order is a service (repair or stringing), book a Delhivery reverse pickup
+            const hasService = order.orderItems.some(item => !!item.serviceType)
 
-                // If it's a repair service, auto-book Delhivery reverse pickup
-                if (order.service_type === 'Frame Repair' && profile?.pincode) {
-                    try {
-                        // Extract city/state from address or use defaults
-                        const addressParts = (profile.address || '').split(',').map((s: string) => s.trim())
-                        const city = addressParts[addressParts.length - 2] || 'Unknown'
-                        const state = addressParts[addressParts.length - 1] || 'Unknown'
+            if (hasService && profile?.pincode) {
+                try {
+                    // Extract city/state from address or use defaults
+                    const addressParts = (profile.address || '').split(',').map((s: string) => s.trim())
+                    const state = addressParts.length > 1 ? addressParts[addressParts.length - 1] : 'Unknown'
+                    const city = addressParts.length > 2 ? addressParts[addressParts.length - 2] : 'Unknown'
 
-                        const pickupResult = await createReversePickup({
-                            order_id: order.id,
-                            customer_name: profile.full_name,
-                            customer_email: profile.email,
-                            customer_phone: profile.phone,
-                            customer_address: profile.address,
-                            customer_pincode: profile.pincode,
-                            customer_city: city,
-                            customer_state: state,
-                        })
+                    const pickupResult = await createReversePickup({
+                        order_id: order.id,
+                        customer_name: profile.fullName || 'Customer',
+                        customer_email: profile.email,
+                        customer_phone: profile.phone || '',
+                        customer_address: profile.address || '',
+                        customer_pincode: profile.pincode,
+                        customer_city: city,
+                        customer_state: state,
+                    })
 
-                        if (pickupResult.success) {
-                            await supabase.from('shipments').insert({
-                                order_id: order.id,
-                                waybill: pickupResult.waybill,
-                                pickup_id: pickupResult.pickup_id,
-                                delhivery_order_id: pickupResult.delhivery_order_id,
-                                shipment_status: 'Pickup_Scheduled',
-                                is_reverse: true,
+                    if (pickupResult.success) {
+                        await prisma.shipment.create({
+                            data: {
+                                orderId: order.id,
+                                awbCode: pickupResult.waybill,
                                 provider: 'delhivery',
-                            })
-                        } else {
-                            console.error('Delhivery auto-booking failed:', pickupResult.error)
-                        }
-                    } catch (delhiveryError) {
-                        console.error('Delhivery auto-booking error:', delhiveryError)
+                                isReverse: true,
+                                shipmentStatus: 'Pickup_Scheduled'
+                            }
+                        })
+                    } else {
+                        console.error('Delhivery auto-booking failed:', pickupResult.error)
                     }
+                } catch (delhiveryError) {
+                    console.error('Delhivery auto-booking error:', delhiveryError)
                 }
             }
 

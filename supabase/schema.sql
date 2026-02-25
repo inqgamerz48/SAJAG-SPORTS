@@ -69,18 +69,31 @@ CREATE TABLE IF NOT EXISTS orders (
     logistics_deposit DECIMAL(10, 2) DEFAULT 199.00,
     final_quote DECIMAL(10, 2),
     payment_status VARCHAR(20) DEFAULT 'pending' CHECK (payment_status IN ('pending', 'deposit_paid', 'fully_paid', 'refunded')),
-    razorpay_order_id VARCHAR(255),
-    razorpay_payment_id VARCHAR(255),
+    payu_transaction_id VARCHAR(255),
+    payu_payment_id VARCHAR(255),
     
-    -- Shiprocket Integration
-    shiprocket_awb_code VARCHAR(100),
-    shiprocket_order_id VARCHAR(255),
-    shiprocket_status VARCHAR(50),
+    -- Shiprocket Integration (now Delhivery)
+    shiprocket_awb_code VARCHAR(100), -- Keeping this for now, will be moved to shipments table
+    delhivery_order_id VARCHAR(255), -- This replaces shiprocket_order_id in orders table
+    shiprocket_status VARCHAR(50), -- Keeping this for now, will be moved to shipments table
     
     -- Timestamps
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     completed_at TIMESTAMP WITH TIME ZONE
+);
+
+-- Note: We map order_items manually later, focusing on shipments for Razorpay cleanup
+CREATE TABLE IF NOT EXISTS public.shipments (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    order_id UUID REFERENCES public.orders(id) ON DELETE CASCADE,
+    delhivery_order_id VARCHAR(255),
+    awb_code VARCHAR(255),
+    shipment_status VARCHAR(255),
+    is_reverse BOOLEAN DEFAULT false,
+    provider VARCHAR(255) DEFAULT 'delhivery',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
 -- Media Evidence (Before/After images)

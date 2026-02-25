@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -11,14 +11,14 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { toast } from 'sonner'
 import { STRING_PRICES, formatCurrency } from '@/lib/pricing'
 import { useAuth } from '@/components/providers/auth-provider'
-import { useCart } from '@/components/products/cart-context'
-import { Trash2 } from 'lucide-react'
+import { useCartStore } from '@/store/useCartStore'
+import { Trash2, Loader2, CheckCircle2, XCircle } from 'lucide-react'
 
 interface RepairFormData {
   name: string
   email: string
   phone: string
-  address: string
+  pincode: string
   serviceType: 'Stringing' | 'Frame Repair'
   brand: string
   model: string
@@ -35,7 +35,7 @@ export function RepairForm() {
     name: '',
     email: '',
     phone: '',
-    address: '',
+    pincode: '',
     serviceType: 'Frame Repair', // Default to Frame Repair
     brand: '',
     model: '',
@@ -46,22 +46,61 @@ export function RepairForm() {
     numberOfCracks: '1',
   })
   const [loading, setLoading] = useState(false)
+  const [checkingPincode, setCheckingPincode] = useState(false)
+  const [pincodeStatus, setPincodeStatus] = useState<'idle' | 'valid' | 'invalid'>('idle')
+  const [pincodeMessage, setPincodeMessage] = useState('')
 
   const { user, openAuthModal } = useAuth()
-  const { selectedProducts, removeProduct } = useCart()
+  const { addItem } = useCartStore()
+
+  // Real-time Pincode Validation
+  useEffect(() => {
+    const pincode = formData.pincode
+
+    if (pincode && pincode.length === 6 && /^\d{6}$/.test(pincode)) {
+      const checkServiceability = async () => {
+        setCheckingPincode(true)
+        setPincodeStatus('idle')
+
+        try {
+          const res = await fetch('/api/calculate-shipping', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ pincode })
+          })
+          const data = await res.json()
+
+          if (data.success && data.serviceable) {
+            setPincodeStatus('valid')
+            setPincodeMessage(`Service available! ${data.rates?.courier_name ? `(${data.rates.courier_name})` : ''}`)
+          } else {
+            setPincodeStatus('invalid')
+            setPincodeMessage(data.error || 'Shipping not available for this pincode')
+          }
+        } catch (error) {
+          setPincodeStatus('invalid')
+          setPincodeMessage('Error checking serviceability')
+        } finally {
+          setCheckingPincode(false)
+        }
+      }
+
+      // Debounce check to avoid too many API calls while typing
+      const timer = setTimeout(checkServiceability, 1000)
+      return () => clearTimeout(timer)
+    } else {
+      setPincodeStatus('idle')
+      setPincodeMessage('')
+    }
+  }, [formData.pincode])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    if (!user) {
-      openAuthModal()
-      return
-    }
-
     // 1. Pincode Validation
-    const pincode = formData.address.match(/\b\d{6}\b/)?.[0]
-    if (!pincode) {
-      toast.error('Please include a valid 6-digit pincode in your address.')
+    const pincode = formData.pincode
+    if (!pincode || !/^\d{6}$/.test(pincode)) {
+      toast.error('Please enter a valid 6-digit pincode.')
       return
     }
 
@@ -82,24 +121,30 @@ export function RepairForm() {
         return
       }
 
-      // 3. Construct Query Params for Quote Page
-      const params = new URLSearchParams({
-        racquetValue: formData.racquetValueCategory === 'A' ? '4000' : '6000', // Proxy value for category
-        numberOfCracks: formData.numberOfCracks,
-        stringType: formData.stringType,
-        pickupPincode: pincode,
-        name: formData.name,
-        email: formData.email,
-        phone: formData.phone,
-        address: formData.address,
-        brand: formData.brand,
-        model: formData.model,
-        tension: formData.tension_lbs.toString(),
-        products: selectedProducts.map(p => p.id).join(','),
+      // 3. Add to Cart Store instead of direct quote page
+      let basePrice = formData.racquetValueCategory === 'A' ? 500 : 700
+      let stringPrice = formData.stringType !== 'none' ? STRING_PRICES[formData.stringType as keyof typeof STRING_PRICES] || 0 : 0
+
+      const totalPrice = (basePrice * parseInt(formData.numberOfCracks)) + stringPrice
+
+      addItem({
+        name: `${formData.brand} ${formData.model} Repair`,
+        price: totalPrice,
+        quantity: 1,
+        type: 'service',
+        serviceType: 'repair',
+        racquetBrand: formData.brand,
+        racquetModel: formData.model,
+        tension: formData.tension_lbs,
+        // Carry forward contact info to prefill checkout
+        customerName: formData.name,
+        customerEmail: formData.email,
+        customerPhone: formData.phone,
+        customerPincode: formData.pincode
       })
 
-      // 4. Redirect to PayU Quote Page
-      router.push(`/payu-quote?${params.toString()}`)
+      // Instead of going to checkout, go to the unified /cart to see everything (and hit the upsell!)
+      router.push(`/cart`)
 
     } catch (error) {
       console.error('Submission error:', error)
@@ -174,15 +219,38 @@ export function RepairForm() {
               </div>
 
               <div>
-                <Label htmlFor="repair-address" className="text-gray-700">Address with Pincode *</Label>
-                <textarea
-                  id="repair-address"
-                  value={formData.address}
-                  onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                <Label htmlFor="repair-pincode" className="text-gray-700">Pickup Pincode *</Label>
+                <Input
+                  id="repair-pincode"
+                  type="text"
+                  maxLength={6}
+                  value={formData.pincode}
+                  onChange={(e) => setFormData({ ...formData, pincode: e.target.value.replace(/\D/g, '') })}
                   required
-                  className="mt-1 flex min-h-[100px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                  placeholder="Enter complete address..."
+                  className="mt-1"
+                  placeholder="e.g. 411001"
                 />
+                {/* Pincode Status Feedback */}
+                <div className="mt-2 h-6 text-sm">
+                  {checkingPincode && (
+                    <div className="flex items-center gap-2 text-gray-500">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Checking serviceability...
+                    </div>
+                  )}
+                  {!checkingPincode && pincodeStatus === 'valid' && (
+                    <div className="flex items-center gap-2 text-green-600">
+                      <CheckCircle2 className="h-4 w-4" />
+                      {pincodeMessage}
+                    </div>
+                  )}
+                  {!checkingPincode && pincodeStatus === 'invalid' && (
+                    <div className="flex items-center gap-2 text-red-600">
+                      <XCircle className="h-4 w-4" />
+                      {pincodeMessage}
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
 
@@ -321,44 +389,14 @@ export function RepairForm() {
             </div>
           </div>
 
-          {/* Selected Products Section */}
-          {selectedProducts.length > 0 && (
-            <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
-              <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                <span className="text-xl">🛍️</span> Added to Order
-              </h3>
-              <div className="space-y-2">
-                {selectedProducts.map((product) => (
-                  <div key={product.id} className="flex items-center justify-between bg-white p-3 rounded-md border border-gray-200 shadow-sm">
-                    <div className="flex items-center gap-3">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={product.images[0]} alt={product.name} className="h-10 w-10 object-cover rounded-md" />
-                      <div>
-                        <p className="font-medium text-gray-900">{product.name}</p>
-                        <p className="text-xs text-gray-500">{product.category}</p>
-                      </div>
-                    </div>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => removeProduct(product.id)}
-                      className="text-red-500 hover:text-red-600 hover:bg-red-50"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
+
 
           <Button
             type="submit"
             variant="brand"
             size="lg"
             className="w-full text-lg py-6 shadow-xl animate-pulse-glow mt-8 bg-brand-orange hover:bg-brand-orange/90"
-            disabled={loading}
+            disabled={loading || checkingPincode || pincodeStatus === 'invalid'}
           >
             {loading ? 'Calculating Quote...' : 'Get Quote & Pay'}
           </Button>

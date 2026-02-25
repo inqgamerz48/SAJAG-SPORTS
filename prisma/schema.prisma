@@ -1,0 +1,102 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model Profile {
+  id         String     @id @db.Uuid // Supabase auth.users ID
+  email      String     @unique
+  fullName   String?
+  phone      String?
+  address    String?
+  pincode    String?
+  role       String     @default("customer")
+  createdAt  DateTime   @default(now()) @map("created_at")
+  updatedAt  DateTime   @default(now()) @updatedAt @map("updated_at")
+  orders     Order[]
+
+  @@map("profiles")
+}
+
+model Product {
+  id          String   @id @default(uuid()) @db.Uuid
+  name        String
+  sku         String   @unique
+  category    String   // 'Racquets', 'Accessories', 'Apparel'
+  stockCount  Int      @default(0) @map("stock_count")
+  price       Decimal  @db.Decimal(10, 2)
+  images      String[] // Array of image URLs
+  description String?
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @default(now()) @updatedAt @map("updated_at")
+
+  @@map("products")
+}
+
+enum OrderStatus {
+  Pending
+  Pickup_Pending
+  In_Workshop
+  Repairing
+  Ready_to_Return
+  Shipped
+  Completed
+  Cancelled
+}
+
+model Order {
+  id                String       @id @default(uuid()) @db.Uuid
+  customerId        String?      @map("customer_id") @db.Uuid
+  customer          Profile?     @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  status            OrderStatus  @default(Pending)
+  paymentStatus     String       @default("pending") @map("payment_status")
+  payuTransactionId String?      @map("payu_transaction_id")
+  payuPaymentId     String?      @map("payu_payment_id")
+  finalQuote        Decimal?     @map("final_quote") @db.Decimal(10, 2)
+  createdAt         DateTime     @default(now()) @map("created_at")
+  updatedAt         DateTime     @default(now()) @updatedAt @map("updated_at")
+  
+  orderItems        OrderItem[]
+  shipments         Shipment[]
+
+  @@map("orders")
+}
+
+model OrderItem {
+  id              String   @id @default(uuid()) @db.Uuid
+  orderId         String   @map("order_id") @db.Uuid
+  order           Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  
+  // Can refer to a physical product
+  productId       String?  @map("product_id") @db.Uuid
+  quantity        Int      @default(1)
+  priceAtPurchase Decimal  @map("price_at_purchase") @db.Decimal(10, 2)
+  
+  // Or it can be a service
+  serviceType     String?  // 'stringing', 'repair'
+  racquetBrand    String?  @map("racquet_brand")
+  racquetModel    String?  @map("racquet_model")
+  tensionLbs      Int?     @map("tension_lbs")
+  
+  @@map("order_items")
+}
+
+model Shipment {
+  id                  String   @id @default(uuid()) @db.Uuid
+  orderId             String   @map("order_id") @db.Uuid
+  order               Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  delhiveryOrderId    String?  @map("delhivery_order_id")
+  awbCode             String?  @map("awb_code")
+  shipmentStatus      String?  @map("shipment_status")
+  isReverse           Boolean  @default(false) @map("is_reverse")
+  provider            String   @default("delhivery")
+  createdAt           DateTime @default(now()) @map("created_at")
+  updatedAt           DateTime @default(now()) @updatedAt @map("updated_at")
+
+  @@map("shipments")
+}

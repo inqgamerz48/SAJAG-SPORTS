@@ -37,21 +37,12 @@ export async function middleware(request: NextRequest) {
   const path = request.nextUrl.pathname
 
   // 1. Admin Routes Protection
+  // NextAuth handles admin authentication, BUT we might want to check if a Customer accidentally lands here.
+  // Actually, wait: We moved to NextAuth for Admin. So Supabase middleware shouldn't block /admin! 
+  // Let NextAuth handle /admin routes. We only protect /dashboard with Supabase.
   if (path.startsWith('/admin')) {
-    if (!user) {
-      return NextResponse.redirect(new URL('/?login=true', request.url))
-    }
-
-    // Fetch user role
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id)
-      .single()
-
-    if (profile?.role !== 'admin') {
-      return NextResponse.redirect(new URL('/dashboard', request.url)) // Redirect non-admins to dashboard
-    }
+    // DO NOTHING: NextAuth's own session logic inside the /admin layout or pages will handle this.
+    return supabaseResponse
   }
 
   // 2. Dashboard Routes Protection

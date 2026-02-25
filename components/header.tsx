@@ -54,8 +54,8 @@ export function Header() {
             <Link href="#contact" className="text-gray-700 hover:text-brand-orange transition-colors font-medium">
               Contact
             </Link>
-            <Link href="/products" className="text-gray-700 hover:text-brand-orange transition-colors font-medium">
-              Shop
+            <Link href="/shop" className="text-gray-700 hover:text-brand-orange transition-colors font-medium">
+              Store Front
             </Link>
             <Button variant="brand" size="sm" asChild className="animate-pulse-glow">
               <Link href="/book">Book a Service</Link>
@@ -65,9 +65,9 @@ export function Header() {
             {user ? (
               <div className="flex items-center gap-4">
                 <Button variant="ghost" size="sm" asChild>
-                  <Link href={role === 'admin' ? '/admin/dashboard' : '/dashboard'}>
-                    <LayoutDashboard className="h-4 w-4 mr-2" />
-                    Dashboard
+                  <Link href={role === 'admin' ? '/admin/dashboard' : '/profile'}>
+                    {role === 'admin' ? <LayoutDashboard className="h-4 w-4 mr-2" /> : <User className="h-4 w-4 mr-2" />}
+                    {role === 'admin' ? 'Dashboard' : 'Profile'}
                   </Link>
                 </Button>
                 <Button variant="ghost" size="sm" onClick={() => signOut()}>
@@ -122,11 +122,11 @@ export function Header() {
                 Contact
               </Link>
               <Link
-                href="/products"
+                href="/shop"
                 className="text-gray-700 hover:text-brand-orange transition-colors font-medium"
                 onClick={() => setMobileMenuOpen(false)}
               >
-                Shop
+                Store Front
               </Link>
               <Button variant="brand" className="w-full mt-2 animate-pulse-glow" asChild>
                 <Link href="/book" onClick={() => setMobileMenuOpen(false)}>
@@ -138,12 +138,12 @@ export function Header() {
               {user ? (
                 <>
                   <Link
-                    href={role === 'admin' ? '/admin/dashboard' : '/dashboard'}
+                    href={role === 'admin' ? '/admin/dashboard' : '/profile'}
                     className="text-gray-700 hover:text-brand-orange transition-colors font-medium flex items-center"
                     onClick={() => setMobileMenuOpen(false)}
                   >
-                    <LayoutDashboard className="h-4 w-4 mr-2" />
-                    Dashboard
+                    {role === 'admin' ? <LayoutDashboard className="h-4 w-4 mr-2" /> : <User className="h-4 w-4 mr-2" />}
+                    {role === 'admin' ? 'Dashboard' : 'Profile'}
                   </Link>
                   <button
                     onClick={() => {

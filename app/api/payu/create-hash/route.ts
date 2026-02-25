@@ -1,18 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { generatePayUHash } from '@/lib/payu'
-import { createClient } from '@/lib/supabase/server'
-import { calculatePricingBreakdown } from '@/lib/pricing'
-import { calculateRoundTripShipping } from '@/lib/delhivery'
+import { prisma } from '@/lib/prisma'
+import { createServerClient } from '@supabase/ssr'
+import { cookies } from 'next/headers'
 
-/**
- * Create PayU Payment Hash with New Pricing Engine
- * 
- * POST /api/payu/create-hash
- * Body: { racquetValue, numberOfCracks, stringType, pickupPincode, customerDetails, racquetDetails }
- */
 export async function POST(req: NextRequest) {
     try {
-        const supabase = await createClient()
+        const cookieStore = await cookies()
+        const supabase = createServerClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL!,
+            process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+            {
+                cookies: {
+                    get(name: string) {
+                        return cookieStore.get(name)?.value
+                    },
+                },
+            }
+        )
         const { data: { user } } = await supabase.auth.getUser()
 
         if (!user) {
@@ -24,113 +29,100 @@ export async function POST(req: NextRequest) {
 
         const body = await req.json()
         const {
-            racquetValue,
-            numberOfCracks,
-            stringType,
-            pickupPincode,
-            customerDetails,
-            racquetDetails,
-            products, // Array of product IDs or names
+            customerInfo,
+            items,
+            costBreakdown
         } = body
 
-        // Calculate shipping cost
-        const shippingResult = await calculateRoundTripShipping(pickupPincode)
-
-        if (!shippingResult.success) {
-            return NextResponse.json(
-                { success: false, error: shippingResult.error || 'Shipping not available for this pincode' },
-                { status: 400 }
-            )
+        if (!items || items.length === 0) {
+            return NextResponse.json({ success: false, error: 'Cart is empty' }, { status: 400 })
         }
 
-        // Calculate complete pricing breakdown
-        const breakdown = calculatePricingBreakdown(
-            Number(racquetValue),
-            Number(numberOfCracks),
-            stringType || 'none',
-            shippingResult.total || 0
-        )
+        if (!customerInfo || !costBreakdown) {
+            return NextResponse.json({ success: false, error: 'Missing customer info or pricing breakdown' }, { status: 400 })
+        }
 
-        // Create or update profile
-        const { data: profile, error: profileError } = await supabase
-            .from('profiles')
-            .upsert({
+        const grandTotal = costBreakdown.total
+        const isRoundTrip = items.some((item: any) => item.type === 'service')
+
+        // 0. Ensure Profile Exists (Bypass flaky Supabase triggers for OAuth users)
+        await prisma.profile.upsert({
+            where: { id: user.id },
+            update: {
+                fullName: customerInfo.name,
+                phone: customerInfo.phone,
+                address: customerInfo.address,
+                pincode: customerInfo.pincode
+            },
+            create: {
                 id: user.id,
-                email: customerDetails.email,
-                full_name: customerDetails.name,
-                phone: customerDetails.phone,
-                address: customerDetails.address,
-                pincode: pickupPincode,
-                updated_at: new Date().toISOString(),
-            })
-            .select()
-            .single()
-
-        if (profileError) {
-            console.error('Profile upsert error:', profileError)
-        }
-
-        // Create order
-        const { data: order, error: orderError } = await supabase
-            .from('orders')
-            .insert({
-                customer_id: user.id,
-                service_type: 'Frame Repair',
-                status: 'Pickup_Pending',
-                payment_status: 'pending',
-                final_quote: breakdown.grandTotal,
-            })
-            .select()
-            .single()
-
-        if (orderError || !order) {
-            return NextResponse.json(
-                { success: false, error: 'Failed to create order' },
-                { status: 500 }
-            )
-        }
-
-        // Create racquet specs
-        await supabase.from('racquet_specs').insert({
-            order_id: order.id,
-            brand: racquetDetails.brand,
-            model: racquetDetails.model,
-            string_type: stringType || null,
-            tension_lbs: racquetDetails.tension || 24,
-            knot_type: '4-knot',
+                email: user.email || customerInfo.email,
+                fullName: customerInfo.name,
+                phone: customerInfo.phone,
+                address: customerInfo.address,
+                pincode: customerInfo.pincode
+            }
         })
 
-        // Generate PayU hash
+        // 1. Create Order in Prisma
+        const order = await prisma.order.create({
+            data: {
+                customerId: user.id,
+                status: 'Pending',
+                paymentStatus: 'pending',
+                finalQuote: grandTotal,
+                orderItems: {
+                    create: items.map((item: any) => ({
+                        productId: item.productId || null,
+                        quantity: item.quantity,
+                        priceAtPurchase: item.price,
+                        serviceType: item.serviceType || null,
+                        racquetBrand: item.racquetBrand || null,
+                        racquetModel: item.racquetModel || null,
+                        tensionLbs: item.tension || null
+                    }))
+                },
+                shipments: {
+                    create: {
+                        provider: 'delhivery',
+                        isReverse: isRoundTrip
+                    }
+                }
+            }
+        })
+
+        // 2. Generate PayU object
         const merchantKey = process.env.PAYU_MERCHANT_KEY!
         const merchantSalt = process.env.PAYU_MERCHANT_SALT!
+
+        const productName = items.length === 1
+            ? items[0].name
+            : `${items.length} items (Mixed)`
 
         const payuData = {
             key: merchantKey,
             txnid: `TXN${Date.now()}`,
-            amount: breakdown.grandTotal.toString(),
-            productinfo: `Racquet Repair - ${racquetDetails.brand} ${racquetDetails.model}${products && products.length > 0 ? ` + ${products.length} Products` : ''}`,
-            firstname: customerDetails.name,
-            email: customerDetails.email,
-            phone: customerDetails.phone,
+            amount: grandTotal.toString(),
+            productinfo: productName,
+            firstname: customerInfo.name,
+            email: customerInfo.email,
+            phone: customerInfo.phone,
             surl: `${process.env.NEXT_PUBLIC_APP_URL}/api/payu/verify`,
-            furl: `${process.env.NEXT_PUBLIC_APP_URL}/book/failure`,
-            udf1: order.id, // Store order ID
-            udf4: stringType || 'none',
-            udf5: pickupPincode,
+            furl: `${process.env.NEXT_PUBLIC_APP_URL}/cart`, // Return to cart on failure
+            udf1: order.id, // Critical: pass the real Prisma order ID
             salt: merchantSalt,
         }
 
         const hash = generatePayUHash(payuData)
 
-        // Remove salt before sending to client
+        // Remove salt before returning
         const { salt, ...payuDataForClient } = payuData
 
         return NextResponse.json({
             success: true,
             hash,
             payuData: payuDataForClient,
-            breakdown,
-            orderId: order.id,
+            orderId: order.id
         })
     } catch (error: any) {
         console.error('PayU create hash error:', error)

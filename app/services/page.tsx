@@ -19,7 +19,7 @@ export default function ServicesPage() {
                         Premium structural restoration with door-to-door pickup and delivery across India.
                     </p>
                     <Button asChild size="lg" className="bg-brand-orange hover:bg-brand-orange/90 text-white px-8 h-12 text-lg">
-                        <Link href="/checkout">BOOK REPAIR NOW <ChevronRight className="ml-2 h-5 w-5" /></Link>
+                        <Link href="/book?service=repair">BOOK REPAIR NOW <ChevronRight className="ml-2 h-5 w-5" /></Link>
                     </Button>
                 </div>
             </section>
@@ -62,7 +62,7 @@ export default function ServicesPage() {
                                     <span className="text-xs text-slate-400">*Includes 1 crack, stringing, shipping & GST</span>
                                 </div>
                                 <Button asChild className="w-full bg-brand-blue hover:bg-brand-blue/90">
-                                    <Link href="/checkout?category=under5k">SELECT THIS CATEGORY <ChevronRight className="ml-2 h-4 w-4" /></Link>
+                                    <Link href="/book?service=repair&category=under5k">SELECT THIS CATEGORY <ChevronRight className="ml-2 h-4 w-4" /></Link>
                                 </Button>
                             </div>
                         </CardContent>
@@ -106,7 +106,7 @@ export default function ServicesPage() {
                                     <span className="text-xs text-slate-400">*Includes 1 crack, stringing, shipping & GST</span>
                                 </div>
                                 <Button asChild className="w-full bg-brand-orange hover:bg-brand-orange/90">
-                                    <Link href="/checkout?category=above5k">SELECT THIS CATEGORY <ChevronRight className="ml-2 h-4 w-4" /></Link>
+                                    <Link href="/book?service=repair&category=above5k">SELECT THIS CATEGORY <ChevronRight className="ml-2 h-4 w-4" /></Link>
                                 </Button>
                             </div>
                         </CardContent>
@@ -203,7 +203,7 @@ export default function ServicesPage() {
                             Not sure if your racquet is repairable? Our experts assess every racquet upon receipt. If a repair is not possible, we issue a full refund minus shipping.
                         </p>
                         <Button asChild className="w-full bg-brand-blue h-12">
-                            <Link href="/checkout">START BOOKING PROCESS</Link>
+                            <Link href="/book?service=repair">START BOOKING PROCESS</Link>
                         </Button>
                     </div>
                 </section>
@@ -214,7 +214,7 @@ export default function ServicesPage() {
                     <p className="text-blue-100 mb-8 max-w-xl mx-auto">Join 1000+ happy players who have saved their favorite racquets with Sajag Sports.</p>
                     <div className="flex flex-col md:flex-row gap-4 justify-center items-center">
                         <Button asChild size="lg" className="bg-brand-orange hover:bg-brand-orange/90 text-white px-8">
-                            <Link href="/checkout">BOOK REPAIR SERVICE NOW</Link>
+                            <Link href="/book?service=repair">BOOK REPAIR SERVICE NOW</Link>
                         </Button>
                         <Button asChild variant="outline" size="lg" className="border-white text-white hover:bg-white hover:text-brand-blue">
                             <a href="https://wa.me/919420000000" target="_blank" rel="noopener noreferrer">WHATSAPP QUESTIONS</a>
