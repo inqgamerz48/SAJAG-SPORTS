@@ -3,13 +3,21 @@
 import Link from 'next/link'
 import Image from 'next/image'
 import { Button } from '@/components/ui/button'
-import { Menu, X, User, LogOut, LayoutDashboard } from 'lucide-react'
-import { useState } from 'react'
+import { Menu, X, User, LogOut, LayoutDashboard, ShoppingCart } from 'lucide-react'
+import { useState, useEffect } from 'react'
 import { useAuth } from '@/components/providers/auth-provider'
+import { useCartStore } from '@/store/useCartStore'
 
 export function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const { user, role, openAuthModal, signOut } = useAuth()
+  const [mounted, setMounted] = useState(false)
+  const getTotalItems = useCartStore((state) => state.getTotalItems)
+  const itemsCount = getTotalItems()
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   const scrollToServices = () => {
     const servicesSection = document.getElementById('services')
@@ -40,61 +48,73 @@ export function Header() {
             </span>
           </Link>
 
-          {/* Desktop Navigation */}
-          <nav className="hidden md:flex items-center gap-8">
-            <Link href="/" className="text-gray-700 hover:text-brand-orange transition-colors font-medium">
-              Home
-            </Link>
-            <button
-              onClick={scrollToServices}
-              className="text-gray-700 hover:text-brand-orange transition-colors font-medium"
-            >
-              Services
-            </button>
-            <Link href="#contact" className="text-gray-700 hover:text-brand-orange transition-colors font-medium">
-              Contact
-            </Link>
-            <Link href="/shop" className="text-gray-700 hover:text-brand-orange transition-colors font-medium">
-              Store Front
-            </Link>
-            <Button variant="brand" size="sm" asChild className="animate-pulse-glow">
-              <Link href="/book">Book a Service</Link>
-            </Button>
-
-            {/* Auth Buttons */}
-            {user ? (
-              <div className="flex items-center gap-4">
-                <Button variant="ghost" size="sm" asChild>
-                  <Link href={role === 'admin' ? '/admin/dashboard' : '/profile'}>
-                    {role === 'admin' ? <LayoutDashboard className="h-4 w-4 mr-2" /> : <User className="h-4 w-4 mr-2" />}
-                    {role === 'admin' ? 'Dashboard' : 'Profile'}
-                  </Link>
-                </Button>
-                <Button variant="ghost" size="sm" onClick={() => signOut()}>
-                  <LogOut className="h-4 w-4 mr-2" />
-                  Sign Out
-                </Button>
-              </div>
-            ) : (
-              <Button variant="outline" size="sm" onClick={openAuthModal}>
-                <User className="h-4 w-4 mr-2" />
-                Login
+          <div className="flex items-center gap-2 md:gap-8">
+            {/* Desktop Navigation */}
+            <nav className="hidden md:flex items-center gap-8">
+              <Link href="/" className="text-gray-700 hover:text-brand-orange transition-colors font-medium">
+                Home
+              </Link>
+              <button
+                onClick={scrollToServices}
+                className="text-gray-700 hover:text-brand-orange transition-colors font-medium"
+              >
+                Services
+              </button>
+              <Link href="#contact" className="text-gray-700 hover:text-brand-orange transition-colors font-medium">
+                Contact
+              </Link>
+              <Link href="/shop" className="text-gray-700 hover:text-brand-orange transition-colors font-medium">
+                Store Front
+              </Link>
+              <Button variant="brand" size="sm" asChild className="animate-pulse-glow">
+                <Link href="/book">Book a Service</Link>
               </Button>
-            )}
-          </nav>
 
-          {/* Mobile Menu Button */}
-          <button
-            className="md:hidden p-2"
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            aria-label="Toggle menu"
-          >
-            {mobileMenuOpen ? (
-              <X className="h-6 w-6 text-gray-900" />
-            ) : (
-              <Menu className="h-6 w-6 text-gray-900" />
-            )}
-          </button>
+              {/* Auth Buttons */}
+              {user ? (
+                <div className="flex items-center gap-4">
+                  <Button variant="ghost" size="sm" asChild>
+                    <Link href={role === 'admin' ? '/admin/dashboard' : '/profile'}>
+                      {role === 'admin' ? <LayoutDashboard className="h-4 w-4 mr-2" /> : <User className="h-4 w-4 mr-2" />}
+                      {role === 'admin' ? 'Dashboard' : 'Profile'}
+                    </Link>
+                  </Button>
+                  <Button variant="ghost" size="sm" onClick={() => signOut()}>
+                    <LogOut className="h-4 w-4 mr-2" />
+                    Sign Out
+                  </Button>
+                </div>
+              ) : (
+                <Button variant="outline" size="sm" onClick={openAuthModal}>
+                  <User className="h-4 w-4 mr-2" />
+                  Login
+                </Button>
+              )}
+            </nav>
+
+            {/* Cart Icon */}
+            <Link href="/cart" className="relative p-2 text-gray-700 hover:text-brand-orange transition-colors">
+              <ShoppingCart className="h-6 w-6 relative z-10" />
+              {mounted && itemsCount > 0 && (
+                <span className="absolute top-0 right-0 z-20 bg-brand-orange text-white text-[10px] font-bold h-4 w-4 rounded-full flex items-center justify-center translate-x-1 -translate-y-1">
+                  {itemsCount}
+                </span>
+              )}
+            </Link>
+
+            {/* Mobile Menu Button */}
+            <button
+              className="md:hidden p-2"
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              aria-label="Toggle menu"
+            >
+              {mobileMenuOpen ? (
+                <X className="h-6 w-6 text-gray-900" />
+              ) : (
+                <Menu className="h-6 w-6 text-gray-900" />
+              )}
+            </button>
+          </div>
         </div>
 
         {/* Mobile Menu */}
