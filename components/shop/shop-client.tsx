@@ -20,16 +20,28 @@ interface Product {
     description: string | null
 }
 
-export function ShopClient({ initialProducts }: { initialProducts: Product[] }) {
+export function ShopClient({
+    initialProducts,
+    limit,
+    hideHeader = false
+}: {
+    initialProducts: Product[],
+    limit?: number,
+    hideHeader?: boolean
+}) {
     const [activeCategory, setActiveCategory] = useState<string>("All")
     const [selectedProduct, setSelectedProduct] = useState<Product | null>(null)
     const { addItem } = useCartStore()
 
     const categories = ["All", "Racquets", "Grips", "Strings", "Shuttlecocks", "Accessories"]
 
-    const filteredProducts = activeCategory === "All"
+    let filteredProducts = activeCategory === "All"
         ? initialProducts
         : initialProducts.filter(p => p.category === activeCategory)
+
+    if (limit) {
+        filteredProducts = filteredProducts.slice(0, limit)
+    }
 
     // Handle body scroll locking when drawer is open
     useEffect(() => {
@@ -55,32 +67,36 @@ export function ShopClient({ initialProducts }: { initialProducts: Product[] }) 
     }
 
     return (
-        <div className="min-h-screen bg-slate-50 pt-20 pb-20 font-sans">
-            {/* Minimalist Header */}
-            <div className="bg-white border-b sticky top-16 z-30">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-                    <h1 className="text-4xl font-black text-slate-900 tracking-tight">The Store</h1>
-                    <p className="text-slate-500 mt-2 text-lg">Premium gear for the modern athlete.</p>
-                </div>
+        <div className={hideHeader ? "w-full font-sans" : "min-h-screen bg-slate-50 pt-20 pb-20 font-sans"}>
+            {!hideHeader && (
+                <>
+                    {/* Minimalist Header */}
+                    <div className="bg-white border-b sticky top-16 z-30">
+                        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+                            <h1 className="text-4xl font-black text-slate-900 tracking-tight">The Store</h1>
+                            <p className="text-slate-500 mt-2 text-lg">Premium gear for the modern athlete.</p>
+                        </div>
 
-                {/* Sticky Filter Bar */}
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="flex overflow-x-auto hide-scrollbar gap-2 pb-4">
-                        {categories.map(category => (
-                            <button
-                                key={category}
-                                onClick={() => setActiveCategory(category)}
-                                className={`whitespace-nowrap rounded-full px-5 py-2 text-sm font-medium transition-all ${activeCategory === category
-                                        ? "bg-slate-900 text-white shadow-md"
-                                        : "bg-slate-100 text-slate-600 hover:bg-slate-200"
-                                    }`}
-                            >
-                                {category}
-                            </button>
-                        ))}
+                        {/* Sticky Filter Bar */}
+                        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                            <div className="flex overflow-x-auto hide-scrollbar gap-2 pb-4">
+                                {categories.map(category => (
+                                    <button
+                                        key={category}
+                                        onClick={() => setActiveCategory(category)}
+                                        className={`whitespace-nowrap rounded-full px-5 py-2 text-sm font-medium transition-all ${activeCategory === category
+                                            ? "bg-slate-900 text-white shadow-md"
+                                            : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                                            }`}
+                                    >
+                                        {category}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
                     </div>
-                </div>
-            </div>
+                </>
+            )}
 
             {/* Product Grid */}
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-12">

@@ -5,6 +5,8 @@ export interface Product {
     price: number
     images: string[]
     category: string
+    sku: string
+    stockCount: number
 }
 
 export const products: Product[] = [
@@ -14,6 +16,8 @@ export const products: Product[] = [
         description: 'Miniature badminton racquet keychain. Perfect accessory for badminton lovers.',
         price: 550,
         category: 'Accessories',
+        sku: 'ACC-KEY-001',
+        stockCount: 50,
         images: [
             '/products/racquet-keychain.jpeg',
             '/products/racquet-keychain-1.jpeg',
@@ -26,6 +30,8 @@ export const products: Product[] = [
         description: 'Detailed badminton court replica.',
         price: 135,
         category: 'Collectibles',
+        sku: 'COL-COURT-001',
+        stockCount: 15,
         images: [
             '/products/badminton-court.jpeg',
             '/products/badminton-court-1.jpeg',
@@ -37,6 +43,8 @@ export const products: Product[] = [
         description: 'Soft cushion wrap for racquet handles. Provides better grip and comfort.',
         price: 270,
         category: 'Accessories',
+        sku: 'ACC-WRAP-001',
+        stockCount: 100,
         images: [
             '/products/cushion-wrap.jpeg',
             '/products/cushion-wrap-1.jpeg',
@@ -48,8 +56,10 @@ export const products: Product[] = [
         description: 'Beautiful gift box containing a miniature badminton racquet keychain.',
         price: 950,
         category: 'Accessories',
+        sku: 'GIFT-KEY-001',
+        stockCount: 20,
         images: [
-            '/images/Badminton racquet gift box.jpeg',
+            '/products/Badminton racquet gift box.JPG',
         ],
     },
 ]

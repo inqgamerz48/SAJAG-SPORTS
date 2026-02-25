@@ -19,7 +19,7 @@ import {
   MapPin, // Kept for the Stringing Service Card
 } from 'lucide-react'
 import { BeforeAfterSlider } from '@/components/before-after-slider'
-import { ProductCard } from '@/components/products/product-card'
+import { ShopClient } from '@/components/shop/shop-client'
 import { products } from '@/lib/products'
 
 
@@ -195,11 +195,7 @@ export default function HomePage() {
             </p>
           </div>
 
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-            {products.map((product) => (
-              <ProductCard key={product.id} product={product} />
-            ))}
-          </div>
+          <ShopClient initialProducts={products} limit={4} hideHeader />
 
           <div className="mt-12 text-center">
             <Button variant="outline" size="lg" asChild className="animate-pulse-glow">
