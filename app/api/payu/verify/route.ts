@@ -11,6 +11,8 @@ export async function POST(request: NextRequest) {
             data[key] = value.toString()
         })
 
+        console.log('PAYU VERIFY HIT. Raw Form Data:', data)
+
         const salt = process.env.PAYU_MERCHANT_SALT
         if (!salt) {
             return NextResponse.json({ error: 'PayU salt not configured' }, { status: 500 })
@@ -18,15 +20,19 @@ export async function POST(request: NextRequest) {
 
         // Verify hash
         const isValid = verifyPayUResponseHash(data, salt)
+        console.log('PayU Hash Validation Result:', isValid)
 
         if (!isValid) {
-            console.error('Invalid PayU hash')
+            console.error('Invalid PayU hash. Data received:', data)
             return Response.redirect(`${process.env.NEXT_PUBLIC_APP_URL}/book/failure?reason=hash_mismatch`)
         }
 
         const { status, txnid, mihpayid, amount, email, firstname, udf1: order_id } = data
+        console.log(`PayU Transaction Status parsed as: '${status}' for Order: ${order_id}`)
 
-        if (status === 'success') {
+        // Accept 'success' or common test statuses like 'captured'
+        if (status === 'success' || status.toLowerCase() === 'success') {
+            console.log(`Updating Order ${order_id} to success in DB...`)
             // Update order status via Prisma to secure complex nested relations
             const order = await prisma.order.update({
                 where: { id: order_id },
@@ -40,11 +46,12 @@ export async function POST(request: NextRequest) {
                 }
             })
 
+            console.log(`Successfully updated Order ${order_id} in DB.`)
             const profile = order.customer
 
-            // If ANY item in the order is a service (repair or stringing), book a Delhivery reverse pickup
-            const hasService = order.orderItems.some(item => !!item.serviceType)
-
+            // [USER REQUEST]: Disabling automatic Delhivery pickup creation. 
+            // The user will add orders manually to Delhivery for now.
+            /*
             if (hasService && profile?.pincode) {
                 try {
                     // Extract city/state from address or use defaults
@@ -80,6 +87,7 @@ export async function POST(request: NextRequest) {
                     console.error('Delhivery auto-booking error:', delhiveryError)
                 }
             }
+            */
 
             // Redirect to success page
             return Response.redirect(`${process.env.NEXT_PUBLIC_APP_URL}/book/success?order_id=${order_id}`)

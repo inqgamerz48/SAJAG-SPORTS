@@ -12,7 +12,7 @@ export const products: Product[] = [
         id: 'racquet-keychain',
         name: 'Racquet Keychain',
         description: 'Miniature badminton racquet keychain. Perfect accessory for badminton lovers.',
-        price: 0,
+        price: 550,
         category: 'Accessories',
         images: [
             '/products/racquet-keychain.jpeg',
@@ -24,7 +24,7 @@ export const products: Product[] = [
         id: 'badminton-court',
         name: 'Badminton Court Model',
         description: 'Detailed badminton court replica.',
-        price: 0,
+        price: 135,
         category: 'Collectibles',
         images: [
             '/products/badminton-court.jpeg',
@@ -32,25 +32,24 @@ export const products: Product[] = [
         ],
     },
     {
-        id: 'badminton-shuttle',
-        name: 'Badminton Shuttlecock',
-        description: 'Premium shuttlecock.',
-        price: 0,
-        category: 'Equipment',
-        images: [
-            '/products/badminton.jpeg',
-            '/products/badminton-1.jpeg',
-        ],
-    },
-    {
         id: 'cushion-wrap',
         name: 'Cushion Wrap',
         description: 'Soft cushion wrap for racquet handles. Provides better grip and comfort.',
-        price: 0,
+        price: 270,
         category: 'Accessories',
         images: [
             '/products/cushion-wrap.jpeg',
             '/products/cushion-wrap-1.jpeg',
+        ],
+    },
+    {
+        id: 'racquet-keychain-gift-box',
+        name: 'Racquet Keychain Gift Box',
+        description: 'Beautiful gift box containing a miniature badminton racquet keychain.',
+        price: 950,
+        category: 'Accessories',
+        images: [
+            '/images/Badminton racquet gift box.jpeg',
         ],
     },
 ]
