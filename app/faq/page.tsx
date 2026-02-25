@@ -74,7 +74,7 @@ export default function FAQPage() {
                 },
                 {
                     q: "Is stringing mandatory?",
-                    a: "Yes. All repaired racquets must be restrung to maintain structural integrity post-repair. We offer premium Yonex BG65 and BG65 Titanium strings."
+                    a: "Yes. All repaired racquets must be restrung to maintain structural integrity post-repair. We offer premium Yonex strings including BG 65, BG 65 Titanium, BG80 Power, and BG66 Ultimax."
                 },
                 {
                     q: "Why is there a tension limitation (24-26 lbs)?",

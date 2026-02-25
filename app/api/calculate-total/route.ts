@@ -56,16 +56,11 @@ export async function POST(request: NextRequest) {
       repairCost = repairCostByValue
       serviceCost = repairCostByValue
       serviceDescription = racketValue < 5000 ? 'Repair Only (Below ₹5,000)' : 'Repair Only (Above ₹5,000)'
-    } else if (stringType === 'BG65') {
+    } else {
       repairCost = repairCostByValue
-      stringCost = 650 - repairCostByValue
-      serviceCost = 650
-      serviceDescription = 'Repair + BG65 Stringing'
-    } else if (stringType === 'BG65_TI') {
-      repairCost = repairCostByValue
-      stringCost = 700 - repairCostByValue
-      serviceCost = 700
-      serviceDescription = 'Repair + BG65 Titanium Stringing'
+      stringCost = (await import('@/lib/pricing')).STRING_PRICES[stringType] || 0
+      serviceCost = repairCost + stringCost
+      serviceDescription = `Repair + ${stringType} Stringing`
     }
 
     // Step 2: Calculate Round-Trip Shipping via Delhivery

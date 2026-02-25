@@ -12,8 +12,10 @@ const CATEGORY_A_RATE = 500 // per crack
 const CATEGORY_B_RATE = 700 // per crack
 
 export const STRING_PRICES: Record<string, number> = {
-    'Yonex BG 65': 499,
-    'Yonex BG 65 Titanium': 699,
+    'BG 65 Titanium': 700,
+    'BG 65': 630,
+    'BG80 Power': 890,
+    'BG66 Ultimax': 850,
     'none': 0,
 }
 

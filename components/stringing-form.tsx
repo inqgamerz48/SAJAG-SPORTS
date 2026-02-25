@@ -22,15 +22,10 @@ interface StringingFormData {
 }
 
 const stringOptions = [
-  'BG65',
-  'BG80',
-  'BG95',
-  'Exbolt 63',
-  'Exbolt 65',
-  'Aerobite',
-  'Aerosonic',
-  'Li-Ning No.1',
-  'Victor VBS-66N',
+  'BG 65',
+  'BG 65 Titanium',
+  'BG80 Power',
+  'BG66 Ultimax',
 ]
 
 export function StringingForm() {

@@ -53,20 +53,34 @@ export default function PricingPage() {
                         <CheckCircle2 className="h-6 w-6 text-green-600" />
                         <h2 className="text-2xl font-bold">Stringing (Mandatory)</h2>
                     </div>
-                    <div className="space-y-4">
+                    <div className="grid sm:grid-cols-2 gap-4">
                         <div className="flex justify-between items-center p-4 bg-slate-50 rounded-xl">
                             <div>
-                                <p className="font-bold">Yonex BG65</p>
-                                <p className="text-sm text-slate-500">Standard performance string</p>
+                                <p className="font-bold">BG 65</p>
+                                <p className="text-sm text-slate-500">Standard durability</p>
                             </div>
-                            <div className="text-xl font-bold text-brand-blue">₹650</div>
+                            <div className="text-xl font-bold text-brand-blue">₹630</div>
                         </div>
                         <div className="flex justify-between items-center p-4 bg-slate-50 rounded-xl">
                             <div>
-                                <p className="font-bold">Yonex BG65 Titanium</p>
+                                <p className="font-bold">BG 65 Titanium</p>
                                 <p className="text-sm text-slate-500">Premium coated string</p>
                             </div>
                             <div className="text-xl font-bold text-brand-blue">₹700</div>
+                        </div>
+                        <div className="flex justify-between items-center p-4 bg-slate-50 rounded-xl">
+                            <div>
+                                <p className="font-bold">BG66 Ultimax</p>
+                                <p className="text-sm text-slate-500">High repulsion power</p>
+                            </div>
+                            <div className="text-xl font-bold text-brand-blue">₹850</div>
+                        </div>
+                        <div className="flex justify-between items-center p-4 bg-slate-50 rounded-xl">
+                            <div>
+                                <p className="font-bold">BG80 Power</p>
+                                <p className="text-sm text-slate-500">Hard feeling & power</p>
+                            </div>
+                            <div className="text-xl font-bold text-brand-blue">₹890</div>
                         </div>
                     </div>
                 </div>
@@ -87,16 +101,16 @@ export default function PricingPage() {
                         <div className="p-6">
                             <div className="space-y-2 mb-6 text-sm">
                                 <div className="flex justify-between"><span>1 Crack Repair</span><span>₹499</span></div>
-                                <div className="flex justify-between border-b pb-2"><span>BG65 String</span><span>₹650</span></div>
-                                <div className="flex justify-between font-bold pt-2"><span>Service Subtotal</span><span>₹1,149</span></div>
+                                <div className="flex justify-between border-b pb-2"><span>BG 65 String</span><span>₹630</span></div>
+                                <div className="flex justify-between font-bold pt-2"><span>Service Subtotal</span><span>₹1,129</span></div>
                                 <div className="flex justify-between text-slate-500 italic"><span>Forward Shipping (est)</span><span>₹80</span></div>
                                 <div className="flex justify-between text-slate-500 italic border-b pb-2"><span>Return Shipping (est)</span><span>₹80</span></div>
-                                <div className="flex justify-between font-bold pt-2"><span>Total Before GST</span><span>₹1,309</span></div>
-                                <div className="flex justify-between"><span>GST @ 18%</span><span>₹236</span></div>
+                                <div className="flex justify-between font-bold pt-2"><span>Total Before GST</span><span>₹1,289</span></div>
+                                <div className="flex justify-between"><span>GST @ 18%</span><span>₹232</span></div>
                             </div>
                             <div className="pt-4 border-t-2 border-dashed border-slate-200 flex justify-between items-center">
                                 <span className="font-bold text-lg">GRAND TOTAL</span>
-                                <span className="text-2xl font-bold text-brand-blue">₹1,545</span>
+                                <span className="text-2xl font-bold text-brand-blue">₹1,521</span>
                             </div>
                         </div>
                     </div>
@@ -131,16 +145,16 @@ export default function PricingPage() {
                         <div className="p-6">
                             <div className="space-y-2 mb-6 text-sm">
                                 <div className="flex justify-between"><span>3 Cracks Repair (₹700 ea)</span><span>₹2,100</span></div>
-                                <div className="flex justify-between border-b pb-2"><span>BG65 String</span><span>₹650</span></div>
-                                <div className="flex justify-between font-bold pt-2"><span>Service Subtotal</span><span>₹2,750</span></div>
+                                <div className="flex justify-between border-b pb-2"><span>BG 65 String</span><span>₹630</span></div>
+                                <div className="flex justify-between font-bold pt-2"><span>Service Subtotal</span><span>₹2,730</span></div>
                                 <div className="flex justify-between text-slate-500 italic"><span>Forward Shipping (est)</span><span>₹100</span></div>
                                 <div className="flex justify-between text-slate-500 italic border-b pb-2"><span>Return Shipping (est)</span><span>₹100</span></div>
-                                <div className="flex justify-between font-bold pt-2"><span>Total Before GST</span><span>₹2,950</span></div>
-                                <div className="flex justify-between"><span>GST @ 18%</span><span>₹531</span></div>
+                                <div className="flex justify-between font-bold pt-2"><span>Total Before GST</span><span>₹2,930</span></div>
+                                <div className="flex justify-between"><span>GST @ 18%</span><span>₹527</span></div>
                             </div>
                             <div className="pt-4 border-t-2 border-dashed border-slate-200 flex justify-between items-center">
                                 <span className="font-bold text-lg">GRAND TOTAL</span>
-                                <span className="text-2xl font-bold text-brand-blue">₹3,481</span>
+                                <span className="text-2xl font-bold text-brand-blue">₹3,457</span>
                             </div>
                         </div>
                     </div>

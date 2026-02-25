@@ -42,7 +42,7 @@ export default function ServicesPage() {
                                     '₹500 per crack repair',
                                     'Complete structural fix',
                                     'Professional restringing',
-                                    'Choice of BG65 or BG65 Titanium',
+                                    'Choice of 4 premium Yonex strings',
                                     'Free pickup from your doorstep'
                                 ].map((item, idx) => (
                                     <div key={idx} className="flex items-center gap-3">
@@ -86,7 +86,7 @@ export default function ServicesPage() {
                                     '₹700 per crack repair',
                                     'Premium carbon reinforcement',
                                     'Professional high-tension stringing',
-                                    'Choice of BG65 or BG65 Titanium',
+                                    'Choice of 4 premium Yonex strings',
                                     'Prioritized pickup & delivery'
                                 ].map((item, idx) => (
                                     <div key={idx} className="flex items-center gap-3">
