@@ -142,7 +142,7 @@ export default function FAQPage() {
                     </p>
                     <div className="flex flex-col md:flex-row gap-4 justify-center">
                         <a
-                            href="https://wa.me/919420000000"
+                            href="https://wa.me/919588475197"
                             target="_blank"
                             rel="noopener noreferrer"
                             className="inline-flex items-center justify-center px-8 py-3 bg-[#25D366] text-white rounded-full font-bold hover:opacity-90 transition-opacity"
@@ -150,7 +150,7 @@ export default function FAQPage() {
                             WHATSAPP US
                         </a>
                         <a
-                            href="mailto:support@sajagsports.store"
+                            href="mailto:sajagsportstore@gmail.com"
                             className="inline-flex items-center justify-center px-8 py-3 bg-brand-blue text-white rounded-full font-bold hover:opacity-90 transition-opacity"
                         >
                             EMAIL US

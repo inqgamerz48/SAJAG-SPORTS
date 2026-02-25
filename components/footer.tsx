@@ -38,14 +38,14 @@ export function Footer() {
                             </div>
                             <div className="flex items-center gap-2">
                                 <Phone className="h-4 w-4 text-brand-blue" />
-                                <a href="tel:+919876543210" className="hover:text-brand-orange transition-colors">
-                                    +91 98765 43210
+                                <a href="tel:+919588475197" className="hover:text-brand-orange transition-colors">
+                                    +91 9588475197
                                 </a>
                             </div>
                             <div className="flex items-center gap-2">
                                 <Mail className="h-4 w-4 text-brand-red" />
-                                <a href="mailto:support@sajagsports.store" className="hover:text-brand-orange transition-colors">
-                                    support@sajagsports.store
+                                <a href="mailto:sajagsportstore@gmail.com" className="hover:text-brand-orange transition-colors">
+                                    sajagsportstore@gmail.com
                                 </a>
                             </div>
                             <div className="flex items-center gap-2">
@@ -77,7 +77,7 @@ export function Footer() {
                             <div className="flex items-center gap-2">
                                 <MessageCircle className="h-4 w-4 text-brand-orange" />
                                 <a
-                                    href="https://wa.me/919876543210"
+                                    href="https://wa.me/919588475197"
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     className="hover:text-brand-orange transition-colors"

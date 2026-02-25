@@ -217,7 +217,7 @@ export default function ServicesPage() {
                             <Link href="/book?service=repair">BOOK REPAIR SERVICE NOW</Link>
                         </Button>
                         <Button asChild variant="outline" size="lg" className="border-white text-white hover:bg-white hover:text-brand-blue">
-                            <a href="https://wa.me/919420000000" target="_blank" rel="noopener noreferrer">WHATSAPP QUESTIONS</a>
+                            <a href="https://wa.me/919588475197" target="_blank" rel="noopener noreferrer">WHATSAPP QUESTIONS</a>
                         </Button>
                     </div>
                 </div>
