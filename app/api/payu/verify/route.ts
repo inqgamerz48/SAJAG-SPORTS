@@ -49,9 +49,9 @@ export async function POST(request: NextRequest) {
             console.log(`Successfully updated Order ${order_id} in DB.`)
             const profile = order.customer
 
-            // [USER REQUEST]: Disabling automatic Delhivery pickup creation. 
-            // The user will add orders manually to Delhivery for now.
-            /*
+            // If ANY item in the order is a service (repair or stringing), book a Delhivery reverse pickup
+            const hasService = order.orderItems.some(item => !!item.serviceType)
+
             if (hasService && profile?.pincode) {
                 try {
                     // Extract city/state from address or use defaults
@@ -87,9 +87,6 @@ export async function POST(request: NextRequest) {
                     console.error('Delhivery auto-booking error:', delhiveryError)
                 }
             }
-            */
-
-            // Redirect to success page
             return Response.redirect(`${process.env.NEXT_PUBLIC_APP_URL}/book/success?order_id=${order_id}`)
         } else {
             // Payment failed — leave order as-is
