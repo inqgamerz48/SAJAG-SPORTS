@@ -32,10 +32,14 @@ export default async function HomePage() {
     take: 4 // limit 4 for homepage
   });
 
-  // Convert Decimal to number for ShopClient
+  // Convert Decimal to number for ShopClient and null to undefined for imageUrl
   const products = rawProducts.map(p => ({
     ...p,
-    price: Number(p.price)
+    price: Number(p.price),
+    colorVariants: p.colorVariants.map(v => ({
+      ...v,
+      imageUrl: v.imageUrl ?? undefined
+    }))
   }));
 
   return <HomePageClient initialProducts={products} />;

@@ -12,7 +12,11 @@ export default async function ProductsPage() {
 
     const products = rawProducts.map(p => ({
         ...p,
-        price: Number(p.price)
+        price: Number(p.price),
+        colorVariants: p.colorVariants.map(v => ({
+            ...v,
+            imageUrl: v.imageUrl ?? undefined
+        }))
     }));
 
     return (
