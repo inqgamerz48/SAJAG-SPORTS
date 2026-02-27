@@ -18,7 +18,26 @@ interface Product {
     stockCount: number
     images: string[]
     description: string | null
+    colorVariants?: { colorName: string, stockCount: number }[]
 }
+
+// Simple helper to guess valid CSS color from text
+const getCSSColor = (colorName: string) => {
+    const lower = colorName.toLowerCase();
+    if (lower.includes('red')) return '#ef4444';
+    if (lower.includes('blue')) return '#3b82f6';
+    if (lower.includes('green')) return '#22c55e';
+    if (lower.includes('yellow')) return '#eab308';
+    if (lower.includes('orange')) return '#f97316';
+    if (lower.includes('purple')) return '#a855f7';
+    if (lower.includes('pink')) return '#ec4899';
+    if (lower.includes('black')) return '#171717';
+    if (lower.includes('white')) return '#fafafa';
+    if (lower.includes('gray') || lower.includes('grey')) return '#737373';
+    if (lower.includes('cyan')) return '#06b6d4';
+    if (lower.includes('teal')) return '#14b8a6';
+    return '#000000';
+};
 
 export function ShopClient({
     initialProducts,
@@ -31,6 +50,8 @@ export function ShopClient({
 }) {
     const [activeCategory, setActiveCategory] = useState<string>("All")
     const [selectedProduct, setSelectedProduct] = useState<Product | null>(null)
+    const [selectedVariant, setSelectedVariant] = useState<{ colorName: string, stockCount: number } | null>(null)
+    const [quantity, setQuantity] = useState(1)
     const { addItem } = useCartStore()
 
     const categories = ["All", "Racquets", "Grips", "Strings", "Shuttlecocks", "Accessories"]
@@ -47,6 +68,14 @@ export function ShopClient({
     useEffect(() => {
         if (selectedProduct) {
             document.body.style.overflow = "hidden"
+            // Auto-select first available variant
+            if (selectedProduct.colorVariants && selectedProduct.colorVariants.length > 0) {
+                const firstAvailable = selectedProduct.colorVariants.find(v => v.stockCount > 0) || selectedProduct.colorVariants[0];
+                setSelectedVariant(firstAvailable);
+            } else {
+                setSelectedVariant(null);
+            }
+            setQuantity(1);
         } else {
             document.body.style.overflow = "unset"
         }
@@ -55,15 +84,30 @@ export function ShopClient({
 
     const handleAddToCart = (product: Product, e?: React.MouseEvent) => {
         if (e) e.stopPropagation()
+
+        // If product has variants but none selected (shouldn't happen with auto-select, but just in case)
+        if (product.colorVariants && product.colorVariants.length > 0 && !selectedVariant) {
+            toast.error("Please select a color first");
+            return;
+        }
+
+        const maxStock = selectedVariant ? selectedVariant.stockCount : product.stockCount;
+        if (quantity > maxStock) {
+            toast.error(`Only ${maxStock} items available in stock`);
+            return;
+        }
+
         addItem({
             productId: product.id,
-            name: product.name,
+            name: selectedVariant ? `${product.name} - ${selectedVariant.colorName}` : product.name,
             price: Number(product.price),
-            quantity: 1,
+            quantity: quantity,
             type: 'physical',
-            image: product.images[0]
+            image: product.images[0],
+            color: selectedVariant?.colorName
         })
-        toast.success(`${product.name} added to cart!`)
+        toast.success(`${quantity}x ${product.name} added to cart!`)
+        setSelectedProduct(null); // Close drawer after adding
     }
 
     return (
@@ -139,11 +183,30 @@ export function ShopClient({
                                     {/* Action Overlay */}
                                     <div className="absolute inset-x-0 bottom-0 p-4 opacity-0 transform translate-y-4 transition-all duration-300 group-hover:opacity-100 group-hover:translate-y-0 bg-gradient-to-t from-black/50 to-transparent">
                                         <Button
-                                            className="w-full bg-white text-black hover:bg-slate-100 font-bold rounded-xl"
-                                            onClick={(e) => handleAddToCart(product, e)}
-                                            disabled={product.stockCount <= 0}
+                                            className="w-full bg-white text-black hover:bg-slate-100 font-bold rounded-xl disabled:opacity-80"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                const hasColors = product.colorVariants && product.colorVariants.length > 0;
+                                                if (hasColors) {
+                                                    setSelectedProduct(product);
+                                                } else {
+                                                    addItem({
+                                                        productId: product.id,
+                                                        name: product.name,
+                                                        price: Number(product.price),
+                                                        quantity: 1,
+                                                        type: 'physical',
+                                                        image: product.images[0]
+                                                    });
+                                                    toast.success(`1x ${product.name} added to cart!`);
+                                                }
+                                            }}
+                                            disabled={(!product.colorVariants || product.colorVariants.length === 0) && product.stockCount <= 0}
                                         >
-                                            {product.stockCount > 0 ? 'Quick Add' : 'Out of Stock'}
+                                            {product.colorVariants && product.colorVariants.length > 0
+                                                ? 'View Options'
+                                                : (product.stockCount > 0 ? 'Add to Cart' : 'Out of Stock')
+                                            }
                                         </Button>
                                     </div>
 
@@ -166,6 +229,19 @@ export function ShopClient({
                                         <div>
                                             <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">{product.category}</p>
                                             <h3 className="text-lg font-bold text-slate-900 line-clamp-1">{product.name}</h3>
+                                            {/* Color Dots */}
+                                            {product.colorVariants && product.colorVariants.some(v => v.stockCount > 0) && (
+                                                <div className="flex flex-wrap gap-1.5 mt-2">
+                                                    {product.colorVariants.filter(v => v.stockCount > 0).map((v, i) => (
+                                                        <div
+                                                            key={i}
+                                                            title={v.colorName}
+                                                            className="w-3.5 h-3.5 rounded-full border border-slate-200 shadow-sm"
+                                                            style={{ backgroundColor: getCSSColor(v.colorName) }}
+                                                        />
+                                                    ))}
+                                                </div>
+                                            )}
                                         </div>
                                         <p className="text-lg font-black text-brand-orange">₹{product.price}</p>
                                     </div>
@@ -236,10 +312,11 @@ export function ShopClient({
                                         <p className="text-2xl font-bold text-slate-700 mt-2">₹{selectedProduct.price}</p>
                                     </div>
 
+                                    {/* Dynamic Stock Display Based on Selection */}
                                     <div className="flex items-center gap-2">
-                                        {selectedProduct.stockCount > 0 ? (
+                                        {(selectedVariant ? selectedVariant.stockCount : selectedProduct.stockCount) > 0 ? (
                                             <span className="inline-flex items-center px-3 py-1 rounded-full bg-green-100 text-green-700 text-xs font-bold">
-                                                <Check className="w-3 h-3 mr-1" /> In Stock ({selectedProduct.stockCount})
+                                                <Check className="w-3 h-3 mr-1" /> In Stock ({(selectedVariant ? selectedVariant.stockCount : selectedProduct.stockCount)})
                                             </span>
                                         ) : (
                                             <span className="inline-flex items-center px-3 py-1 rounded-full bg-red-100 text-red-700 text-xs font-bold">
@@ -248,6 +325,33 @@ export function ShopClient({
                                         )}
                                         <span className="text-xs text-slate-400 font-mono">SKU ID: {selectedProduct.sku}</span>
                                     </div>
+
+                                    {/* Color Picker Drawer UI */}
+                                    {selectedProduct.colorVariants && selectedProduct.colorVariants.length > 0 && (
+                                        <div className="border-t border-b py-4 my-2">
+                                            <h3 className="text-xs font-bold text-slate-900 mb-3 uppercase tracking-wider">Select Color</h3>
+                                            <div className="flex flex-wrap gap-2">
+                                                {selectedProduct.colorVariants.map((v, idx) => (
+                                                    <button
+                                                        key={idx}
+                                                        onClick={() => {
+                                                            setSelectedVariant(v);
+                                                            setQuantity(1); // Reset quantity when changing variant
+                                                        }}
+                                                        disabled={v.stockCount === 0}
+                                                        style={selectedVariant?.colorName === v.colorName ? { backgroundColor: getCSSColor(v.colorName), borderColor: getCSSColor(v.colorName) } : {}}
+                                                        className={`px-4 py-2 rounded-xl text-sm font-semibold border-2 outline-none transition-all ${selectedVariant?.colorName === v.colorName
+                                                            ? "text-white shadow-md scale-105"
+                                                            : "border-slate-200 text-slate-700 bg-white hover:border-slate-300"
+                                                            } ${v.stockCount === 0 ? "opacity-40 cursor-not-allowed" : ""}`}
+                                                    >
+                                                        {v.colorName}
+                                                        {v.stockCount === 0 && <span className="block text-[10px] text-red-500 font-medium">Sold Out</span>}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
 
                                     <p className="text-slate-600 leading-relaxed text-sm">
                                         {selectedProduct.description || "A premium badminton product crafted for the highest level of competitive play. Built with advanced materials to provide maximum control and repulsion power."}
@@ -267,12 +371,36 @@ export function ShopClient({
                             </div>
 
                             <div className="p-6 border-t bg-slate-50 sticky bottom-0">
+                                {/* Quantity Selector */}
+                                <div className="flex items-center justify-between mb-4 bg-white rounded-xl border border-slate-200 p-2">
+                                    <span className="text-sm font-semibold text-slate-700 ml-2">Quantity</span>
+                                    <div className="flex items-center gap-3">
+                                        <button
+                                            onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                                            className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center font-black text-slate-600 hover:bg-slate-200 transition-colors"
+                                        >
+                                            -
+                                        </button>
+                                        <span className="font-bold text-lg min-w-[20px] text-center">{quantity}</span>
+                                        <button
+                                            onClick={() => {
+                                                const maxStock = selectedVariant ? selectedVariant.stockCount : selectedProduct.stockCount;
+                                                setQuantity(Math.min(maxStock, quantity + 1))
+                                            }}
+                                            disabled={quantity >= (selectedVariant ? selectedVariant.stockCount : selectedProduct.stockCount)}
+                                            className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center font-black text-slate-600 hover:bg-slate-200 transition-colors disabled:opacity-50"
+                                        >
+                                            +
+                                        </button>
+                                    </div>
+                                </div>
+
                                 <Button
-                                    className="w-full h-14 text-lg font-bold rounded-xl bg-slate-900 text-white hover:bg-black shadow-lg shadow-black/10 transition-transform active:scale-95"
+                                    className="w-full h-14 text-lg font-bold rounded-xl bg-slate-900 text-white hover:bg-black shadow-lg shadow-black/10 transition-transform active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
                                     onClick={() => handleAddToCart(selectedProduct)}
-                                    disabled={selectedProduct.stockCount <= 0}
+                                    disabled={(selectedVariant ? selectedVariant.stockCount : selectedProduct.stockCount) <= 0 || quantity > (selectedVariant ? selectedVariant.stockCount : selectedProduct.stockCount)}
                                 >
-                                    {selectedProduct.stockCount > 0 ? 'Add to Cart' : 'Out of Stock'}
+                                    {(selectedVariant ? selectedVariant.stockCount : selectedProduct.stockCount) > 0 ? `Add ${quantity} to Cart - ₹${selectedProduct.price * quantity}` : 'Out of Stock'}
                                 </Button>
                             </div>
                         </motion.div>

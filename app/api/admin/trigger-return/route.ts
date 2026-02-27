@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createForwardShipment } from '@/lib/delhivery'
+import { getServerSession } from "next-auth"
+import { authOptions } from "@/lib/auth"
 
 /**
  * Admin: Trigger return shipment (Workshop → Customer)
@@ -8,6 +10,12 @@ import { createForwardShipment } from '@/lib/delhivery'
  */
 export async function POST(req: NextRequest) {
     try {
+        const session = await getServerSession(authOptions)
+
+        if (!session || !session.user) {
+            return NextResponse.json({ success: false, error: 'Unauthorized via NextAuth' }, { status: 401 })
+        }
+
         const supabase = await createClient()
         const { data: { user }, error: authError } = await supabase.auth.getUser()
 

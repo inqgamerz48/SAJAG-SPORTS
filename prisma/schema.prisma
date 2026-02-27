@@ -32,6 +32,7 @@ model Product {
   price       Decimal  @db.Decimal(10, 2)
   images      String[] // Array of image URLs
   description String?
+  colorVariants ProductColorVariant[]
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @default(now()) @updatedAt @map("updated_at")
 
@@ -76,6 +77,7 @@ model OrderItem {
   productId       String?  @map("product_id") @db.Uuid
   quantity        Int      @default(1)
   priceAtPurchase Decimal  @map("price_at_purchase") @db.Decimal(10, 2)
+  color           String?  // Optional selected color variant
   
   // Or it can be a service
   serviceType     String?  // 'stringing', 'repair'
@@ -99,4 +101,17 @@ model Shipment {
   updatedAt           DateTime @default(now()) @updatedAt @map("updated_at")
 
   @@map("shipments")
+}
+
+model ProductColorVariant {
+  id          String   @id @default(uuid()) @db.Uuid
+  productId   String   @map("product_id") @db.Uuid
+  product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  colorName   String   @map("color_name")
+  stockCount  Int      @default(0) @map("stock_count")
+  imageUrl    String?  @map("image_url") // optional image URL specifically for this color
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @default(now()) @updatedAt @map("updated_at")
+
+  @@map("product_color_variants")
 }

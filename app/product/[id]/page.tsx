@@ -10,8 +10,29 @@ import { notFound } from "next/navigation";
 export default function ProductPage({ params }: { params: Promise<{ id: string }> }) {
     const unwrappedParams = use(params);
     const [product, setProduct] = useState<any>(null);
+    const [selectedVariant, setSelectedVariant] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const addItem = useCartStore((state) => state.addItem);
+
+    // Simple helper to guess valid CSS color from text
+    const getCSSColor = (colorName: string) => {
+        const lower = colorName.toLowerCase();
+        // Common colors 
+        if (lower.includes('red')) return '#ef4444';
+        if (lower.includes('blue')) return '#3b82f6';
+        if (lower.includes('green')) return '#22c55e';
+        if (lower.includes('yellow')) return '#eab308';
+        if (lower.includes('orange')) return '#f97316';
+        if (lower.includes('purple')) return '#a855f7';
+        if (lower.includes('pink')) return '#ec4899';
+        if (lower.includes('black')) return '#171717';
+        if (lower.includes('white')) return '#fafafa';
+        if (lower.includes('gray') || lower.includes('grey')) return '#737373';
+        if (lower.includes('cyan')) return '#06b6d4';
+        if (lower.includes('teal')) return '#14b8a6';
+        // Fallback generic dark
+        return '#000000';
+    };
 
     useEffect(() => {
         const fetchProduct = async () => {
@@ -23,6 +44,9 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
                 }
                 const data = await res.json();
                 setProduct(data);
+                if (data.colorVariants && data.colorVariants.length > 0) {
+                    setSelectedVariant(data.colorVariants[0]);
+                }
             } catch (err) {
                 toast.error("Error loading product");
             } finally {
@@ -37,11 +61,12 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
 
         addItem({
             productId: product.id,
-            name: product.name,
+            name: selectedVariant ? `${product.name} - ${selectedVariant.colorName}` : product.name,
             price: Number(product.price),
             quantity: 1,
             type: "physical",
-            image: product.images?.[0],
+            image: selectedVariant?.imageUrl || product.images?.[0],
+            color: selectedVariant?.colorName
         });
 
         toast.success("Added to cart!");
@@ -65,9 +90,9 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
 
                     {/* Left: Sticky Media View */}
                     <div className="lg:sticky lg:top-32 w-full h-[50vh] lg:h-[70vh] bg-neutral-100 rounded-3xl overflow-hidden relative border flex items-center justify-center">
-                        {product.images && product.images[0] ? (
+                        {(selectedVariant && selectedVariant.imageUrl) || (product.images && product.images[0]) ? (
                             // eslint-disable-next-line @next/next/no-img-element
-                            <img src={product.images[0]} alt={product.name} className="w-full h-full object-cover" />
+                            <img src={selectedVariant?.imageUrl || product.images[0]} alt={product.name} className="w-full h-full object-cover" />
                         ) : (
                             <ShoppingBag className="w-24 h-24 text-neutral-300" />
                         )}
@@ -91,12 +116,35 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
                                     100% Authentic Product Guarantee
                                 </div>
                                 <div className="flex items-center text-sm text-neutral-600">
-                                    <span className="w-2 h-2 rounded-full bg-green-500 mr-3"></span>
-                                    {product.stockCount > 0 ? "In Stock & Ready to Ship" : "Out of Stock"}
+                                    <span className={`w-2 h-2 rounded-full mr-3 ${(selectedVariant ? selectedVariant.stockCount : product.stockCount) > 0 ? 'bg-green-500' : 'bg-red-500'}`}></span>
+                                    {(selectedVariant ? selectedVariant.stockCount : product.stockCount) > 0 ? "In Stock & Ready to Ship" : "Out of Stock"}
                                 </div>
                             </div>
 
-                            <div className="prose prose-neutral">
+                            {/* Color Selection UI */}
+                            {product.colorVariants && product.colorVariants.length > 0 && (
+                                <div className="pt-2 pb-4 border-b">
+                                    <h3 className="text-sm font-semibold text-neutral-900 mb-3 uppercase tracking-wider">Select Color</h3>
+                                    <div className="flex flex-wrap gap-3">
+                                        {product.colorVariants.map((v: any) => (
+                                            <button
+                                                key={v.id}
+                                                onClick={() => setSelectedVariant(v)}
+                                                style={selectedVariant?.id === v.id ? { backgroundColor: getCSSColor(v.colorName), borderColor: getCSSColor(v.colorName) } : {}}
+                                                className={`px-5 py-2.5 outline-none rounded-xl border-2 text-sm font-semibold transition-all duration-200 shadow-sm ${selectedVariant?.id === v.id
+                                                    ? "text-white shadow-md scale-[1.02]"
+                                                    : "border-neutral-200 text-neutral-700 bg-white hover:border-black/30 hover:bg-neutral-50"
+                                                    } ${v.stockCount === 0 ? "opacity-40" : ""}`}
+                                            >
+                                                {v.colorName}
+                                                {v.stockCount === 0 && <span className="ml-2 text-xs font-normal text-red-400 block sm:inline">(Out of Stock)</span>}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            <div className="prose prose-neutral pt-4">
                                 <h3 className="text-xl font-bold text-neutral-900">Technical Details</h3>
                                 <p className="text-neutral-600 leading-relaxed text-lg pb-10">
                                     {product.description || "This premium badminton gear offers incredible control and precision. Designed for advanced players seeking unparalleled aerodynamic efficiency."}
@@ -108,10 +156,10 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
                         <div className="fixed bottom-0 left-0 right-0 bg-white/80 backdrop-blur-md border-t p-4 lg:relative lg:bg-transparent lg:border-t-0 lg:p-0 z-50 mt-10">
                             <button
                                 onClick={handleAddToCart}
-                                disabled={product.stockCount === 0}
+                                disabled={(selectedVariant ? selectedVariant.stockCount : product.stockCount) === 0}
                                 className="w-full flex justify-center items-center px-8 py-4 border border-transparent text-lg font-medium rounded-full text-white bg-black hover:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-neutral-900 disabled:opacity-50 disabled:cursor-not-allowed transition transform hover:scale-[1.02] active:scale-[0.98]"
                             >
-                                {product.stockCount > 0 ? "Add to Cart" : "Out of Stock"}
+                                {(selectedVariant ? selectedVariant.stockCount : product.stockCount) > 0 ? "Add to Cart" : "Out of Stock"}
                                 <ShoppingBag className="ml-2 w-5 h-5" />
                             </button>
                         </div>

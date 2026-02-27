@@ -12,7 +12,8 @@ export async function GET() {
 
     try {
         const products = await prisma.product.findMany({
-            orderBy: { createdAt: "desc" }
+            orderBy: { createdAt: "desc" },
+            include: { colorVariants: true }
         });
         return NextResponse.json(products);
     } catch (error) {
@@ -29,15 +30,27 @@ export async function POST(req: Request) {
 
     try {
         const data = await req.json();
+        // If variants are provided, we calculate the total stock count from them
+        const stockCount = data.colorVariants?.length > 0
+            ? data.colorVariants.reduce((sum: number, v: any) => sum + (Number(v.stockCount) || 0), 0)
+            : data.stockCount;
+
         const newProduct = await prisma.product.create({
             data: {
                 name: data.name,
                 sku: data.sku,
                 category: data.category,
                 price: data.price,
-                stockCount: data.stockCount,
+                stockCount: stockCount,
                 images: data.images || [],
                 description: data.description || "",
+                colorVariants: {
+                    create: data.colorVariants?.map((v: any) => ({
+                        colorName: v.colorName,
+                        stockCount: Number(v.stockCount) || 0,
+                        imageUrl: v.imageUrl || null,
+                    })) || []
+                }
             }
         });
 

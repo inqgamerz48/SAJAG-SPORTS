@@ -7,6 +7,7 @@ export interface Product {
     category: string
     sku: string
     stockCount: number
+    colorVariants?: { colorName: string, stockCount: number }[]
 }
 
 export const products: Product[] = [
@@ -61,6 +62,10 @@ export const products: Product[] = [
         images: [
             '/products/Badminton racquet gift box.JPG',
         ],
+        colorVariants: [
+            { colorName: 'Matte Red', stockCount: 10 },
+            { colorName: 'Glossy Blue', stockCount: 15 }
+        ]
     },
 ]
 

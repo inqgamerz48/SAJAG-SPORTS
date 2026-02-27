@@ -6,6 +6,12 @@ import { toast } from "sonner";
 import { UploadDropzone } from "@/utils/uploadthing";
 import Image from "next/image";
 
+type ColorVariant = {
+    colorName: string;
+    stockCount: number;
+    imageUrl?: string;
+};
+
 type Product = {
     id: string;
     name: string;
@@ -15,6 +21,7 @@ type Product = {
     stockCount: number;
     description: string;
     images: string[];
+    colorVariants?: ColorVariant[];
 };
 
 export default function InventoryPage() {
@@ -32,6 +39,7 @@ export default function InventoryPage() {
         stockCount: 0,
         description: "",
         images: [] as string[],
+        colorVariants: [] as ColorVariant[],
     });
 
     useEffect(() => {
@@ -62,6 +70,7 @@ export default function InventoryPage() {
                 stockCount: product.stockCount,
                 description: product.description || "",
                 images: product.images || [],
+                colorVariants: product.colorVariants || [],
             });
         } else {
             setEditingProduct(null);
@@ -73,6 +82,7 @@ export default function InventoryPage() {
                 stockCount: 0,
                 description: "",
                 images: [],
+                colorVariants: [],
             });
         }
         setIsModalOpen(true);
@@ -274,6 +284,87 @@ export default function InventoryPage() {
                                         }}
                                     />
                                 </div>
+                            </div>
+
+                            {/* Color Variants */}
+                            <div className="border-t pt-4">
+                                <div className="flex justify-between items-center mb-2">
+                                    <label className="block text-sm font-medium text-gray-700">Color Variants</label>
+                                    <button
+                                        type="button"
+                                        onClick={() => setFormData(prev => ({
+                                            ...prev,
+                                            colorVariants: [...prev.colorVariants, { colorName: "", stockCount: 0 }]
+                                        }))}
+                                        className="text-sm text-brand-blue hover:text-brand-orange flex items-center"
+                                    >
+                                        <Plus className="w-4 h-4 mr-1" /> Add Variant
+                                    </button>
+                                </div>
+
+                                {formData.colorVariants.map((variant, idx) => (
+                                    <div key={idx} className="flex gap-2 mb-2 items-start bg-slate-50 p-2 rounded-lg border">
+                                        <div className="flex-1 space-y-2">
+                                            <div className="grid grid-cols-2 gap-2">
+                                                <input
+                                                    type="text"
+                                                    placeholder="Color Name (e.g. Matte Red)"
+                                                    className="w-full border rounded-md px-2 py-1 text-sm focus:ring-amber-500"
+                                                    value={variant.colorName}
+                                                    onChange={e => {
+                                                        const newVariants = [...formData.colorVariants];
+                                                        newVariants[idx].colorName = e.target.value;
+                                                        setFormData({ ...formData, colorVariants: newVariants });
+                                                    }}
+                                                    required
+                                                />
+                                                <input
+                                                    type="number"
+                                                    min="0"
+                                                    placeholder="Stock"
+                                                    className="w-full border rounded-md px-2 py-1 text-sm focus:ring-amber-500"
+                                                    value={variant.stockCount}
+                                                    onChange={e => {
+                                                        const newVariants = [...formData.colorVariants];
+                                                        newVariants[idx].stockCount = parseInt(e.target.value) || 0;
+                                                        setFormData({ ...formData, colorVariants: newVariants });
+                                                    }}
+                                                    required
+                                                />
+                                            </div>
+                                            <select
+                                                className="w-full border rounded-md px-2 py-1 text-sm focus:ring-amber-500 text-gray-600 bg-white"
+                                                value={variant.imageUrl || ""}
+                                                onChange={e => {
+                                                    const newVariants = [...formData.colorVariants];
+                                                    newVariants[idx].imageUrl = e.target.value || undefined;
+                                                    setFormData({ ...formData, colorVariants: newVariants });
+                                                }}
+                                            >
+                                                <option value="">No specific image / Primary image</option>
+                                                {formData.images.map((imgUrl, i) => (
+                                                    <option key={i} value={imgUrl}>Image {i + 1}</option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                const newVariants = [...formData.colorVariants];
+                                                newVariants.splice(idx, 1);
+                                                setFormData({ ...formData, colorVariants: newVariants });
+                                            }}
+                                            className="text-red-500 hover:bg-red-50 p-1 rounded mt-1"
+                                        >
+                                            <Trash2 className="w-4 h-4" />
+                                        </button>
+                                    </div>
+                                ))}
+                                {formData.colorVariants.length > 0 && (
+                                    <p className="text-xs text-gray-500 mt-2">
+                                        Note: The main product stock count is automatically synced to the sum of all variant stocks!
+                                    </p>
+                                )}
                             </div>
 
                             <div className="pt-4 flex justify-end space-x-3">

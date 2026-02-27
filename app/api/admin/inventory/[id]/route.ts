@@ -13,6 +13,11 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
     try {
         const { id } = await params;
         const data = await req.json();
+        // If variants are provided, we calculate the total stock count from them
+        const stockCount = data.colorVariants?.length > 0
+            ? data.colorVariants.reduce((sum: number, v: any) => sum + (Number(v.stockCount) || 0), 0)
+            : data.stockCount;
+
         const updatedProduct = await prisma.product.update({
             where: { id },
             data: {
@@ -20,9 +25,17 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
                 sku: data.sku,
                 category: data.category,
                 price: data.price,
-                stockCount: data.stockCount,
+                stockCount: stockCount,
                 images: data.images,
                 description: data.description,
+                colorVariants: {
+                    deleteMany: {},
+                    create: data.colorVariants?.map((v: any) => ({
+                        colorName: v.colorName,
+                        stockCount: Number(v.stockCount) || 0,
+                        imageUrl: v.imageUrl || null,
+                    })) || []
+                }
             }
         });
 

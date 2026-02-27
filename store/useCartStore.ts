@@ -22,6 +22,8 @@ export interface CartItem {
     customerEmail?: string;
     customerPhone?: string;
     customerPincode?: string;
+    // Color variant info
+    color?: string;
 }
 
 interface CartState {

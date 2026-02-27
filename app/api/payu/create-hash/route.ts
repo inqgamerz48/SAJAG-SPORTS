@@ -76,6 +76,7 @@ export async function POST(req: NextRequest) {
                         productId: item.productId || null,
                         quantity: item.quantity,
                         priceAtPurchase: item.price,
+                        color: item.color || null,
                         serviceType: item.serviceType || null,
                         racquetBrand: item.racquetBrand || null,
                         racquetModel: item.racquetModel || null,
