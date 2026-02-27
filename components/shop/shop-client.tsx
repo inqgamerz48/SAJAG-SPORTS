@@ -18,7 +18,7 @@ interface Product {
     stockCount: number
     images: string[]
     description: string | null
-    colorVariants?: { colorName: string, stockCount: number, imageUrl?: string }[]
+    colorVariants?: { colorName: string, stockCount: number, imageUrl?: string | null }[]
 }
 
 // Simple helper to guess valid CSS color from text
@@ -50,7 +50,7 @@ export function ShopClient({
 }) {
     const [activeCategory, setActiveCategory] = useState<string>("All")
     const [selectedProduct, setSelectedProduct] = useState<Product | null>(null)
-    const [selectedVariant, setSelectedVariant] = useState<{ colorName: string, stockCount: number, imageUrl?: string } | null>(null)
+    const [selectedVariant, setSelectedVariant] = useState<{ colorName: string, stockCount: number, imageUrl?: string | null } | null>(null)
     const [quantity, setQuantity] = useState(1)
     const { addItem } = useCartStore()
 
