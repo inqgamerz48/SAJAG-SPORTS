@@ -52,6 +52,10 @@ export function ShopClient({
     const [selectedProduct, setSelectedProduct] = useState<Product | null>(null)
     const [selectedVariant, setSelectedVariant] = useState<{ colorName: string, stockCount: number, imageUrl?: string | null } | null>(null)
     const [quantity, setQuantity] = useState(1)
+
+    // Track hovered image for each product card independently
+    const [hoveredVariants, setHoveredVariants] = useState<{ [productId: string]: string | null }>({})
+
     const { addItem } = useCartStore()
 
     const categories = ["All", "Racquets", "Grips", "Strings", "Shuttlecocks", "Accessories"]
@@ -159,15 +163,15 @@ export function ShopClient({
                             >
                                 {/* Image Container */}
                                 <div className="relative aspect-[4/5] w-full overflow-hidden rounded-2xl bg-white border border-slate-100 shadow-sm transition-all duration-500 group-hover:shadow-xl group-hover:border-slate-200 flex items-center justify-center">
-                                    {product.images.length > 0 ? (
+                                    {(hoveredVariants[product.id] || product.images.length > 0) ? (
                                         <>
                                             <Image
-                                                src={product.images[0]}
+                                                src={hoveredVariants[product.id] || product.images[0]}
                                                 alt={product.name}
                                                 fill
-                                                className={`object-contain p-6 transition-opacity duration-500 ${product.images[1] ? 'group-hover:opacity-0' : ''}`}
+                                                className={`object-contain p-6 transition-opacity duration-500 ${!hoveredVariants[product.id] && product.images[1] ? 'group-hover:opacity-0' : ''}`}
                                             />
-                                            {product.images[1] && (
+                                            {!hoveredVariants[product.id] && product.images[1] && (
                                                 <Image
                                                     src={product.images[1]}
                                                     alt={`${product.name} alternate view`}
@@ -236,7 +240,20 @@ export function ShopClient({
                                                         <div
                                                             key={i}
                                                             title={v.colorName}
-                                                            className="w-3.5 h-3.5 rounded-full border border-slate-200 shadow-sm"
+                                                            onMouseEnter={() => {
+                                                                if (v.imageUrl) {
+                                                                    setHoveredVariants(prev => ({ ...prev, [product.id]: v.imageUrl! }))
+                                                                }
+                                                            }}
+                                                            onMouseLeave={() => {
+                                                                setHoveredVariants(prev => ({ ...prev, [product.id]: null }))
+                                                            }}
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                setSelectedProduct(product);
+                                                                setSelectedVariant(v);
+                                                            }}
+                                                            className="w-4 h-4 rounded-full border border-slate-200 shadow-sm transition-transform hover:scale-125 hover:z-10"
                                                             style={{ backgroundColor: getCSSColor(v.colorName) }}
                                                         />
                                                     ))}
