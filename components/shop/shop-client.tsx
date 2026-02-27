@@ -56,6 +56,9 @@ export function ShopClient({
     // Track hovered image for each product card independently
     const [hoveredVariants, setHoveredVariants] = useState<{ [productId: string]: string | null }>({})
 
+    // Track clicked (selected) image for each product card independently
+    const [selectedGridVariants, setSelectedGridVariants] = useState<{ [productId: string]: string | null }>({})
+
     const { addItem } = useCartStore()
 
     const categories = ["All", "Racquets", "Grips", "Strings", "Shuttlecocks", "Accessories"]
@@ -163,15 +166,15 @@ export function ShopClient({
                             >
                                 {/* Image Container */}
                                 <div className="relative aspect-[4/5] w-full overflow-hidden rounded-2xl bg-white border border-slate-100 shadow-sm transition-all duration-500 group-hover:shadow-xl group-hover:border-slate-200 flex items-center justify-center">
-                                    {(hoveredVariants[product.id] || product.images.length > 0) ? (
+                                    {(hoveredVariants[product.id] || selectedGridVariants[product.id] || product.images.length > 0) ? (
                                         <>
                                             <Image
-                                                src={hoveredVariants[product.id] || product.images[0]}
+                                                src={hoveredVariants[product.id] || selectedGridVariants[product.id] || product.images[0]}
                                                 alt={product.name}
                                                 fill
-                                                className={`object-contain p-6 transition-opacity duration-500 ${!hoveredVariants[product.id] && product.images[1] ? 'group-hover:opacity-0' : ''}`}
+                                                className={`object-contain p-6 transition-opacity duration-500 ${!hoveredVariants[product.id] && !selectedGridVariants[product.id] && product.images[1] ? 'group-hover:opacity-0' : ''}`}
                                             />
-                                            {!hoveredVariants[product.id] && product.images[1] && (
+                                            {(!hoveredVariants[product.id] && !selectedGridVariants[product.id] && product.images[1]) && (
                                                 <Image
                                                     src={product.images[1]}
                                                     alt={`${product.name} alternate view`}
@@ -250,10 +253,11 @@ export function ShopClient({
                                                             }}
                                                             onClick={(e) => {
                                                                 e.stopPropagation();
-                                                                setSelectedProduct(product);
-                                                                setSelectedVariant(v);
+                                                                if (v.imageUrl) {
+                                                                    setSelectedGridVariants(prev => ({ ...prev, [product.id]: v.imageUrl! }))
+                                                                }
                                                             }}
-                                                            className="w-4 h-4 rounded-full border border-slate-200 shadow-sm transition-transform hover:scale-125 hover:z-10"
+                                                            className={`w-4 h-4 rounded-full border shadow-sm transition-transform hover:scale-125 hover:z-10 ${selectedGridVariants[product.id] === v.imageUrl ? 'scale-125 border-slate-900 border-2' : 'border-slate-200'}`}
                                                             style={{ backgroundColor: getCSSColor(v.colorName) }}
                                                         />
                                                     ))}
