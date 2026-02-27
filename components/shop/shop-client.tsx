@@ -18,7 +18,7 @@ interface Product {
     stockCount: number
     images: string[]
     description: string | null
-    colorVariants?: { colorName: string, stockCount: number }[]
+    colorVariants?: { colorName: string, stockCount: number, imageUrl?: string }[]
 }
 
 // Simple helper to guess valid CSS color from text
@@ -50,7 +50,7 @@ export function ShopClient({
 }) {
     const [activeCategory, setActiveCategory] = useState<string>("All")
     const [selectedProduct, setSelectedProduct] = useState<Product | null>(null)
-    const [selectedVariant, setSelectedVariant] = useState<{ colorName: string, stockCount: number } | null>(null)
+    const [selectedVariant, setSelectedVariant] = useState<{ colorName: string, stockCount: number, imageUrl?: string } | null>(null)
     const [quantity, setQuantity] = useState(1)
     const { addItem } = useCartStore()
 
@@ -293,10 +293,10 @@ export function ShopClient({
 
                             <div className="p-6 flex-grow">
                                 <div className="aspect-square relative bg-slate-50 rounded-2xl mb-8 flex items-center justify-center p-8">
-                                    {selectedProduct.images.length > 0 ? (
+                                    {(selectedVariant?.imageUrl || selectedProduct.images[0]) ? (
                                         <Image
-                                            src={selectedProduct.images[0]}
-                                            alt={selectedProduct.name}
+                                            src={selectedVariant?.imageUrl || selectedProduct.images[0]}
+                                            alt={selectedVariant?.colorName ? `${selectedProduct.name} - ${selectedVariant.colorName}` : selectedProduct.name}
                                             fill
                                             className="object-contain p-8"
                                         />
