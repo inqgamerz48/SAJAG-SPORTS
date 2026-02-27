@@ -2,7 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { ShopClient } from "@/components/shop/shop-client";
 
 // Revalidate data every hour
-export const revalidate = 3600;
+export const revalidate = 0; // Disable static caching or reduce it to show updates
 
 export default async function ShopPage() {
   const products = await prisma.product.findMany({
@@ -24,7 +24,8 @@ export default async function ShopPage() {
     description: product.description,
     colorVariants: product.colorVariants ? product.colorVariants.map((v: any) => ({
       colorName: v.colorName,
-      stockCount: v.stockCount
+      stockCount: v.stockCount,
+      imageUrl: v.imageUrl ?? undefined
     })) : []
   }))
 
