@@ -1,7 +1,20 @@
-import { products } from '@/lib/products'
 import { ShopClient } from '@/components/shop/shop-client'
+import { prisma } from '@/lib/prisma'
 
-export default function ProductsPage() {
+export const dynamic = 'force-dynamic';
+
+export default async function ProductsPage() {
+    const rawProducts = await prisma.product.findMany({
+        where: { stockCount: { gt: -1 } }, // Or whatever condition, assuming all are shown
+        include: { colorVariants: true },
+        orderBy: { createdAt: 'desc' }
+    });
+
+    const products = rawProducts.map(p => ({
+        ...p,
+        price: Number(p.price)
+    }));
+
     return (
         <div className="min-h-screen bg-gray-50 py-12 px-4">
             <div className="mx-auto max-w-7xl">

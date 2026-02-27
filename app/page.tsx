@@ -20,10 +20,28 @@ import {
 } from 'lucide-react'
 import { BeforeAfterSlider } from '@/components/before-after-slider'
 import { ShopClient } from '@/components/shop/shop-client'
-import { products } from '@/lib/products'
+import { prisma } from '@/lib/prisma'
 
+export const dynamic = 'force-dynamic';
 
-export default function HomePage() {
+export default async function HomePage() {
+  const rawProducts = await prisma.product.findMany({
+    where: { stockCount: { gt: -1 } },
+    include: { colorVariants: true },
+    orderBy: { createdAt: 'desc' },
+    take: 4 // limit 4 for homepage
+  });
+
+  // Convert Decimal to number for ShopClient
+  const products = rawProducts.map(p => ({
+    ...p,
+    price: Number(p.price)
+  }));
+
+  return <HomePageClient initialProducts={products} />;
+}
+
+function HomePageClient({ initialProducts }: { initialProducts: any[] }) {
   const [email, setEmail] = useState('')
   const [submitted, setSubmitted] = useState(false)
   const [scrollProgress, setScrollProgress] = useState(0)
@@ -195,7 +213,7 @@ export default function HomePage() {
             </p>
           </div>
 
-          <ShopClient initialProducts={products} limit={4} hideHeader />
+          <ShopClient initialProducts={initialProducts} limit={4} hideHeader />
 
           <div className="mt-12 text-center">
             <Button variant="outline" size="lg" asChild className="animate-pulse-glow">
