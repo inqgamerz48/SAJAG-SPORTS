@@ -112,12 +112,28 @@ export default function OrdersFeedPage() {
 
                                         <div className="mt-4 bg-gray-50 p-3 rounded-lg border text-sm">
                                             <p className="font-semibold text-gray-700 mb-2">Order Items:</p>
-                                            <ul className="list-disc list-inside space-y-1 text-gray-600">
+                                            <ul className="list-disc list-inside space-y-3 text-gray-600">
                                                 {order.orderItems?.map((item: any) => (
-                                                    <li key={item.id}>
-                                                        {item.quantity}x {item.serviceType
-                                                            ? `${item.serviceType} (${item.racquetBrand || ''} ${item.racquetModel || ''})`
-                                                            : `Product ID: ${item.productId}`}
+                                                    <li key={item.id} className="flex flex-col gap-2">
+                                                        <span>
+                                                            {item.quantity}x {item.serviceType
+                                                                ? `${item.serviceType} (${item.racquetBrand || ''} ${item.racquetModel || ''})`
+                                                                : `Product ID: ${item.productId}`}
+                                                        </span>
+                                                        {item.repairImageUrl && (
+                                                            <a
+                                                                href={item.repairImageUrl}
+                                                                target="_blank"
+                                                                rel="noopener noreferrer"
+                                                                className="ml-5 flex items-center gap-2 text-brand-blue hover:text-brand-orange transition-colors w-fit"
+                                                            >
+                                                                <div className="h-12 w-12 rounded-md overflow-hidden border bg-gray-200">
+                                                                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                                                                    <img src={item.repairImageUrl} alt="Broken Racquet" className="h-full w-full object-cover" />
+                                                                </div>
+                                                                <span className="text-xs font-medium underline">View Uploaded Photo</span>
+                                                            </a>
+                                                        )}
                                                     </li>
                                                 ))}
                                             </ul>

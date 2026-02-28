@@ -84,7 +84,8 @@ model OrderItem {
   racquetBrand    String?  @map("racquet_brand")
   racquetModel    String?  @map("racquet_model")
   tensionLbs      Int?     @map("tension_lbs")
-  
+  repairImageUrl  String?  @map("repair_image_url") // Uploaded broken racquet photo
+
   @@map("order_items")
 }
 

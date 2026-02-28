@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import Image from 'next/image'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -12,8 +13,9 @@ import { toast } from 'sonner'
 import { STRING_PRICES, formatCurrency } from '@/lib/pricing'
 import { useAuth } from '@/components/providers/auth-provider'
 import { useCartStore } from '@/store/useCartStore'
-import { Trash2, Loader2, CheckCircle2, XCircle } from 'lucide-react'
+import { Trash2, Loader2, CheckCircle2, XCircle, Camera } from 'lucide-react'
 import { Textarea } from '@/components/ui/textarea'
+import { UploadDropzone } from '@/utils/uploadthing'
 
 interface RepairFormData {
   name: string
@@ -28,6 +30,7 @@ interface RepairFormData {
   racquetValueCategory: 'A' | 'B'
   numberOfCracks: string
   comments: string
+  repairImageUrl?: string
 }
 
 export function RepairForm() {
@@ -105,6 +108,11 @@ export function RepairForm() {
       return
     }
 
+    if (!formData.repairImageUrl) {
+      toast.error('Please upload a photo of your broken racquet.')
+      return
+    }
+
     setLoading(true)
 
     try {
@@ -142,7 +150,8 @@ export function RepairForm() {
         customerEmail: formData.email,
         customerPhone: formData.phone,
         customerPincode: formData.pincode,
-        comments: formData.comments
+        comments: formData.comments,
+        repairImageUrl: formData.repairImageUrl
       })
 
       // Instead of going to checkout, go to the unified /cart to see everything (and hit the upsell!)
@@ -328,6 +337,61 @@ export function RepairForm() {
                   </Select>
                 </div>
 
+                {/* Upload Photo Section */}
+                <div>
+                  <Label className="text-gray-700 flex items-center gap-2">
+                    <Camera className="w-4 h-4 text-brand-orange" />
+                    Upload Photo of the Broken Racquet *
+                  </Label>
+                  <p className="text-xs text-gray-500 mb-2">Max limit 4MB. Take a clear photo of the crack.</p>
+
+                  {formData.repairImageUrl ? (
+                    <div className="relative w-full h-48 mt-2 rounded-xl overflow-hidden border border-gray-200">
+                      <Image
+                        src={formData.repairImageUrl}
+                        alt="Broken Racquet"
+                        fill
+                        className="object-cover"
+                      />
+                      <Button
+                        type="button"
+                        variant="destructive"
+                        size="icon"
+                        className="absolute top-2 right-2 rounded-full h-8 w-8 shadow-sm"
+                        onClick={() => setFormData({ ...formData, repairImageUrl: undefined })}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="mt-2 border-2 border-dashed border-gray-300 rounded-xl bg-white hover:border-brand-orange/50 transition-colors">
+                      <UploadDropzone
+                        endpoint="repairImage"
+                        onClientUploadComplete={(res) => {
+                          if (res?.[0]) {
+                            setFormData({ ...formData, repairImageUrl: res[0].url })
+                            toast.success("Photo uploaded successfully!")
+                          }
+                        }}
+                        onUploadError={(error: Error) => {
+                          toast.error(`Upload failed: ${error.message}`)
+                        }}
+                        appearance={{
+                          button: "bg-brand-orange text-white hover:bg-brand-orange/90 rounded-md py-2 px-4 shadow-sm",
+                          container: "py-6 px-4 flex flex-col items-center justify-center space-y-3 cursor-pointer",
+                          label: "text-brand-orange font-semibold tracking-wide hover:text-brand-orange/80",
+                          allowedContent: "text-gray-500 text-xs mt-1"
+                        }}
+                        content={{
+                          label: "Upload from Library or Camera",
+                          allowedContent: "Image (max 4MB)"
+                        }}
+                      />
+                    </div>
+                  )}
+                </div>
+
+
                 <div>
                   <Label htmlFor="string-choice" className="text-gray-700">Stringing Choice *</Label>
                   <Select
@@ -391,7 +455,7 @@ export function RepairForm() {
             variant="brand"
             size="lg"
             className="w-full text-lg py-6 shadow-xl animate-pulse-glow mt-8 bg-brand-orange hover:bg-brand-orange/90"
-            disabled={loading || checkingPincode || pincodeStatus === 'invalid'}
+            disabled={loading || checkingPincode || pincodeStatus === 'invalid' || !formData.repairImageUrl}
           >
             {loading ? 'Calculating Quote...' : 'Get Quote & Pay'}
           </Button>

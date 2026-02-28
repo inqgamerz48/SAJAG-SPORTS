@@ -80,7 +80,8 @@ export async function POST(req: NextRequest) {
                         serviceType: item.serviceType || null,
                         racquetBrand: item.racquetBrand || null,
                         racquetModel: item.racquetModel || null,
-                        tensionLbs: item.tension || null
+                        tensionLbs: item.tension || null,
+                        repairImageUrl: item.repairImageUrl || null
                     }))
                 },
                 shipments: {

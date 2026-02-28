@@ -26,6 +26,8 @@ export interface CartItem {
     comments?: string;
     // Color variant info
     color?: string;
+    // Repair Image Upload
+    repairImageUrl?: string;
 }
 
 interface CartState {
