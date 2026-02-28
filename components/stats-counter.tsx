@@ -43,7 +43,7 @@ const stats: Stat[] = [
   },
 ]
 
-function StatItem({ stat }: { stat: Stat }) {
+function StatItem({ stat, index }: { stat: Stat, index: number }) {
   const ref = useRef(null)
   const isInView = useInView(ref, { once: true, margin: "-50px" })
   const [count, setCount] = useState(0)
@@ -82,7 +82,7 @@ function StatItem({ stat }: { stat: Stat }) {
   }
 
   return (
-    <div ref={ref} className="text-center animate-fade-in-up" style={{ animationDelay: `${stat.value * 0.1}s` }}>
+    <div ref={ref} className="text-center animate-fade-in-up" style={{ animationDelay: `${index * 0.1}s` }}>
       <div className={`mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full shadow-lg animate-float ${getGradientClass()}`}>
         {stat.icon}
       </div>
@@ -105,7 +105,7 @@ export function StatsCounter() {
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-2 gap-8 md:grid-cols-4">
           {stats.map((stat, index) => (
-            <StatItem key={index} stat={stat} />
+            <StatItem key={index} stat={stat} index={index} />
           ))}
         </div>
       </div>
