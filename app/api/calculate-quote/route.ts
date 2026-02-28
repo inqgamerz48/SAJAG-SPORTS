@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { calculatePricingBreakdown, validatePricingInputs } from '@/lib/pricing'
-import { calculateRoundTripShipping } from '@/lib/delhivery'
+import { calculateRoundTripShipping, calculateSingleLegShipping } from '@/lib/delhivery'
 
 /**
  * Calculate complete pricing quote including Delhivery shipping
@@ -28,14 +28,21 @@ export async function POST(req: NextRequest) {
         }
 
         // Check if there are any physical products or services that require round-trip shipping
-        // (Currently all services imply pickup/return logistics)
-        const requiresShipping = items.some((item: any) => item.type === 'service' || item.type === 'physical')
+        const hasServices = items.some((item: any) => item.type === 'service')
+        const hasPhysical = items.some((item: any) => item.type === 'physical')
+
+        const requiresShipping = hasServices || hasPhysical
 
         let shippingResult: any = { success: true, legA: 0, legB: 0, total: 0, error: undefined }
 
         if (requiresShipping) {
-            // Calculate round-trip shipping from Delhivery
-            shippingResult = await calculateRoundTripShipping(customerPincode)
+            if (hasServices) {
+                // Determine it's a service request, needing a round trip (pickup & return)
+                shippingResult = await calculateRoundTripShipping(customerPincode)
+            } else if (hasPhysical) {
+                // Cart only contains physical products, meaning we only need to deliver to them (Leg B)
+                shippingResult = await calculateSingleLegShipping(customerPincode)
+            }
 
             if (!shippingResult.success) {
                 return NextResponse.json(
@@ -76,7 +83,9 @@ export async function POST(req: NextRequest) {
                 legA: shippingResult.legA || 0,
                 legB: shippingResult.legB || 0,
                 total: grandTotal,
-                shippingMessage: requiresShipping ? `Service active for ${customerPincode}` : 'No shipping required.'
+                shippingMessage: requiresShipping
+                    ? (hasServices ? `Round-trip service active for ${customerPincode}` : `Delivery calculated for ${customerPincode}`)
+                    : 'No shipping required.'
             },
         })
     } catch (error: any) {

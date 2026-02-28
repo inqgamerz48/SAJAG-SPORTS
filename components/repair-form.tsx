@@ -13,6 +13,7 @@ import { STRING_PRICES, formatCurrency } from '@/lib/pricing'
 import { useAuth } from '@/components/providers/auth-provider'
 import { useCartStore } from '@/store/useCartStore'
 import { Trash2, Loader2, CheckCircle2, XCircle } from 'lucide-react'
+import { Textarea } from '@/components/ui/textarea'
 
 interface RepairFormData {
   name: string
@@ -23,10 +24,10 @@ interface RepairFormData {
   brand: string
   model: string
   tension_lbs: number
-  knot_type: '2-knot' | '4-knot'
   stringType: string
   racquetValueCategory: 'A' | 'B'
   numberOfCracks: string
+  comments: string
 }
 
 export function RepairForm() {
@@ -40,10 +41,10 @@ export function RepairForm() {
     brand: '',
     model: '',
     tension_lbs: 24,
-    knot_type: '4-knot',
-    stringType: 'none',
+    stringType: 'BG 65',
     racquetValueCategory: 'A',
     numberOfCracks: '1',
+    comments: '',
   })
   const [loading, setLoading] = useState(false)
   const [checkingPincode, setCheckingPincode] = useState(false)
@@ -123,7 +124,7 @@ export function RepairForm() {
 
       // 3. Add to Cart Store instead of direct quote page
       let basePrice = formData.racquetValueCategory === 'A' ? 500 : 700
-      let stringPrice = formData.stringType !== 'none' ? STRING_PRICES[formData.stringType as keyof typeof STRING_PRICES] || 0 : 0
+      let stringPrice = formData.stringType ? STRING_PRICES[formData.stringType as keyof typeof STRING_PRICES] || 0 : 0
 
       const totalPrice = (basePrice * parseInt(formData.numberOfCracks)) + stringPrice
 
@@ -140,7 +141,8 @@ export function RepairForm() {
         customerName: formData.name,
         customerEmail: formData.email,
         customerPhone: formData.phone,
-        customerPincode: formData.pincode
+        customerPincode: formData.pincode,
+        comments: formData.comments
       })
 
       // Instead of going to checkout, go to the unified /cart to see everything (and hit the upsell!)
@@ -336,7 +338,6 @@ export function RepairForm() {
                       <SelectValue placeholder="Select string" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="none">No Stringing (₹0)</SelectItem>
                       {Object.entries(STRING_PRICES)
                         .filter(([name]) => name !== 'none')
                         .map(([name, price]) => (
@@ -351,7 +352,7 @@ export function RepairForm() {
               </div>
 
               {/* Tension */}
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4">
                 <div>
                   <Label htmlFor="tension" className="text-gray-700">Tension (lbs)</Label>
                   <Input
@@ -362,29 +363,23 @@ export function RepairForm() {
                     value={formData.tension_lbs}
                     onChange={(e) => setFormData({ ...formData, tension_lbs: parseInt(e.target.value) || 24 })}
                     className="mt-1"
-                    disabled={formData.stringType === 'none'}
                   />
-                </div>
-                <div>
-                  <Label htmlFor="knot-type" className="text-gray-700">Knot Type</Label>
-                  <Select
-                    value={formData.knot_type}
-                    onValueChange={(value: '2-knot' | '4-knot') => setFormData({ ...formData, knot_type: value })}
-                    disabled={formData.stringType === 'none'}
-                  >
-                    <SelectTrigger className="mt-1">
-                      <SelectValue placeholder="Select" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="2-knot">2-Knot</SelectItem>
-                      <SelectItem value="4-knot">4-Knot</SelectItem>
-                    </SelectContent>
-                  </Select>
                 </div>
               </div>
               <p className="text-xs text-gray-500">
                 * Max safe tension for repaired racquets is 24-26 lbs.
               </p>
+
+              <div>
+                <Label htmlFor="comments" className="text-gray-700">Comments / Description</Label>
+                <Textarea
+                  id="comments"
+                  value={formData.comments}
+                  onChange={(e) => setFormData({ ...formData, comments: e.target.value })}
+                  className="mt-2 text-gray-700"
+                  placeholder="Additional details about the repair"
+                />
+              </div>
 
             </div>
           </div>

@@ -119,7 +119,7 @@ export function Header() {
 
         {/* Mobile Menu */}
         {mobileMenuOpen && (
-          <div className="md:hidden border-t border-gray-200 bg-white">
+          <div className="md:hidden absolute top-16 left-0 w-full z-50 border-t border-gray-200 bg-white shadow-lg">
             <nav className="flex flex-col gap-4 px-4 py-4">
               <Link
                 href="/"

@@ -33,16 +33,6 @@ export function Footer() {
                         <h4 className="mb-4 font-semibold text-gray-900">Contact Us</h4>
                         <div className="space-y-3 text-sm text-gray-600">
                             <div className="flex items-center gap-2">
-                                <MapPin className="h-4 w-4 text-brand-orange" />
-                                <span>Manjri Arena, Pune</span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                                <Phone className="h-4 w-4 text-brand-blue" />
-                                <a href="tel:+919588475197" className="hover:text-brand-orange transition-colors">
-                                    +91 9588475197
-                                </a>
-                            </div>
-                            <div className="flex items-center gap-2">
                                 <Mail className="h-4 w-4 text-brand-red" />
                                 <a href="mailto:sajagsportstore@gmail.com" className="hover:text-brand-orange transition-colors">
                                     sajagsportstore@gmail.com
@@ -71,18 +61,7 @@ export function Footer() {
                                     rel="noopener noreferrer"
                                     className="hover:text-brand-orange transition-colors"
                                 >
-                                    Instagram
-                                </a>
-                            </div>
-                            <div className="flex items-center gap-2">
-                                <MessageCircle className="h-4 w-4 text-brand-orange" />
-                                <a
-                                    href="https://wa.me/919588475197"
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="hover:text-brand-orange transition-colors"
-                                >
-                                    WhatsApp Us
+                                    sajagracketrevive
                                 </a>
                             </div>
                         </div>

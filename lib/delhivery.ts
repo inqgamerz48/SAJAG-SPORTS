@@ -453,3 +453,39 @@ export async function calculateRoundTripShipping(customerPincode: string) {
         }
     }
 }
+
+/**
+ * Calculate Single Leg Shipping Cost (Workshop → Customer)
+ * For physical product orders that do not require a racquet pickup
+ */
+export async function calculateSingleLegShipping(customerPincode: string) {
+    try {
+        // Leg B: Workshop → Customer
+        const legB = await calculateShippingCost(WORKSHOP_PINCODE, customerPincode)
+
+        if (legB.success) {
+            const total = legB.total_amount || 0
+            const shippingGst = total * 0.18
+
+            return {
+                success: true,
+                legA: 0,
+                legB: total,
+                total,
+                shippingGst,
+                grandTotal: total + shippingGst,
+            }
+        }
+
+        return {
+            success: false,
+            error: 'Unable to calculate single-leg delivery shipping',
+        }
+    } catch (error: any) {
+        console.error('Single-leg calculation error:', error)
+        return {
+            success: false,
+            error: error.message || 'Failed to calculate delivery shipping',
+        }
+    }
+}
