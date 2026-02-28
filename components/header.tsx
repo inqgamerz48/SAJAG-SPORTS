@@ -104,7 +104,7 @@ export function Header() {
 
             {/* Mobile Menu Button */}
             <button
-              className="md:hidden p-2"
+              className="md:hidden p-2 relative z-[100]"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               aria-label="Toggle menu"
             >
@@ -119,7 +119,7 @@ export function Header() {
 
         {/* Mobile Menu */}
         {mobileMenuOpen && (
-          <div className="md:hidden absolute top-16 left-0 w-full z-50 border-t border-gray-200 bg-white shadow-lg">
+          <div className="md:hidden absolute top-16 left-0 w-full z-[100] border-t border-gray-200 bg-white shadow-lg">
             <nav className="flex flex-col gap-4 px-4 py-4">
               <Link
                 href="/"

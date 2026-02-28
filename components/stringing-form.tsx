@@ -19,6 +19,7 @@ interface StringingFormData {
   pincode: string
   stringName: string
   tension: number[]
+  comments: string
 }
 
 const stringOptions = [
@@ -37,6 +38,7 @@ export function StringingForm() {
     pincode: '',
     stringName: '',
     tension: [24],
+    comments: '',
   })
   const [loading, setLoading] = useState(false)
   const { addItem } = useCartStore()
@@ -58,7 +60,8 @@ export function StringingForm() {
       customerName: formData.name,
       customerEmail: formData.email,
       customerPhone: formData.phone,
-      customerPincode: formData.pincode
+      customerPincode: formData.pincode,
+      comments: formData.comments,
     })
 
     // Redirect to the unified cart page
@@ -205,7 +208,19 @@ export function StringingForm() {
             </div>
           </div>
 
-
+          {/* Comments / Description */}
+          <div>
+            <Label htmlFor="stringing-comments" className="text-gray-700">
+              Comments / Description
+            </Label>
+            <textarea
+              id="stringing-comments"
+              className="mt-2 flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 text-gray-700"
+              value={formData.comments}
+              onChange={(e) => setFormData({ ...formData, comments: e.target.value })}
+              placeholder="Any specific requests or details"
+            />
+          </div>
 
           {/* Submit Button */}
           <Button
