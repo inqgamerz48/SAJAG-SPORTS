@@ -85,7 +85,7 @@ export function HomePageClient({ initialProducts, accessoriesProducts }: { initi
 
                     <div className="grid gap-8 md:grid-cols-2">
                         {/* Stringing Service Card */}
-                        <Card className="border-2 border-brand-blue/30 bg-white shadow-lg relative overflow-hidden">
+                        <Card className="border-2 border-brand-blue/30 bg-white shadow-lg relative overflow-hidden transition-all duration-300 hover:shadow-2xl hover:-translate-y-2 hover:border-brand-blue/50 rounded-3xl">
                             <div className="absolute top-4 right-4 z-10">
                                 <span className="bg-gradient-to-r from-brand-orange to-brand-red text-white text-sm font-bold px-4 py-2 rounded-full shadow-lg animate-pulse-glow">
                                     Same Day Delivery
@@ -137,7 +137,7 @@ export function HomePageClient({ initialProducts, accessoriesProducts }: { initi
                         </Card>
 
                         {/* Repair Service Card */}
-                        <Card className="border-2 border-brand-orange/30 bg-white shadow-lg">
+                        <Card className="border-2 border-brand-orange/30 bg-white shadow-lg transition-all duration-300 hover:shadow-2xl hover:-translate-y-2 hover:border-brand-orange/50 rounded-3xl relative overflow-hidden">
                             <CardContent className="p-8">
                                 <div className="flex items-center gap-4 mb-4">
                                     <div className="p-4 rounded-full bg-brand-orange/10">
@@ -177,6 +177,31 @@ export function HomePageClient({ initialProducts, accessoriesProducts }: { initi
                                 </Button>
                             </CardContent>
                         </Card>
+                    </div>
+                </div>
+            </section>
+
+            {/* Promo Banner Section */}
+            <section className="py-12 px-4 bg-white">
+                <div className="mx-auto max-w-7xl relative overflow-hidden rounded-3xl shadow-2xl animate-fade-in-up bg-gradient-to-br from-brand-orange to-brand-red border border-brand-orange/20">
+                    <div className="absolute inset-0 bg-white/10 backdrop-blur-sm" />
+                    <div className="relative px-6 py-12 md:py-16 text-center text-white flex flex-col items-center justify-center">
+                        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/20 text-white font-semibold text-sm mb-6 shadow-sm border border-white/30 backdrop-blur-md">
+                            <span className="relative flex h-3 w-3">
+                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
+                                <span className="relative inline-flex rounded-full h-3 w-3 bg-white"></span>
+                            </span>
+                            Limited Time Offer
+                        </div>
+                        <h2 className="text-3xl md:text-5xl font-black mb-4 tracking-tight shadow-sm drop-shadow-md">
+                            Free Shipping on Products!
+                        </h2>
+                        <p className="text-lg md:text-xl text-white/90 mb-8 max-w-2xl font-medium">
+                            Use code <span className="bg-white text-brand-orange px-3 py-1 rounded-md font-bold mx-1 shadow-inner">SAJAGSPORTS</span> at checkout for free delivery on equipment orders over ₹700.
+                        </p>
+                        <Button variant="secondary" size="lg" className="rounded-full px-8 py-6 text-lg font-bold shadow-xl hover:-translate-y-1 transition-transform" asChild>
+                            <Link href="/shop">Shop Now</Link>
+                        </Button>
                     </div>
                 </div>
             </section>
@@ -301,7 +326,7 @@ export function HomePageClient({ initialProducts, accessoriesProducts }: { initi
                         ].map((src, index) => (
                             <div
                                 key={src}
-                                className="overflow-hidden rounded-2xl border-2 border-orange-400/30 bg-black shadow-xl transition-all duration-300 hover:border-orange-400/60 hover:scale-105 animate-fade-in-up"
+                                className="overflow-hidden rounded-3xl border-2 border-orange-400/30 bg-black shadow-xl transition-all duration-300 hover:shadow-2xl hover:border-orange-400/60 hover:-translate-y-2 animate-fade-in-up"
                                 style={{ animationDelay: `${index * 0.2}s` }}
                             >
                                 <video
@@ -333,7 +358,7 @@ export function HomePageClient({ initialProducts, accessoriesProducts }: { initi
 
                     <div className="grid gap-8 md:grid-cols-3">
                         {/* Testimonial 1 */}
-                        <Card className="border-2 border-orange-200 bg-white shadow-lg transition-all duration-300 hover:border-brand-orange hover:scale-105 animate-fade-in-up">
+                        <Card className="border-2 border-orange-200 bg-white shadow-lg transition-all duration-300 hover:shadow-2xl hover:-translate-y-2 hover:border-brand-orange animate-fade-in-up rounded-3xl">
                             <CardContent className="p-6">
                                 <div className="mb-4 flex gap-1">
                                     {[...Array(5)].map((_, i) => (
@@ -357,7 +382,7 @@ export function HomePageClient({ initialProducts, accessoriesProducts }: { initi
                         </Card>
 
                         {/* Testimonial 2 */}
-                        <Card className="border-2 border-blue-200 bg-white shadow-lg transition-all duration-300 hover:border-brand-blue hover:scale-105 animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
+                        <Card className="border-2 border-blue-200 bg-white shadow-lg transition-all duration-300 hover:shadow-2xl hover:-translate-y-2 hover:border-brand-blue animate-fade-in-up rounded-3xl" style={{ animationDelay: '0.2s' }}>
                             <CardContent className="p-6">
                                 <div className="mb-4 flex gap-1">
                                     {[...Array(5)].map((_, i) => (
@@ -381,7 +406,7 @@ export function HomePageClient({ initialProducts, accessoriesProducts }: { initi
                         </Card>
 
                         {/* Testimonial 3 */}
-                        <Card className="border-2 border-orange-200 bg-white shadow-lg transition-all duration-300 hover:border-brand-orange hover:scale-105 animate-fade-in-up" style={{ animationDelay: '0.4s' }}>
+                        <Card className="border-2 border-orange-200 bg-white shadow-lg transition-all duration-300 hover:shadow-2xl hover:-translate-y-2 hover:border-brand-orange animate-fade-in-up rounded-3xl" style={{ animationDelay: '0.4s' }}>
                             <CardContent className="p-6">
                                 <div className="mb-4 flex gap-1">
                                     {[...Array(5)].map((_, i) => (
@@ -483,7 +508,7 @@ export function HomePageClient({ initialProducts, accessoriesProducts }: { initi
                     <p className="mb-8 text-lg text-gray-600">
                         Our full range of Rackets, Shoes, and Gear will be online soon. Sign up to be notified when we launch!
                     </p>
-                    <Card className="border-2 border-brand-orange/30 bg-white shadow-lg">
+                    <Card className="border-2 border-brand-orange/30 bg-white shadow-lg transition-all duration-300 hover:shadow-2xl hover:-translate-y-1 rounded-3xl">
                         <CardContent className="p-8">
                             {submitted ? (
                                 <div className="flex items-center justify-center gap-2 text-brand-orange">
@@ -525,7 +550,7 @@ export function HomePageClient({ initialProducts, accessoriesProducts }: { initi
                     <div className="grid gap-8 lg:grid-cols-3">
                         {/* Main Arena Photo */}
                         <div className="lg:col-span-2 animate-fade-in-up">
-                            <div className="overflow-hidden rounded-2xl border-2 border-brand-orange/30 shadow-xl transition-all duration-300 hover:border-brand-orange hover:scale-[1.02]">
+                            <div className="overflow-hidden rounded-3xl border-2 border-brand-orange/30 shadow-xl transition-all duration-300 hover:shadow-2xl hover:border-brand-orange hover:-translate-y-1">
                                 <Image
                                     src="/arena main.webp"
                                     alt="Sajag Badminton Arena main view"
@@ -539,7 +564,7 @@ export function HomePageClient({ initialProducts, accessoriesProducts }: { initi
                         {/* Side Photos + Text */}
                         <div className="space-y-6 animate-slide-in-right">
                             <div className="grid grid-cols-2 gap-4">
-                                <div className="overflow-hidden rounded-2xl border-2 border-brand-blue/30 shadow-md transition-all duration-300 hover:border-brand-blue hover:scale-105">
+                                <div className="overflow-hidden rounded-3xl border-2 border-brand-blue/30 shadow-md transition-all duration-300 hover:shadow-xl hover:border-brand-blue hover:-translate-y-1">
                                     <Image
                                         src="/arena 1.jpg"
                                         alt="Sajag Badminton Arena court view"
@@ -548,7 +573,7 @@ export function HomePageClient({ initialProducts, accessoriesProducts }: { initi
                                         className="h-full w-full object-cover"
                                     />
                                 </div>
-                                <div className="overflow-hidden rounded-2xl border-2 border-brand-orange/30 shadow-md transition-all duration-300 hover:border-brand-orange hover:scale-105">
+                                <div className="overflow-hidden rounded-3xl border-2 border-brand-orange/30 shadow-md transition-all duration-300 hover:shadow-xl hover:border-brand-orange hover:-translate-y-1">
                                     <Image
                                         src="/arena 2.jpg"
                                         alt="Sajag Badminton Arena facilities"

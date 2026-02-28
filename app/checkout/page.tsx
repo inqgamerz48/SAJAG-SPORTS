@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Separator } from '@/components/ui/separator'
 import { Badge } from '@/components/ui/badge'
-import { CreditCard, Loader2, AlertCircle, ShoppingBag, MapPin, Truck } from 'lucide-react'
+import { CreditCard, Loader2, AlertCircle, ShoppingBag, MapPin, Truck, Tag } from 'lucide-react'
 import { useCartStore } from '@/store/useCartStore'
 import { useAuth } from '@/components/providers/auth-provider'
 
@@ -41,6 +41,12 @@ export default function CheckoutPage() {
     const [calculating, setCalculating] = useState(false)
     const [costBreakdown, setCostBreakdown] = useState<CostBreakdown | null>(null)
     const [error, setError] = useState<string | null>(null)
+
+    // Coupon State
+    const [couponCode, setCouponCode] = useState('')
+    const [appliedCoupon, setAppliedCoupon] = useState<string | null>(null)
+    const [couponError, setCouponError] = useState<string | null>(null)
+    const [couponSuccess, setCouponSuccess] = useState<string | null>(null)
 
     // Wait for hydration
     const [mounted, setMounted] = useState(false)
@@ -125,6 +131,21 @@ export default function CheckoutPage() {
         try {
             const fullAddress = `${addressLine}, ${pincode}`
 
+            // Adjust payload if coupon is applied
+            const payloadCostBreakdown = costBreakdown ? { ...costBreakdown } : {
+                subtotal: getTotalPrice(),
+                total: getTotalPrice(),
+                shippingCost: 0
+            }
+
+            if (appliedCoupon === 'sajagsports') {
+                payloadCostBreakdown.shippingCost = 0
+                // Recalculate total by removing original shipping
+                if (costBreakdown) {
+                    payloadCostBreakdown.total = payloadCostBreakdown.subtotal
+                }
+            }
+
             // Generate PayU Hash
             const response = await fetch('/api/payu/create-hash', {
                 method: 'POST',
@@ -138,11 +159,7 @@ export default function CheckoutPage() {
                         pincode
                     },
                     items: items,
-                    costBreakdown: costBreakdown || {
-                        subtotal: getTotalPrice(),
-                        total: getTotalPrice(),
-                        shippingCost: 0
-                    },
+                    costBreakdown: payloadCostBreakdown,
                 }),
             })
 
@@ -191,17 +208,39 @@ export default function CheckoutPage() {
         }
     }
 
-    if (!mounted) return null;
+    const handleApplyCoupon = () => {
+        setCouponError(null)
+        setCouponSuccess(null)
 
-    if (!user) {
-        return (
-            <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-                <div className="flex flex-col items-center space-y-4">
-                    <Loader2 className="h-8 w-8 animate-spin text-brand-orange" />
-                    <p className="text-gray-600 font-medium">Waiting for authentication...</p>
-                </div>
-            </div>
-        )
+        const code = couponCode.trim().toLowerCase()
+        if (!code) return
+
+        if (code === 'sajagsports') {
+            const hasServices = items.some(item => item.type === 'service')
+            const subtotal = getTotalPrice()
+
+            if (hasServices) {
+                setCouponError('Coupon not valid for service or repair orders.')
+                return
+            }
+
+            if (subtotal < 700) {
+                setCouponError('Order subtotal must be above ₹700 to use this coupon.')
+                return
+            }
+
+            setAppliedCoupon('sajagsports')
+            setCouponSuccess('Free shipping applied!')
+        } else {
+            setCouponError('Invalid coupon code.')
+        }
+    }
+
+    const handleRemoveCoupon = () => {
+        setAppliedCoupon(null)
+        setCouponCode('')
+        setCouponSuccess(null)
+        setCouponError(null)
     }
 
     return (
@@ -284,23 +323,39 @@ export default function CheckoutPage() {
                                     {items.map((item) => (
                                         <li key={item.id} className="p-5 flex gap-4 hover:bg-gray-50 transition-colors">
                                             <div className="flex-1">
-                                                <div className="flex justify-between items-start">
-                                                    <div>
-                                                        <h4 className="font-bold text-gray-900">{item.name}</h4>
-                                                        {item.type === 'service' && (
-                                                            <div className="text-sm text-gray-500 mt-1 flex gap-2 items-center">
-                                                                <Badge variant="outline" className="font-normal bg-white">
-                                                                    {item.serviceType === 'repair' ? 'Repair' : 'Stringing'}
-                                                                </Badge>
-                                                                <span>{item.racquetBrand} {item.racquetModel}</span>
-                                                                {item.tension && <span>• {item.tension} lbs</span>}
+                                                <div className="flex justify-between items-start gap-4">
+                                                    <div className="flex gap-4">
+                                                        <div className="w-16 h-16 bg-gray-100 rounded-md shrink-0 flex items-center justify-center border border-gray-200 overflow-hidden relative">
+                                                            {item.type === 'service' ? (
+                                                                <div className="text-amber-500 font-bold text-[10px] uppercase text-center px-1">
+                                                                    Service
+                                                                </div>
+                                                            ) : item.image ? (
+                                                                <>
+                                                                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                                                                    <img src={item.image} alt={item.name} className="w-full h-full object-contain p-1" />
+                                                                </>
+                                                            ) : (
+                                                                <ShoppingBag className="w-6 h-6 text-gray-400" />
+                                                            )}
+                                                        </div>
+                                                        <div>
+                                                            <h4 className="font-bold text-gray-900">{item.name}</h4>
+                                                            {item.type === 'service' && (
+                                                                <div className="text-sm text-gray-500 mt-1 flex gap-2 items-center flex-wrap">
+                                                                    <Badge variant="outline" className="font-normal bg-white">
+                                                                        {item.serviceType === 'repair' ? 'Repair' : 'Stringing'}
+                                                                    </Badge>
+                                                                    <span>{item.racquetBrand} {item.racquetModel}</span>
+                                                                    {item.tension && <span>• {item.tension} lbs</span>}
+                                                                </div>
+                                                            )}
+                                                            <div className="mt-1 text-sm text-gray-500">
+                                                                Qty: {item.quantity} × ₹{item.price.toLocaleString()}
                                                             </div>
-                                                        )}
+                                                        </div>
                                                     </div>
-                                                    <span className="text-base font-bold text-gray-900">₹{(item.price * item.quantity).toLocaleString()}</span>
-                                                </div>
-                                                <div className="mt-2 text-sm text-gray-500">
-                                                    Qty: {item.quantity} × ₹{item.price.toLocaleString()}
+                                                    <span className="text-base font-bold text-gray-900 pt-1 shrink-0">₹{(item.price * item.quantity).toLocaleString()}</span>
                                                 </div>
                                             </div>
                                         </li>
@@ -348,9 +403,18 @@ export default function CheckoutPage() {
                                                         <span>Return Journey</span>
                                                         <span>₹{costBreakdown.legB.toFixed(2)}</span>
                                                     </div>
-                                                    <div className="flex justify-between font-medium text-gray-900 pt-1 pb-2">
+                                                    <div className="flex justify-between font-medium text-gray-900 pt-1 pb-2 items-center">
                                                         <span className="flex items-center gap-1.5"><Truck className="w-4 h-4 text-brand-orange" /> Total Shipping</span>
-                                                        <span>₹{costBreakdown.shippingCost.toFixed(2)}</span>
+                                                        <div className="flex flex-col items-end">
+                                                            {appliedCoupon === 'sajagsports' ? (
+                                                                <>
+                                                                    <span className="line-through text-gray-400 text-sm">₹{costBreakdown.shippingCost.toFixed(2)}</span>
+                                                                    <span className="text-green-600 font-bold">Free</span>
+                                                                </>
+                                                            ) : (
+                                                                <span>₹{costBreakdown.shippingCost.toFixed(2)}</span>
+                                                            )}
+                                                        </div>
                                                     </div>
                                                 </div>
                                             ) : (
@@ -376,13 +440,51 @@ export default function CheckoutPage() {
 
                                 <Separator className="bg-gray-200" />
 
+                                {/* Coupon Section */}
+                                <div className="space-y-3 pb-2">
+                                    <Label className="text-gray-700 flex items-center gap-2"><Tag className="w-4 h-4 text-brand-orange" /> Coupon Code</Label>
+                                    <div className="flex gap-2">
+                                        <Input
+                                            placeholder="Enter code"
+                                            value={couponCode}
+                                            onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+                                            disabled={appliedCoupon !== null || calculating}
+                                            className="uppercase"
+                                        />
+                                        {appliedCoupon ? (
+                                            <Button variant="outline" className="text-red-500 hover:text-red-600 hover:bg-red-50" onClick={handleRemoveCoupon}>
+                                                Remove
+                                            </Button>
+                                        ) : (
+                                            <Button variant="secondary" onClick={handleApplyCoupon} disabled={!couponCode || calculating || items.length === 0}>
+                                                Apply
+                                            </Button>
+                                        )}
+                                    </div>
+
+                                    {couponSuccess && (
+                                        <p className="text-sm text-green-600 flex items-center gap-1">
+                                            ✓ {couponSuccess}
+                                        </p>
+                                    )}
+                                    {couponError && (
+                                        <p className="text-sm text-red-500 flex items-center gap-1">
+                                            <AlertCircle className="w-3 h-3" /> {couponError}
+                                        </p>
+                                    )}
+                                </div>
+
+                                <Separator className="bg-gray-200" />
+
                                 <div className="flex justify-between items-end pt-2">
                                     <div className="space-y-1">
                                         <span className="block text-lg font-bold text-gray-900">Total Amount</span>
                                         <span className="block text-xs text-gray-500">Including all taxes</span>
                                     </div>
                                     <span className="text-3xl font-black text-brand-orange tracking-tight">
-                                        ₹{costBreakdown ? costBreakdown.total.toLocaleString() : getTotalPrice().toLocaleString()}
+                                        ₹{costBreakdown
+                                            ? (appliedCoupon === 'sajagsports' ? costBreakdown.subtotal : costBreakdown.total).toLocaleString()
+                                            : getTotalPrice().toLocaleString()}
                                     </span>
                                 </div>
 

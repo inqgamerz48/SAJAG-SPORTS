@@ -64,12 +64,17 @@ export default function CartPage() {
                             <ul className="divide-y divide-gray-100">
                                 {items.map((item) => (
                                     <li key={item.id} className="p-4 sm:p-6 flex items-start gap-4">
-                                        {/* Placeholder for Product Image or Service Icon */}
-                                        <div className="w-20 h-20 bg-gray-100 rounded-lg flex-shrink-0 flex items-center justify-center border border-gray-200">
+                                        <div className="w-20 h-20 bg-gray-100 rounded-lg flex-shrink-0 relative flex items-center justify-center border border-gray-200 overflow-hidden">
                                             {item.type === 'service' ? (
                                                 <div className="text-amber-500 font-bold text-xs uppercase text-center px-1">
                                                     Service
                                                 </div>
+                                            ) : item.image ? (
+                                                <img
+                                                    src={item.image}
+                                                    alt={item.name}
+                                                    className="w-full h-full object-contain p-2"
+                                                />
                                             ) : (
                                                 <ShoppingBag className="w-8 h-8 text-gray-400" />
                                             )}
