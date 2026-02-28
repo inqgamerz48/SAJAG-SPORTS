@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { Award, Users, Wrench, TrendingUp } from 'lucide-react'
+import { useInView } from 'framer-motion'
 
 interface Stat {
   icon: React.ReactNode
@@ -42,33 +43,37 @@ const stats: Stat[] = [
   },
 ]
 
-function useCountUp(end: number, duration: number = 2000, start: number = 0) {
-  const [count, setCount] = useState(start)
-  const frameRef = useRef<number>()
+function StatItem({ stat }: { stat: Stat }) {
+  const ref = useRef(null)
+  const isInView = useInView(ref, { once: true, margin: "-50px" })
+  const [count, setCount] = useState(0)
 
   useEffect(() => {
+    if (!isInView) return
+
     let startTime: number | null = null
+    const duration = 2000
+    const start = 0
+    const end = stat.value
+    let frameId: number
+
     const animate = (currentTime: number) => {
       if (startTime === null) startTime = currentTime
       const progress = Math.min((currentTime - startTime) / duration, 1)
       setCount(Math.floor(progress * (end - start) + start))
+
       if (progress < 1) {
-        frameRef.current = requestAnimationFrame(animate)
+        frameId = requestAnimationFrame(animate)
       }
     }
-    frameRef.current = requestAnimationFrame(animate)
+
+    frameId = requestAnimationFrame(animate)
     return () => {
-      if (frameRef.current) {
-        cancelAnimationFrame(frameRef.current)
+      if (frameId) {
+        cancelAnimationFrame(frameId)
       }
     }
-  }, [end, duration, start])
-
-  return count
-}
-
-function StatItem({ stat }: { stat: Stat }) {
-  const count = useCountUp(stat.value)
+  }, [isInView, stat.value])
 
   const getGradientClass = () => {
     if (stat.color.includes('orange')) return 'gradient-orange brand-glow-orange'
@@ -77,7 +82,7 @@ function StatItem({ stat }: { stat: Stat }) {
   }
 
   return (
-    <div className="text-center animate-fade-in-up" style={{ animationDelay: `${stat.value * 0.1}s` }}>
+    <div ref={ref} className="text-center animate-fade-in-up" style={{ animationDelay: `${stat.value * 0.1}s` }}>
       <div className={`mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full shadow-lg animate-float ${getGradientClass()}`}>
         {stat.icon}
       </div>
