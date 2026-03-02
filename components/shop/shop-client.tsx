@@ -172,6 +172,7 @@ export function ShopClient({
                                                 src={hoveredVariants[product.id] || selectedGridVariants[product.id] || product.images[0]}
                                                 alt={product.name}
                                                 fill
+                                                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                                                 className={`object-contain p-6 transition-opacity duration-500 ${!hoveredVariants[product.id] && !selectedGridVariants[product.id] && product.images[1] ? 'group-hover:opacity-0' : ''}`}
                                             />
                                             {(!hoveredVariants[product.id] && !selectedGridVariants[product.id] && product.images[1]) && (
@@ -179,6 +180,7 @@ export function ShopClient({
                                                     src={product.images[1]}
                                                     alt={`${product.name} alternate view`}
                                                     fill
+                                                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                                                     className="object-contain p-6 absolute inset-0 opacity-0 transition-opacity duration-500 group-hover:opacity-100"
                                                 />
                                             )}
@@ -319,6 +321,7 @@ export function ShopClient({
                                             src={selectedVariant?.imageUrl || selectedProduct.images[0]}
                                             alt={selectedVariant?.colorName ? `${selectedProduct.name} - ${selectedVariant.colorName}` : selectedProduct.name}
                                             fill
+                                            sizes="(max-width: 768px) 100vw, 50vw"
                                             className="object-contain p-8"
                                         />
                                     ) : (

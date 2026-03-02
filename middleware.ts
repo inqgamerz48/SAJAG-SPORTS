@@ -31,8 +31,6 @@ export async function middleware(request: NextRequest) {
     }
   )
 
-  const { data: { user } } = await supabase.auth.getUser()
-
   // Route Protection Logic
   const path = request.nextUrl.pathname
 
@@ -47,6 +45,8 @@ export async function middleware(request: NextRequest) {
 
   // 2. Dashboard Routes Protection
   if (path.startsWith('/dashboard')) {
+    const { data: { user } } = await supabase.auth.getUser()
+
     if (!user) {
       return NextResponse.redirect(new URL('/?login=true', request.url))
     }

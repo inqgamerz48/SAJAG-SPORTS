@@ -1,7 +1,7 @@
 import { HomePageClient } from '@/components/home-page-client'
 import { prisma } from '@/lib/prisma'
 
-export const dynamic = 'force-dynamic';
+export const revalidate = 60; // Enable ISR (cache for 60 seconds)
 
 export default async function HomePage() {
   const rawProducts = await prisma.product.findMany({

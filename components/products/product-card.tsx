@@ -38,6 +38,7 @@ export function ProductCard({ product }: ProductCardProps) {
                             src={product.images[0]}
                             alt={product.name}
                             fill
+                            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                             className="object-cover transition-transform group-hover:scale-105"
                         />
                     </div>
@@ -81,6 +82,7 @@ export function ProductCard({ product }: ProductCardProps) {
                             src={product.images[currentImageIndex]}
                             alt={`${product.name} view ${currentImageIndex + 1}`}
                             fill
+                            sizes="(max-width: 768px) 100vw, 50vw"
                             className="object-contain"
                         />
                         {product.images.length > 1 && (
