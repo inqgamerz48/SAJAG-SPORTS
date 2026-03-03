@@ -531,7 +531,7 @@ export function RepairForm() {
               className="w-full text-lg py-6 shadow-xl animate-pulse-glow bg-brand-orange hover:bg-brand-orange/90"
               disabled={loading || checkingPincode || pincodeStatus === 'invalid'}
             >
-              {loading ? 'Calculating Quote...' : 'Confirm Items & Proceed to Cart'}
+              {loading ? 'Calculating Quote...' : 'Add to Cart'}
             </Button>
           </div>
 
