@@ -90,11 +90,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }, [supabase, fetchRole])
 
     const signOut = async () => {
-        await supabase.auth.signOut()
+        // Clear local state
         setUser(null)
         setSession(null)
         setRole(null)
-        window.location.href = "/" // Hard redirect to clear any state
+        // Hard redirect to server route to wipe cookies securely
+        window.location.href = "/auth/signout"
     }
 
     const openAuthModal = () => setIsModalOpen(true)

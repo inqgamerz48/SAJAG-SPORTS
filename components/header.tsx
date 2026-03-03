@@ -74,9 +74,9 @@ export function Header() {
               {user ? (
                 <div className="flex items-center gap-4">
                   <Button variant="ghost" size="sm" asChild>
-                    <Link href={role === 'admin' ? '/admin/dashboard' : '/profile'}>
+                    <Link href={role === 'admin' ? '/admin/dashboard' : '/profile'} className="flex items-center">
                       {role === 'admin' ? <LayoutDashboard className="h-4 w-4 mr-2" /> : <User className="h-4 w-4 mr-2" />}
-                      {role === 'admin' ? 'Dashboard' : 'Profile'}
+                      {role === 'admin' ? 'Dashboard' : (user?.user_metadata?.full_name || user?.user_metadata?.name || 'Profile')}
                     </Link>
                   </Button>
                   <Button variant="ghost" size="sm" onClick={() => signOut()}>
@@ -163,7 +163,7 @@ export function Header() {
                     onClick={() => setMobileMenuOpen(false)}
                   >
                     {role === 'admin' ? <LayoutDashboard className="h-4 w-4 mr-2" /> : <User className="h-4 w-4 mr-2" />}
-                    {role === 'admin' ? 'Dashboard' : 'Profile'}
+                    {role === 'admin' ? 'Dashboard' : (user?.user_metadata?.full_name || user?.user_metadata?.name || 'Profile')}
                   </Link>
                   <button
                     onClick={() => {
