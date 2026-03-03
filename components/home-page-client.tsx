@@ -320,9 +320,9 @@ export function HomePageClient({ initialProducts, accessoriesProducts }: { initi
 
                     <div className="grid gap-6 md:grid-cols-3">
                         {[
-                            '/videos/WhatsApp Video 2026-01-18 at 21.28.02.mp4',
-                            '/videos/WhatsApp Video 2026-01-18 at 21.28.04.mp4',
-                            '/videos/WhatsApp Video 2026-01-18 at 21.28.10.mp4',
+                            '/videos/racquet-restoration-1.mp4',
+                            '/videos/racquet-restoration-2.mp4',
+                            '/videos/racquet-restoration-3.mp4',
                         ].map((src, index) => (
                             <div
                                 key={src}
