@@ -103,13 +103,16 @@ export default function InventoryPage() {
                 body: JSON.stringify(formData),
             });
 
-            if (!res.ok) throw new Error("Failed to save product");
+            if (!res.ok) {
+                const errData = await res.json().catch(() => ({}));
+                throw new Error(errData.error || "Failed to save product");
+            }
 
             toast.success(editingProduct ? "Product updated" : "Product added");
             setIsModalOpen(false);
             fetchProducts();
-        } catch (err) {
-            toast.error("An error occurred while saving");
+        } catch (err: any) {
+            toast.error(err.message || "An error occurred while saving");
         }
     };
 
