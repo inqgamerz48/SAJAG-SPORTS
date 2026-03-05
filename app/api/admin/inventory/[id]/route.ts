@@ -13,10 +13,12 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
     try {
         const { id } = await params;
         const data = await req.json();
-        // If variants are provided, we calculate the total stock count from them
-        const stockCount = data.colorVariants?.length > 0
+        const calculatedStock = data.colorVariants?.length > 0
             ? data.colorVariants.reduce((sum: number, v: any) => sum + (Number(v.stockCount) || 0), 0)
             : data.stockCount;
+
+        const stockCount = Number(calculatedStock) || 0;
+        const price = Number(data.price) || 0;
 
         const updatedProduct = await prisma.product.update({
             where: { id },
@@ -24,7 +26,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
                 name: data.name,
                 sku: data.sku,
                 category: data.category,
-                price: data.price,
+                price: price,
                 stockCount: stockCount,
                 images: data.images,
                 description: data.description,
@@ -40,8 +42,11 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
         });
 
         return NextResponse.json(updatedProduct);
-    } catch (error) {
+    } catch (error: any) {
         console.error("Error updating product:", error);
+        if (error?.code === 'P2002') {
+            return NextResponse.json({ error: "Product with this SKU already exists" }, { status: 400 });
+        }
         return NextResponse.json({ error: "Failed to update product" }, { status: 500 });
     }
 }

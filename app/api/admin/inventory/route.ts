@@ -31,16 +31,19 @@ export async function POST(req: Request) {
     try {
         const data = await req.json();
         // If variants are provided, we calculate the total stock count from them
-        const stockCount = data.colorVariants?.length > 0
+        const calculatedStock = data.colorVariants?.length > 0
             ? data.colorVariants.reduce((sum: number, v: any) => sum + (Number(v.stockCount) || 0), 0)
             : data.stockCount;
+
+        const stockCount = Number(calculatedStock) || 0;
+        const price = Number(data.price) || 0;
 
         const newProduct = await prisma.product.create({
             data: {
                 name: data.name,
                 sku: data.sku,
                 category: data.category,
-                price: data.price,
+                price: price,
                 stockCount: stockCount,
                 images: data.images || [],
                 description: data.description || "",
@@ -55,8 +58,11 @@ export async function POST(req: Request) {
         });
 
         return NextResponse.json(newProduct, { status: 201 });
-    } catch (error) {
+    } catch (error: any) {
         console.error("Error creating product:", error);
+        if (error?.code === 'P2002') {
+            return NextResponse.json({ error: "Product with this SKU already exists" }, { status: 400 });
+        }
         return NextResponse.json({ error: "Failed to create product" }, { status: 500 });
     }
 }
