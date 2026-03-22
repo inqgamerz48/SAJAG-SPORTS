@@ -35,10 +35,11 @@ export async function POST(request: NextRequest) {
     }
 
     // Extract pincode from address if full address provided
-    const pincodeMatch = customerPincode.match(/\b\d{6}\b/)
-    const pincode = pincodeMatch ? pincodeMatch[0] : customerPincode
+    const pincodeMatch = String(customerPincode || '').match(/\b\d{6}\b/)
+    const rawPin = pincodeMatch ? pincodeMatch[0] : String(customerPincode || '').trim().replace(/\D/g, '').slice(0, 6)
+    const pincode = rawPin.length === 6 ? rawPin : ''
 
-    if (!/^\d{6}$/.test(pincode)) {
+    if (!pincode) {
       return NextResponse.json(
         { error: 'Invalid pincode format. Please provide a 6-digit pincode.' },
         { status: 400 }

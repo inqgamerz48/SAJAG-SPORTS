@@ -1,7 +1,7 @@
 "use client";
 
 import { useCartStore } from "@/store/useCartStore";
-import { MoveLeft, ShoppingBag, ShieldCheck } from "lucide-react";
+import { MoveLeft, ShoppingBag, ShieldCheck, ChevronLeft, ChevronRight } from "lucide-react";
 import Link from "next/link";
 import { useState, useEffect, use } from "react";
 import { toast } from "sonner";
@@ -12,6 +12,7 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
     const [product, setProduct] = useState<any>(null);
     const [selectedVariant, setSelectedVariant] = useState<any>(null);
     const [loading, setLoading] = useState(true);
+    const [currentImageIndex, setCurrentImageIndex] = useState(0);
     const addItem = useCartStore((state) => state.addItem);
 
     // Simple helper to guess valid CSS color from text
@@ -47,6 +48,7 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
                 if (data.colorVariants && data.colorVariants.length > 0) {
                     setSelectedVariant(data.colorVariants[0]);
                 }
+                setCurrentImageIndex(0);
             } catch (err) {
                 toast.error("Error loading product");
             } finally {
@@ -89,13 +91,58 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
                 <div className="lg:grid lg:grid-cols-2 lg:gap-16 lg:items-start">
 
                     {/* Left: Sticky Media View */}
-                    <div className="lg:sticky lg:top-32 w-full h-[50vh] lg:h-[70vh] bg-neutral-100 rounded-3xl overflow-hidden relative border flex items-center justify-center">
-                        {(selectedVariant && selectedVariant.imageUrl) || (product.images && product.images[0]) ? (
-                            // eslint-disable-next-line @next/next/no-img-element
-                            <img src={selectedVariant?.imageUrl || product.images[0]} alt={product.name} className="w-full h-full object-cover" />
-                        ) : (
-                            <ShoppingBag className="w-24 h-24 text-neutral-300" />
-                        )}
+                    <div className="lg:sticky lg:top-32 w-full h-[50vh] lg:h-[70vh] bg-neutral-100 rounded-3xl overflow-hidden relative border flex items-center justify-center group">
+                        {(() => {
+                            const displayImages = selectedVariant?.imageUrl
+                                ? [selectedVariant.imageUrl, ...(product.images || []).filter((img: string) => img !== selectedVariant.imageUrl)]
+                                : (product.images || []);
+
+                            if (displayImages.length > 0) {
+                                return (
+                                    <>
+                                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                                        <img
+                                            src={displayImages[currentImageIndex]}
+                                            alt={`${product.name} - Image ${currentImageIndex + 1}`}
+                                            className="w-full h-full object-cover transition-all duration-300"
+                                        />
+
+                                        {displayImages.length > 1 && (
+                                            <>
+                                                <button
+                                                    onClick={() => setCurrentImageIndex((prev) => prev === 0 ? displayImages.length - 1 : prev - 1)}
+                                                    className="absolute left-4 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white text-black p-2 rounded-full shadow-md opacity-0 group-hover:opacity-100 transition-opacity"
+                                                    aria-label="Previous image"
+                                                >
+                                                    <ChevronLeft className="w-6 h-6" />
+                                                </button>
+                                                <button
+                                                    onClick={() => setCurrentImageIndex((prev) => prev === displayImages.length - 1 ? 0 : prev + 1)}
+                                                    className="absolute right-4 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white text-black p-2 rounded-full shadow-md opacity-0 group-hover:opacity-100 transition-opacity"
+                                                    aria-label="Next image"
+                                                >
+                                                    <ChevronRight className="w-6 h-6" />
+                                                </button>
+
+                                                {/* Dots indicator */}
+                                                <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex space-x-2">
+                                                    {displayImages.map((img: string, idx: number) => (
+                                                        <button
+                                                            key={`${img}-${idx}`}
+                                                            onClick={() => setCurrentImageIndex(idx)}
+                                                            className={`w-2 h-2 rounded-full transition-all ${currentImageIndex === idx ? 'bg-black w-4' : 'bg-black/40 hover:bg-black/60'}`}
+                                                            aria-label={`Go to image ${idx + 1}`}
+                                                        />
+                                                    ))}
+                                                </div>
+                                            </>
+                                        )}
+                                    </>
+                                );
+                            } else {
+                                return <ShoppingBag className="w-24 h-24 text-neutral-300" />;
+                            }
+                        })()}
                     </div>
 
                     {/* Right: Scrolling Content */}
@@ -129,7 +176,10 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
                                         {product.colorVariants.map((v: any) => (
                                             <button
                                                 key={v.id}
-                                                onClick={() => setSelectedVariant(v)}
+                                                onClick={() => {
+                                                    setSelectedVariant(v);
+                                                    setCurrentImageIndex(0); // Reset to first image when changing color variant
+                                                }}
                                                 style={selectedVariant?.id === v.id ? { backgroundColor: getCSSColor(v.colorName), borderColor: getCSSColor(v.colorName) } : {}}
                                                 className={`px-5 py-2.5 outline-none rounded-xl border-2 text-sm font-semibold transition-all duration-200 shadow-sm ${selectedVariant?.id === v.id
                                                     ? "text-white shadow-md scale-[1.02]"

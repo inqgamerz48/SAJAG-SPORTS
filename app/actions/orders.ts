@@ -96,14 +96,14 @@ export async function approveOrderForPickup(orderId: string) {
       const state = addressParts[addressParts.length - 1] || 'Unknown'
 
       const pickupResult = await createReversePickup({
-        order_id: order.id,
-        customer_name: profile.full_name,
-        customer_email: profile.email,
-        customer_phone: profile.phone,
-        customer_address: profile.address,
-        customer_pincode: profile.pincode,
-        customer_city: city,
-        customer_state: state,
+        orderId: order.id,
+        customerName: profile.full_name || 'Customer',
+        customerPhone: profile.phone || '9999999999',
+        customerAddress: profile.address || 'Address not provided',
+        customerPincode: profile.pincode || '',
+        customerCity: city,
+        customerState: state,
+        amount: Number(order.final_quote ?? order.logistics_deposit ?? 0),
       })
 
       if (pickupResult.success) {
@@ -111,8 +111,7 @@ export async function approveOrderForPickup(orderId: string) {
         await supabase.from('shipments').insert({
           order_id: order.id,
           waybill: pickupResult.waybill,
-          pickup_id: pickupResult.pickup_id,
-          delhivery_order_id: pickupResult.delhivery_order_id,
+          delhivery_order_id: pickupResult.delhiveryOrderId,
           shipment_status: 'Pickup_Scheduled',
           is_reverse: true,
           provider: 'delhivery',

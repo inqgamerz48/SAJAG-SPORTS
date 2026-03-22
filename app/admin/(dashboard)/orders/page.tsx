@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { PackageOpen, MapPin, Truck, CheckCircle2, AlertCircle } from "lucide-react";
+import { PackageOpen, MapPin, Truck, CheckCircle2, AlertCircle, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
 
 const statusMap: Record<string, { label: string; color: string; icon: any }> = {
@@ -10,6 +10,7 @@ const statusMap: Record<string, { label: string; color: string; icon: any }> = {
     "In_Workshop": { label: "In Workshop", color: "bg-amber-100 text-amber-800", icon: MapPin },
     "Repairing": { label: "Under Repair", color: "bg-amber-200 text-amber-900", icon: AlertCircle },
     "Ready_to_Return": { label: "Ready to Dispatch", color: "bg-green-100 text-green-800", icon: CheckCircle2 },
+    "Manual_Fulfillment_Required": { label: "Manual Fulfillment Required", color: "bg-red-100 text-red-800", icon: AlertCircle },
     "Shipped": { label: "Shipped", color: "bg-blue-200 text-blue-900", icon: Truck },
     "Completed": { label: "Completed", color: "bg-green-200 text-green-900", icon: CheckCircle2 },
     "Cancelled": { label: "Cancelled", color: "bg-red-100 text-red-800", icon: AlertCircle },
@@ -20,6 +21,7 @@ export default function OrdersFeedPage() {
     const [loading, setLoading] = useState(true);
     const [trackingData, setTrackingData] = useState<Record<string, any>>({});
     const [trackingLoading, setTrackingLoading] = useState<Record<string, boolean>>({});
+    const [retryLoading, setRetryLoading] = useState<Record<string, boolean>>({});
 
     useEffect(() => {
         fetchOrders();
@@ -71,6 +73,27 @@ export default function OrdersFeedPage() {
         }
     };
 
+    const retryReversePickup = async (orderId: string) => {
+        setRetryLoading(prev => ({ ...prev, [orderId]: true }));
+        try {
+            const res = await fetch("/api/admin/retry-reverse-pickup", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ orderId }),
+            });
+            const data = await res.json();
+            if (!res.ok || !data.success) {
+                throw new Error(data.error || "Failed to retry Delhivery pickup");
+            }
+            toast.success(data.message || "Reverse pickup retry succeeded");
+            fetchOrders();
+        } catch (err: any) {
+            toast.error(err?.message || "Reverse pickup retry failed");
+        } finally {
+            setRetryLoading(prev => ({ ...prev, [orderId]: false }));
+        }
+    };
+
     return (
         <div className="space-y-6">
             <div className="pb-4 border-b">
@@ -89,7 +112,12 @@ export default function OrdersFeedPage() {
                         const StatusIcon = statusConfig.icon;
 
                         // Extract AWB Code (looking at shipments)
-                        const awbCode = order.shipments && order.shipments.length > 0 ? order.shipments[0].awbCode : null;
+                        const reverseShipment = order.shipments?.find((s: any) => s.provider === 'delhivery' && s.isReverse);
+                        const hasValidReverseShipment = Boolean(reverseShipment?.awbCode || reverseShipment?.delhiveryOrderId);
+                        const awbCode = reverseShipment?.awbCode || null;
+                        const canRetryReversePickup =
+                            !hasValidReverseShipment &&
+                            (order.paymentStatus === "paid_manual_shipping_required" || order.status === "Manual_Fulfillment_Required");
 
                         return (
                             <div key={order.id} className="bg-white rounded-xl border shadow-sm p-6 hover:shadow-md transition-shadow">
@@ -153,6 +181,22 @@ export default function OrdersFeedPage() {
                                                 ))}
                                             </select>
                                         </div>
+
+                                        {canRetryReversePickup && (
+                                            <div className="w-full max-w-xs border rounded-lg p-3 bg-amber-50/60">
+                                                <p className="text-xs text-amber-800 mb-2">
+                                                    Delhivery pickup was not created for this paid order.
+                                                </p>
+                                                <button
+                                                    onClick={() => retryReversePickup(order.id)}
+                                                    disabled={retryLoading[order.id]}
+                                                    className="inline-flex items-center gap-1.5 text-xs px-3 py-2 rounded-md bg-amber-600 text-white hover:bg-amber-700 disabled:opacity-60"
+                                                >
+                                                    <RotateCcw className="w-3.5 h-3.5" />
+                                                    {retryLoading[order.id] ? "Retrying..." : "Retry Delhivery Pickup"}
+                                                </button>
+                                            </div>
+                                        )}
 
                                         {awbCode && (
                                             <div className="w-full max-w-xs border rounded-lg p-3 bg-blue-50/50">

@@ -42,6 +42,7 @@ model Product {
 enum OrderStatus {
   Pending
   Pickup_Pending
+  Manual_Fulfillment_Required
   In_Workshop
   Repairing
   Ready_to_Return
@@ -54,10 +55,21 @@ model Order {
   id                String       @id @default(uuid()) @db.Uuid
   customerId        String?      @map("customer_id") @db.Uuid
   customer          Profile?     @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  serviceType       String?      @map("service_type")
+  customerName      String?      @map("customer_name")
+  customerEmail     String?      @map("customer_email")
+  customerPhone     String?      @map("customer_phone")
+  addressLine1      String?      @map("address_line1")
+  city              String?
+  state             String?
+  pincode           String?
   status            OrderStatus  @default(Pending)
   paymentStatus     String       @default("pending") @map("payment_status")
-  payuTransactionId String?      @map("payu_transaction_id")
-  payuPaymentId     String?      @map("payu_payment_id")
+  razorpayOrderId   String?      @map("razorpay_order_id")
+  razorpayPaymentId String?      @map("razorpay_payment_id")
+  razorpaySignature String?      @map("razorpay_signature")
+  reversePickupBookedAt DateTime? @map("reverse_pickup_booked_at")
+  logisticsDeposit  Decimal?     @map("logistics_deposit") @db.Decimal(10, 2)
   finalQuote        Decimal?     @map("final_quote") @db.Decimal(10, 2)
   createdAt         DateTime     @default(now()) @map("created_at")
   updatedAt         DateTime     @default(now()) @updatedAt @map("updated_at")

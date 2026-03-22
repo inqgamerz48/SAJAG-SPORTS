@@ -16,6 +16,11 @@ import {
     Settings,
     Scissors,
     Wrench,
+    Grid2x2,
+    Gift,
+    Home,
+    Box,
+    User,
     MapPin, // Kept for the Stringing Service Card
 } from 'lucide-react'
 import { BeforeAfterSlider } from '@/components/before-after-slider'
@@ -60,14 +65,34 @@ export function HomePageClient({ initialProducts, accessoriesProducts }: { initi
     }
 
     return (
-        <div className="min-h-screen bg-white">
+        <div className="min-h-screen bg-white pb-20 md:pb-0">
             {/* Scroll progress bar */}
             <div
                 className="fixed top-0 left-0 z-50 h-1 bg-gradient-to-r from-brand-orange via-brand-blue to-brand-red transition-[width] duration-150 ease-out"
                 style={{ width: `${scrollProgress}%` }}
                 aria-hidden
             />
-            <HeroSlider />
+
+            <section className="relative">
+                <HeroSlider />
+            </section>
+
+            <section className="bg-white px-4 py-8">
+                <div className="mx-auto grid max-w-7xl grid-cols-2 gap-3 md:grid-cols-4">
+                    <Link href="/shop" className="flex items-center justify-center rounded-xl border border-slate-100 bg-slate-50 p-4 transition-shadow hover:shadow-md">
+                        <span className="font-black italic tracking-tighter text-slate-800">SHOP RACKETS</span>
+                    </Link>
+                    <Link href="/book?service=stringing" className="flex items-center justify-center rounded-xl border border-slate-100 bg-slate-50 p-4 transition-shadow hover:shadow-md">
+                        <span className="font-black italic tracking-tighter text-slate-800">STRINGING</span>
+                    </Link>
+                    <Link href="/book?service=repair" className="flex items-center justify-center rounded-xl border border-slate-100 bg-slate-50 p-4 transition-shadow hover:shadow-md">
+                        <span className="font-black italic tracking-tighter text-slate-800">REPAIR</span>
+                    </Link>
+                    <Link href="/track" className="flex items-center justify-center rounded-xl border border-slate-100 bg-slate-50 p-4 transition-shadow hover:shadow-md">
+                        <span className="font-black italic tracking-tighter text-slate-800">TRACK ORDER</span>
+                    </Link>
+                </div>
+            </section>
 
             <StatsCounter />
 
@@ -602,6 +627,29 @@ export function HomePageClient({ initialProducts, accessoriesProducts }: { initi
                     </div>
                 </div>
             </section>
+
+            <div className="fixed bottom-0 left-0 right-0 z-40 flex items-center justify-around border-t border-slate-100 bg-white px-2 py-3 md:hidden">
+                <Link className="flex flex-col items-center gap-1 text-brand-orange" href="/">
+                    <Home className="h-4 w-4" />
+                    <span className="text-[10px] font-bold">Home</span>
+                </Link>
+                <Link className="flex flex-col items-center gap-1 text-slate-700" href="/shop">
+                    <Grid2x2 className="h-4 w-4" />
+                    <span className="text-[10px] font-bold">Shop</span>
+                </Link>
+                <Link className="flex flex-col items-center gap-1 text-slate-700" href="/book">
+                    <Gift className="h-4 w-4" />
+                    <span className="text-[10px] font-bold">Book</span>
+                </Link>
+                <Link className="flex flex-col items-center gap-1 text-slate-700" href="/profile">
+                    <User className="h-4 w-4" />
+                    <span className="text-[10px] font-bold">Account</span>
+                </Link>
+                <Link className="flex flex-col items-center gap-1 text-slate-700" href="/track">
+                    <Box className="h-4 w-4" />
+                    <span className="text-[10px] font-bold">Track</span>
+                </Link>
+            </div>
 
         </div>
     )

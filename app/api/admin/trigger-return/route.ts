@@ -67,7 +67,7 @@ export async function POST(req: NextRequest) {
             await supabase.from('shipments').insert({
                 order_id: order.id,
                 waybill: delhiveryResult.waybill,
-                delhivery_order_id: delhiveryResult.delhivery_order_id,
+                delhivery_order_id: delhiveryResult.delhiveryOrderId,
                 shipment_status: 'Manifested',
                 is_reverse: false, // This is a forward shipment
                 provider: 'delhivery',

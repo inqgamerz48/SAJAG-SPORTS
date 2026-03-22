@@ -5,8 +5,9 @@ export async function POST(req: NextRequest) {
     try {
         const body = await req.json()
         const { pincode, items = [] } = body
+        const pin = String(pincode || '').trim().replace(/\D/g, '').slice(0, 6)
 
-        if (!pincode || pincode.length !== 6) {
+        if (!pin || pin.length !== 6) {
             return NextResponse.json(
                 { success: false, error: 'Valid 6-digit pincode is required' },
                 { status: 400 }
@@ -31,11 +32,11 @@ export async function POST(req: NextRequest) {
             })
         }
 
-        const result = await calculateRoundTripShipping(pincode)
+        const result = await calculateRoundTripShipping(pin)
 
         if (!result.success) {
             return NextResponse.json(
-                { success: false, error: result.error || 'Location not serviceable' },
+                { success: false, error: result.error || 'Unable to calculate round-trip shipping for this pincode. Please check the pincode or contact us.' },
                 { status: 400 }
             )
         }
@@ -43,7 +44,7 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({
             success: true,
             serviceable: true,
-            pincode: pincode,
+            pincode: pin,
             rates: {
                 courier_name: 'Delhivery Surface',
                 rate: result.grandTotal || 200, // Fallback if 0

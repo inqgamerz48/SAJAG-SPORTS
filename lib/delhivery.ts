@@ -1,491 +1,356 @@
-/**
- * Delhivery One API Integration
- * 
- * Handles reverse logistics (customer → workshop) and forward shipments (workshop → customer)
- * for Sajag Sports badminton racquet repair service.
- */
+import { getDelhiveryEnv } from '@/lib/env'
 
-import { createAdminClient } from './supabase/admin'
-
-// Delhivery API Configuration
-const DELHIVERY_API_URL = process.env.DELHIVERY_API_URL || 'https://track.delhivery.com'
-const DELHIVERY_API_TOKEN = process.env.DELHIVERY_API_TOKEN
-
-// Workshop Details (Noida)
-const WORKSHOP_NAME = 'Sajag Sports Workshop'
-const WORKSHOP_ADDRESS = 'Sector 62, Noida'
-const WORKSHOP_CITY = 'Noida'
-const WORKSHOP_STATE = 'Uttar Pradesh'
-const WORKSHOP_PINCODE = '201301'
-const WORKSHOP_PHONE = '9876543210'
-const WORKSHOP_EMAIL = 'workshop@sajagsports.com'
-
-// Standard Racquet Dimensions
-const RACQUET_LENGTH = 69 // cm
-const RACQUET_WIDTH = 25 // cm
-const RACQUET_HEIGHT = 5 // cm
-const RACQUET_WEIGHT = 2.0 // kg
-
-/**
- * Get Delhivery API Token
- */
-export function getDelhiveryToken(): string {
-    if (!DELHIVERY_API_TOKEN) {
-        throw new Error('DELHIVERY_API_TOKEN not configured in environment variables')
-    }
-    return DELHIVERY_API_TOKEN
+type DelhiveryShipmentPayload = {
+  name: string
+  add: string
+  pin: string
+  city: string
+  state: string
+  country: string
+  phone: string
+  order: string
+  payment_mode: 'Pickup' | 'Prepaid' | 'COD'
+  products_desc: string
+  weight: string
+  quantity: number
+  total_amount: string
+  seller_gst_tin?: string
+  hsn_code?: string
 }
 
-/**
- * Check Pincode Serviceability
- */
-export async function checkPincodeServiceability(pincode: string) {
+type DelhiveryCreateResult = {
+  success: boolean
+  waybill?: string
+  delhiveryOrderId?: string
+  raw?: unknown
+  error?: string
+}
+
+type ReversePickupInput = {
+  orderId: string
+  customerName: string
+  customerPhone: string
+  customerAddress: string
+  customerPincode: string
+  customerCity: string
+  customerState: string
+  amount: number
+}
+
+type ForwardShipmentInput = {
+  order_id: string
+  customer_name: string
+  customer_email?: string
+  customer_phone: string
+  customer_address: string
+  customer_pincode: string
+  customer_city: string
+  customer_state: string
+}
+
+const DELHIVERY_CREATE_URL = 'https://track.delhivery.com/api/cmu/create.json'
+const DELHIVERY_TRACK_URL = 'https://track.delhivery.com/api/v1/packages/json/'
+const DEFAULT_STORE_NAME = 'Sajag Sports Store'
+const DEFAULT_STORE_PHONE = '9999999999'
+const DEFAULT_STORE_ADDRESS = 'Pune'
+const DEFAULT_STORE_CITY = 'Pune'
+const DEFAULT_STORE_STATE = 'Maharashtra'
+const DEFAULT_STORE_PINCODE = '411028'
+
+function getStorePickupLocation() {
+  const env = getDelhiveryEnv()
+  const registeredLocationName = env.DELHIVERY_PICKUP_LOCATION_NAME || env.DELHIVERY_PICKUP_NAME
+  const storeName = registeredLocationName || DEFAULT_STORE_NAME
+
+  return {
+    name: storeName,
+    phone: env.DELHIVERY_PICKUP_PHONE || DEFAULT_STORE_PHONE,
+    add: env.DELHIVERY_PICKUP_ADDRESS || DEFAULT_STORE_ADDRESS,
+    city: env.DELHIVERY_PICKUP_CITY || DEFAULT_STORE_CITY,
+    state: env.DELHIVERY_PICKUP_STATE || DEFAULT_STORE_STATE,
+    pin: env.DELHIVERY_PICKUP_PINCODE || DEFAULT_STORE_PINCODE,
+    country: 'India',
+  }
+}
+
+function getPickupLocationNameCandidates(): string[] {
+  const env = getDelhiveryEnv()
+  const candidates = [
+    env.DELHIVERY_PICKUP_LOCATION_NAME?.trim(),
+    env.DELHIVERY_PICKUP_NAME?.trim(),
+    DEFAULT_STORE_NAME,
+  ].filter((name): name is string => Boolean(name))
+  return [...new Set(candidates)]
+}
+
+async function postCreateShipment(payload: {
+  shipments: DelhiveryShipmentPayload[]
+  pickup_location: {
+    name: string
+    add: string
+    city: string
+    pin: string
+    phone: string
+    country: string
+    state: string
+  }
+  client?: string
+}) {
+  const { DELHIVERY_API_TOKEN } = getDelhiveryEnv()
+  const body = new URLSearchParams({
+    format: 'json',
+    data: JSON.stringify(payload),
+  })
+
+  const response = await fetch(DELHIVERY_CREATE_URL, {
+    method: 'POST',
+    headers: {
+      Authorization: `Token ${DELHIVERY_API_TOKEN}`,
+      'Content-Type': 'application/x-www-form-urlencoded',
+    },
+    body,
+  })
+
+  let responseJson: any = null
+  try {
+    responseJson = await response.json()
+  } catch {
+    // Ignore parsing failure and return response text fallback.
+  }
+
+  if (!response.ok) {
+    const message =
+      responseJson?.error ||
+      responseJson?.message ||
+      responseJson?.rmk ||
+      `Delhivery create failed with HTTP ${response.status}`
+    console.error('[Delhivery API] Create failed:', {
+      status: response.status,
+      statusText: response.statusText,
+      body: responseJson,
+    })
+    throw new Error(message)
+  }
+
+  return responseJson
+}
+
+function toCreateResult(raw: any): DelhiveryCreateResult {
+  const apiSuccess = raw?.success !== false && raw?.error !== true
+  if (!apiSuccess) {
+    const message =
+      raw?.rmk ||
+      raw?.message ||
+      (typeof raw?.error === 'string' ? raw.error : null) ||
+      'Delhivery rejected shipment creation'
+    return {
+      success: false,
+      error: String(message),
+      raw,
+    }
+  }
+
+  const packageWaybill =
+    raw?.packages?.[0]?.waybill || raw?.packages?.[0]?.awb || raw?.waybill || raw?.awb
+  const packageRef =
+    raw?.packages?.[0]?.refnum || raw?.packages?.[0]?.shipment_id || raw?.shipment_id
+
+  if (!packageWaybill && !packageRef) {
+    return {
+      success: false,
+      error:
+        raw?.rmk ||
+        raw?.message ||
+        'Delhivery response did not include AWB or order reference',
+      raw,
+    }
+  }
+
+  return {
+    success: true,
+    waybill: packageWaybill ? String(packageWaybill) : undefined,
+    delhiveryOrderId: packageRef ? String(packageRef) : undefined,
+    raw,
+  }
+}
+
+export async function createReversePickup(input: ReversePickupInput): Promise<DelhiveryCreateResult> {
+  const store = getStorePickupLocation()
+  const env = getDelhiveryEnv()
+  const pickupLocationNameCandidates = getPickupLocationNameCandidates()
+  const shipment: DelhiveryShipmentPayload = {
+    name: input.customerName || 'Customer',
+    add: input.customerAddress,
+    pin: input.customerPincode,
+    city: input.customerCity || 'Unknown',
+    state: input.customerState || 'Unknown',
+    country: 'India',
+    phone: input.customerPhone,
+    order: input.orderId,
+    payment_mode: 'Pickup',
+    products_desc: 'Racquet Repair Pickup',
+    weight: '0.5',
+    quantity: 1,
+    total_amount: input.amount.toFixed(2),
+  }
+  if (env.DELHIVERY_SELLER_GST_TIN) shipment.seller_gst_tin = env.DELHIVERY_SELLER_GST_TIN
+  if (env.DELHIVERY_HSN_CODE) shipment.hsn_code = env.DELHIVERY_HSN_CODE
+
+  const payload = {
+    shipments: [shipment],
+    pickup_location: {
+      name: store.name,
+      add: store.add,
+      city: store.city,
+      pin: store.pin,
+      phone: store.phone,
+      country: store.country,
+      state: store.state,
+    },
+    ...(env.DELHIVERY_CLIENT_NAME && { client: env.DELHIVERY_CLIENT_NAME }),
+  }
+
+  let lastError: unknown = null
+
+  for (const pickupName of pickupLocationNameCandidates) {
     try {
-        const token = getDelhiveryToken()
-
-        const response = await fetch(
-            `${DELHIVERY_API_URL}/c/api/pin-codes/json/?filter_codes=${pincode}`,
-            {
-                method: 'GET',
-                headers: {
-                    'Authorization': `Token ${token}`,
-                    'Content-Type': 'application/json',
-                },
-            }
-        )
-
-        const data = await response.json()
-
-        if (data.delivery_codes && data.delivery_codes.length > 0) {
-            const pincodeData = data.delivery_codes[0]
-            return {
-                serviceable: pincodeData.postal_code.pickup === 'Y' && pincodeData.postal_code.prepaid === 'Y',
-                pincode: pincodeData.postal_code.pin,
-                city: pincodeData.postal_code.district,
-                state: pincodeData.postal_code.state_code,
-                cod_available: pincodeData.postal_code.cod === 'Y',
-            }
-        }
-
-        return {
-            serviceable: false,
-            error: 'Pincode not serviceable',
-        }
+      const raw = await postCreateShipment({
+        ...payload,
+        pickup_location: {
+          ...payload.pickup_location,
+          name: pickupName,
+        },
+      })
+      const result = toCreateResult(raw)
+      if (result.success) return result
+      lastError = new Error(result.error || 'Delhivery rejected shipment creation')
     } catch (error) {
-        console.error('Delhivery pincode check error:', error)
-        return {
-            serviceable: false,
-            error: 'Failed to check pincode serviceability',
-        }
+      const message = error instanceof Error ? error.message : String(error)
+      lastError = error
+      // Retry only for warehouse-name mismatch using alternative registered name.
+      if (
+        message.includes('ClientWarehouse matching query does not exist') &&
+        pickupName !== pickupLocationNameCandidates[pickupLocationNameCandidates.length - 1]
+      ) {
+        continue
+      }
+      throw error
     }
+  }
+
+  if (lastError instanceof Error) throw lastError
+  throw new Error('Delhivery reverse pickup failed')
 }
 
-/**
- * Create Reverse Pickup (Customer → Workshop)
- * 
- * Two-step process:
- * 1. Manifestation via /api/cmu/create.json
- * 2. Pickup Scheduling via /fm/request/new/
- */
-export async function createReversePickup(orderData: {
-    order_id: string
-    customer_name: string
-    customer_email: string
-    customer_phone: string
-    customer_address: string
-    customer_pincode: string
-    customer_city: string
-    customer_state: string
-}) {
-    try {
-        const token = getDelhiveryToken()
+export async function createForwardShipment(
+  input: ForwardShipmentInput
+): Promise<DelhiveryCreateResult> {
+  const store = getStorePickupLocation()
+  const payload = {
+    shipments: [
+      {
+        name: input.customer_name || 'Customer',
+        add: input.customer_address,
+        pin: input.customer_pincode,
+        city: input.customer_city || 'Unknown',
+        state: input.customer_state || 'Unknown',
+        country: 'India',
+        phone: input.customer_phone,
+        order: input.order_id,
+        payment_mode: 'Prepaid' as const,
+        products_desc: 'Racquet Return Shipment',
+        weight: '0.5',
+        quantity: 1,
+        total_amount: '0.00',
+      },
+    ],
+    pickup_location: {
+      name: store.name,
+      add: store.add,
+      city: store.city,
+      pin: store.pin,
+      phone: store.phone,
+      country: store.country,
+      state: store.state,
+    },
+  }
 
-        // Step 1: Manifestation
-        const shipmentData = {
-            shipments: [
-                {
-                    name: WORKSHOP_NAME,
-                    add: WORKSHOP_ADDRESS,
-                    pin: WORKSHOP_PINCODE,
-                    city: WORKSHOP_CITY,
-                    state: WORKSHOP_STATE,
-                    country: 'India',
-                    phone: WORKSHOP_PHONE,
-                    order: `REV-${orderData.order_id}`,
-                    payment_mode: 'Pickup',
-                    return_pin: orderData.customer_pincode,
-                    return_city: orderData.customer_city,
-                    return_phone: orderData.customer_phone,
-                    return_add: orderData.customer_address,
-                    return_state: orderData.customer_state,
-                    return_country: 'India',
-                    products_desc: 'Badminton Racquet for Repair',
-                    hsn_code: '',
-                    cod_amount: '',
-                    order_date: new Date().toISOString().split('T')[0],
-                    total_amount: '',
-                    seller_add: orderData.customer_address,
-                    seller_name: orderData.customer_name,
-                    seller_inv: '',
-                    quantity: '1',
-                    waybill: '',
-                    shipment_width: RACQUET_WIDTH.toString(),
-                    shipment_height: RACQUET_HEIGHT.toString(),
-                    weight: RACQUET_WEIGHT.toString(),
-                    seller_gst_tin: '',
-                    shipping_mode: 'Surface',
-                    address_type: 'home',
-                    fragile_shipment: true,
-                },
-            ],
-            pickup_location: {
-                name: orderData.customer_name,
-                add: orderData.customer_address,
-                city: orderData.customer_city,
-                pin_code: orderData.customer_pincode,
-                country: 'India',
-                phone: orderData.customer_phone,
-            },
-        }
-
-        // Delhivery uses legacy format=json&data={...} structure
-        const formData = new URLSearchParams()
-        formData.append('format', 'json')
-        formData.append('data', JSON.stringify(shipmentData))
-
-        const manifestResponse = await fetch(`${DELHIVERY_API_URL}/api/cmu/create.json`, {
-            method: 'POST',
-            headers: {
-                'Authorization': `Token ${token}`,
-                'Content-Type': 'application/x-www-form-urlencoded',
-            },
-            body: formData.toString(),
-        })
-
-        const manifestData = await manifestResponse.json()
-
-        if (!manifestData.success) {
-            throw new Error(manifestData.remark || 'Manifestation failed')
-        }
-
-        const waybill = manifestData.packages?.[0]?.waybill || manifestData.waybill
-
-        // Step 2: Schedule Pickup
-        const pickupData = {
-            pickup_location: orderData.customer_pincode,
-            pickup_time: '09:00',
-            pickup_date: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split('T')[0], // Tomorrow
-            expected_package_count: 1,
-        }
-
-        const pickupFormData = new URLSearchParams()
-        Object.entries(pickupData).forEach(([key, value]) => {
-            pickupFormData.append(key, value.toString())
-        })
-
-        const pickupResponse = await fetch(`${DELHIVERY_API_URL}/fm/request/new/`, {
-            method: 'POST',
-            headers: {
-                'Authorization': `Token ${token}`,
-                'Content-Type': 'application/x-www-form-urlencoded',
-            },
-            body: pickupFormData.toString(),
-        })
-
-        const pickupResponseData = await pickupResponse.json()
-
-        return {
-            success: true,
-            waybill,
-            pickup_id: pickupResponseData.pickup_id || pickupResponseData.data?.pickup_id,
-            delhivery_order_id: manifestData.packages?.[0]?.client || `REV-${orderData.order_id}`,
-        }
-    } catch (error: any) {
-        console.error('Delhivery reverse pickup error:', error)
-
-        // Log error to database
-        const supabase = createAdminClient()
-        await supabase.from('logistics_error_logs').insert({
-            order_id: orderData.order_id,
-            api_endpoint: '/api/cmu/create.json',
-            error_message: error.message,
-            error_payload: orderData,
-        })
-
-        return {
-            success: false,
-            error: error.message || 'Failed to create reverse pickup',
-        }
+  try {
+    const raw = await postCreateShipment(payload)
+    return toCreateResult(raw)
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to create forward shipment',
     }
+  }
 }
 
-/**
- * Create Forward Shipment (Workshop → Customer)
- */
-export async function createForwardShipment(orderData: {
-    order_id: string
-    customer_name: string
-    customer_email: string
-    customer_phone: string
-    customer_address: string
-    customer_pincode: string
-    customer_city: string
-    customer_state: string
-}) {
-    try {
-        const token = getDelhiveryToken()
+export async function trackShipment(awbCode: string): Promise<{
+  success: boolean
+  data?: unknown
+  error?: string
+}> {
+  try {
+    const { DELHIVERY_API_TOKEN } = getDelhiveryEnv()
+    const url = new URL(DELHIVERY_TRACK_URL)
+    url.searchParams.set('waybill', awbCode)
 
-        const shipmentData = {
-            shipments: [
-                {
-                    name: orderData.customer_name,
-                    add: orderData.customer_address,
-                    pin: orderData.customer_pincode,
-                    city: orderData.customer_city,
-                    state: orderData.customer_state,
-                    country: 'India',
-                    phone: orderData.customer_phone,
-                    order: `FWD-${orderData.order_id}`,
-                    payment_mode: 'Prepaid',
-                    return_pin: WORKSHOP_PINCODE,
-                    return_city: WORKSHOP_CITY,
-                    return_phone: WORKSHOP_PHONE,
-                    return_add: WORKSHOP_ADDRESS,
-                    return_state: WORKSHOP_STATE,
-                    return_country: 'India',
-                    products_desc: 'Repaired Badminton Racquet',
-                    hsn_code: '',
-                    cod_amount: '',
-                    order_date: new Date().toISOString().split('T')[0],
-                    total_amount: '500',
-                    seller_add: WORKSHOP_ADDRESS,
-                    seller_name: WORKSHOP_NAME,
-                    seller_inv: '',
-                    quantity: '1',
-                    waybill: '',
-                    shipment_width: RACQUET_WIDTH.toString(),
-                    shipment_height: RACQUET_HEIGHT.toString(),
-                    weight: RACQUET_WEIGHT.toString(),
-                    seller_gst_tin: '',
-                    shipping_mode: 'Surface',
-                    address_type: 'home',
-                    fragile_shipment: true,
-                },
-            ],
-            pickup_location: {
-                name: WORKSHOP_NAME,
-                add: WORKSHOP_ADDRESS,
-                city: WORKSHOP_CITY,
-                pin_code: WORKSHOP_PINCODE,
-                country: 'India',
-                phone: WORKSHOP_PHONE,
-            },
-        }
+    const response = await fetch(url.toString(), {
+      headers: {
+        Authorization: `Token ${DELHIVERY_API_TOKEN}`,
+      },
+    })
 
-        const formData = new URLSearchParams()
-        formData.append('format', 'json')
-        formData.append('data', JSON.stringify(shipmentData))
-
-        const response = await fetch(`${DELHIVERY_API_URL}/api/cmu/create.json`, {
-            method: 'POST',
-            headers: {
-                'Authorization': `Token ${token}`,
-                'Content-Type': 'application/x-www-form-urlencoded',
-            },
-            body: formData.toString(),
-        })
-
-        const data = await response.json()
-
-        if (!data.success) {
-            throw new Error(data.remark || 'Forward shipment creation failed')
-        }
-
-        return {
-            success: true,
-            waybill: data.packages?.[0]?.waybill || data.waybill,
-            delhivery_order_id: data.packages?.[0]?.client || `FWD-${orderData.order_id}`,
-        }
-    } catch (error: any) {
-        console.error('Delhivery forward shipment error:', error)
-
-        const supabase = createAdminClient()
-        await supabase.from('logistics_error_logs').insert({
-            order_id: orderData.order_id,
-            api_endpoint: '/api/cmu/create.json (forward)',
-            error_message: error.message,
-            error_payload: orderData,
-        })
-
-        return {
-            success: false,
-            error: error.message || 'Failed to create forward shipment',
-        }
+    const data = await response.json()
+    if (!response.ok) {
+      return {
+        success: false,
+        error: data?.error || data?.message || `Tracking failed with HTTP ${response.status}`,
+      }
     }
+
+    return { success: true, data }
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Tracking request failed',
+    }
+  }
 }
 
-/**
- * Track Shipment by Waybill
- */
-export async function trackShipment(waybill: string) {
-    try {
-        const token = getDelhiveryToken()
+export async function calculateSingleLegShipping(
+  pincode: string
+): Promise<{ success: boolean; legA: number; legB: number; total: number; grandTotal: number; error?: string }> {
+  const pin = String(pincode || '').trim().replace(/\D/g, '')
+  if (!pin || pin.length !== 6) {
+    return { success: false, legA: 0, legB: 0, total: 0, grandTotal: 0, error: 'Invalid pincode. Please enter a valid 6-digit pincode.' }
+  }
 
-        const response = await fetch(
-            `${DELHIVERY_API_URL}/api/v1/packages/json/?waybill=${waybill}`,
-            {
-                method: 'GET',
-                headers: {
-                    'Authorization': `Token ${token}`,
-                    'Content-Type': 'application/json',
-                },
-            }
-        )
-
-        const data = await response.json()
-
-        if (data.ShipmentData && data.ShipmentData.length > 0) {
-            const shipment = data.ShipmentData[0].Shipment
-            return {
-                success: true,
-                waybill: shipment.Waybill,
-                status: shipment.Status.Status,
-                status_code: shipment.Status.StatusCode,
-                current_location: shipment.Status.StatusLocation,
-                expected_delivery: shipment.ExpectedDeliveryDate,
-                scans: shipment.Scans || [],
-            }
-        }
-
-        return {
-            success: false,
-            error: 'Shipment not found',
-        }
-    } catch (error: any) {
-        console.error('Delhivery tracking error:', error)
-        return {
-            success: false,
-            error: error.message || 'Failed to track shipment',
-        }
-    }
+  const legB = 120
+  return { success: true, legA: 0, legB, total: legB, grandTotal: legB }
 }
 
-/**
- * Calculate Shipping Cost (Estimate)
- */
-export async function calculateShippingCost(
-    fromPincode: string,
-    toPincode: string,
-    weight: number = RACQUET_WEIGHT
-) {
-    try {
-        const token = getDelhiveryToken()
+export async function calculateRoundTripShipping(
+  pincode: string
+): Promise<{ success: boolean; legA: number; legB: number; total: number; grandTotal: number; error?: string }> {
+  const pin = String(pincode || '').trim().replace(/\D/g, '')
+  if (!pin || pin.length !== 6) {
+    return { success: false, legA: 0, legB: 0, total: 0, grandTotal: 0, error: 'Invalid pincode. Please enter a valid 6-digit pincode.' }
+  }
 
-        const response = await fetch(
-            `${DELHIVERY_API_URL}/api/kinko/v1/invoice/charges/.json?md=S&ss=Delivered&d_pin=${toPincode}&o_pin=${fromPincode}&cgm=${weight * 1000}&pt=Pre-paid`,
-            {
-                method: 'GET',
-                headers: {
-                    'Authorization': `Token ${token}`,
-                    'Content-Type': 'application/json',
-                },
-            }
-        )
+  const legA = 120
+  const legB = 120
+  const total = legA + legB
 
-        const data = await response.json()
-
-        if (data[0]) {
-            return {
-                success: true,
-                total_amount: data[0].total_amount,
-                freight_charge: data[0].freight_charge,
-                cod_charges: data[0].cod_charges,
-            }
-        }
-
-        return {
-            success: false,
-            error: 'Unable to calculate shipping cost',
-        }
-    } catch (error: any) {
-        console.error('Delhivery cost calculation error:', error)
-        return {
-            success: false,
-            error: error.message || 'Failed to calculate shipping cost',
-        }
-    }
+  return { success: true, legA, legB, total, grandTotal: total }
 }
 
-/**
- * Calculate Round-Trip Shipping Cost
- */
-export async function calculateRoundTripShipping(customerPincode: string) {
-    try {
-        // Leg A: Customer → Workshop
-        const legA = await calculateShippingCost(customerPincode, WORKSHOP_PINCODE)
-
-        // Leg B: Workshop → Customer
-        const legB = await calculateShippingCost(WORKSHOP_PINCODE, customerPincode)
-
-        if (legA.success && legB.success) {
-            const total = (legA.total_amount || 0) + (legB.total_amount || 0)
-            const shippingGst = total * 0.18
-
-            return {
-                success: true,
-                legA: legA.total_amount || 0,
-                legB: legB.total_amount || 0,
-                total,
-                shippingGst,
-                grandTotal: total + shippingGst,
-            }
-        }
-
-        return {
-            success: false,
-            error: 'Unable to calculate round-trip shipping',
-        }
-    } catch (error: any) {
-        console.error('Round-trip calculation error:', error)
-        return {
-            success: false,
-            error: error.message || 'Failed to calculate round-trip shipping',
-        }
-    }
-}
-
-/**
- * Calculate Single Leg Shipping Cost (Workshop → Customer)
- * For physical product orders that do not require a racquet pickup
- */
-export async function calculateSingleLegShipping(customerPincode: string) {
-    try {
-        // Leg B: Workshop → Customer
-        const legB = await calculateShippingCost(WORKSHOP_PINCODE, customerPincode)
-
-        if (legB.success) {
-            const total = legB.total_amount || 0
-            const shippingGst = total * 0.18
-
-            return {
-                success: true,
-                legA: 0,
-                legB: total,
-                total,
-                shippingGst,
-                grandTotal: total + shippingGst,
-            }
-        }
-
-        return {
-            success: false,
-            error: 'Unable to calculate single-leg delivery shipping',
-        }
-    } catch (error: any) {
-        console.error('Single-leg calculation error:', error)
-        return {
-            success: false,
-            error: error.message || 'Failed to calculate delivery shipping',
-        }
-    }
+export async function checkPincodeServiceability(
+  pincode: string
+): Promise<{ serviceable: boolean; error?: string }> {
+  if (!/^\d{6}$/.test(pincode)) {
+    return { serviceable: false, error: 'Invalid pincode' }
+  }
+  return { serviceable: true }
 }

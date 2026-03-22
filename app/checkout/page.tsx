@@ -12,6 +12,14 @@ import { CreditCard, Loader2, AlertCircle, ShoppingBag, MapPin, Truck, Tag } fro
 import { useCartStore } from '@/store/useCartStore'
 import { useAuth } from '@/components/providers/auth-provider'
 
+declare global {
+    interface Window {
+        Razorpay: new (options: Record<string, unknown>) => {
+            open: () => void
+        }
+    }
+}
+
 interface CostBreakdown {
     serviceCost: number
     repairCost: number
@@ -36,6 +44,8 @@ export default function CheckoutPage() {
     const [phone, setPhone] = useState(primaryService?.customerPhone || '')
     const [pincode, setPincode] = useState(primaryService?.customerPincode || '')
     const [addressLine, setAddressLine] = useState('')
+    const [city, setCity] = useState('')
+    const [state, setState] = useState('')
 
     const [loading, setLoading] = useState(false)
     const [calculating, setCalculating] = useState(false)
@@ -82,6 +92,21 @@ export default function CheckoutPage() {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [items, pincode])
 
+    const loadRazorpayScript = () =>
+        new Promise<boolean>((resolve) => {
+            if (window.Razorpay) {
+                resolve(true)
+                return
+            }
+
+            const script = document.createElement('script')
+            script.src = 'https://checkout.razorpay.com/v1/checkout.js'
+            script.async = true
+            script.onload = () => resolve(true)
+            script.onerror = () => resolve(false)
+            document.body.appendChild(script)
+        })
+
     const calculateCosts = async () => {
         if (!pincode || pincode.length !== 6) return
 
@@ -121,15 +146,29 @@ export default function CheckoutPage() {
             setError('Please enter your complete delivery address.')
             return
         }
+        if (!city.trim()) {
+            setError('Please enter your city.')
+            return
+        }
+        if (!state.trim()) {
+            setError('Please enter your state.')
+            return
+        }
         if (!pincode || pincode.length !== 6) {
             setError('Please enter a valid 6-digit Pincode.')
             return
         }
 
         setLoading(true)
+        setError(null)
 
         try {
-            const fullAddress = `${addressLine}, ${pincode}`
+            const sdkReady = await loadRazorpayScript()
+            if (!sdkReady) {
+                throw new Error('Unable to load Razorpay checkout. Please try again.')
+            }
+
+            const fullAddress = `${addressLine}, ${city}, ${state}, ${pincode}`
 
             // Adjust payload if coupon is applied
             const payloadCostBreakdown = costBreakdown ? { ...costBreakdown } : {
@@ -146,16 +185,24 @@ export default function CheckoutPage() {
                 }
             }
 
-            // Generate PayU Hash
-            const response = await fetch('/api/payu/create-hash', {
+            const payableTotal = payloadCostBreakdown.total
+
+            const response = await fetch('/api/create-order', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
+                    amount: payableTotal,
                     customerInfo: {
                         name,
                         email,
                         phone,
                         address: fullAddress,
+                        pincode
+                    },
+                    pickupAddress: {
+                        line1: addressLine,
+                        city: city.trim(),
+                        state: state.trim(),
                         pincode
                     },
                     items: items,
@@ -169,38 +216,62 @@ export default function CheckoutPage() {
                 throw new Error(data.error || 'Failed to initialize payment')
             }
 
-            const payuUrl = process.env.NEXT_PUBLIC_PAYU_ENV === 'prod'
-                ? 'https://secure.payu.in/_payment'
-                : 'https://test.payu.in/_payment'
+            const razorpayKey =
+                data.razorpayKeyId ||
+                process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID
 
-            const form = document.createElement('form')
-            form.method = 'POST'
-            form.action = payuUrl
-
-            const fields = {
-                key: data.payuData.key,
-                txnid: data.payuData.txnid,
-                amount: data.payuData.amount,
-                productinfo: data.payuData.productinfo,
-                firstname: data.payuData.firstname,
-                email: data.payuData.email,
-                phone: phone,
-                surl: data.payuData.surl,
-                furl: data.payuData.furl,
-                hash: data.hash,
-                udf1: data.payuData.udf1,
+            if (!razorpayKey) {
+                throw new Error('Razorpay key is not configured')
             }
 
-            Object.entries(fields).forEach(([key, value]) => {
-                const input = document.createElement('input')
-                input.type = 'hidden'
-                input.name = key
-                input.value = value as string
-                form.appendChild(input)
+            const razorpay = new window.Razorpay({
+                key: razorpayKey,
+                amount: data.amount,
+                currency: data.currency || 'INR',
+                name: 'Sajag Sports',
+                description: 'Repair service payment',
+                order_id: data.razorpayOrderId,
+                prefill: {
+                    name,
+                    email,
+                    contact: phone,
+                },
+                notes: {
+                    orderId: data.orderId,
+                },
+                handler: async (paymentResponse: any) => {
+                    try {
+                        const verifyResponse = await fetch('/api/verify-payment', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                orderId: data.orderId,
+                                razorpay_order_id: paymentResponse.razorpay_order_id,
+                                razorpay_payment_id: paymentResponse.razorpay_payment_id,
+                                razorpay_signature: paymentResponse.razorpay_signature,
+                            }),
+                        })
+
+                        const verifyData = await verifyResponse.json()
+                        if (!verifyData.success) {
+                            throw new Error(verifyData.error || 'Payment verification failed')
+                        }
+
+                        router.push(`/book/success?order_id=${data.orderId}`)
+                    } catch (verifyError) {
+                        setError(verifyError instanceof Error ? verifyError.message : 'Payment verification failed')
+                        setLoading(false)
+                    }
+                },
+                modal: {
+                    ondismiss: () => setLoading(false),
+                },
+                theme: {
+                    color: '#0f172a',
+                },
             })
 
-            document.body.appendChild(form)
-            form.submit()
+            razorpay.open()
         } catch (err) {
             console.error('Payment error:', err)
             setError(err instanceof Error ? err.message : 'Payment initialization failed')
@@ -306,6 +377,26 @@ export default function CheckoutPage() {
                                         onChange={e => setAddressLine(e.target.value)}
                                         required
                                     />
+                                </div>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                                    <div className="space-y-2">
+                                        <Label className="text-gray-700">City *</Label>
+                                        <Input
+                                            value={city}
+                                            onChange={e => setCity(e.target.value)}
+                                            placeholder="e.g. Pune"
+                                            required
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label className="text-gray-700">State *</Label>
+                                        <Input
+                                            value={state}
+                                            onChange={e => setState(e.target.value)}
+                                            placeholder="e.g. Maharashtra"
+                                            required
+                                        />
+                                    </div>
                                 </div>
                             </CardContent>
                         </Card>
@@ -498,7 +589,7 @@ export default function CheckoutPage() {
                                 <div className="pt-4">
                                     <Button
                                         onClick={handlePayment}
-                                        disabled={loading || calculating || !addressLine.trim() || !pincode || (pincode.length === 6 && !costBreakdown && !error)}
+                                        disabled={loading || calculating || !addressLine.trim() || !city.trim() || !state.trim() || !pincode || (pincode.length === 6 && !costBreakdown && !error)}
                                         className="w-full h-14 text-lg font-bold bg-black hover:bg-gray-800 text-white rounded-xl shadow-lg transition-transform active:scale-[0.98] disabled:bg-gray-300 disabled:text-gray-500"
                                     >
                                         {loading ? (
@@ -515,7 +606,7 @@ export default function CheckoutPage() {
                                         )}
                                     </Button>
                                     <p className="text-center text-xs text-gray-400 font-medium pt-4 pb-1">
-                                        Payments processed securely by PayU
+                                        Payments processed securely by Razorpay
                                     </p>
                                 </div>
                             </CardContent>

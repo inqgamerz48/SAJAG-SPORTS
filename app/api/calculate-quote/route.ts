@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { calculatePricingBreakdown, validatePricingInputs } from '@/lib/pricing'
 import { calculateRoundTripShipping, calculateSingleLegShipping } from '@/lib/delhivery'
 
 /**
@@ -12,6 +11,7 @@ export async function POST(req: NextRequest) {
     try {
         const body = await req.json()
         const { items, customerPincode } = body
+        const pin = String(customerPincode || '').trim().replace(/\D/g, '').slice(0, 6)
 
         if (!items || !Array.isArray(items) || items.length === 0) {
             return NextResponse.json(
@@ -20,7 +20,7 @@ export async function POST(req: NextRequest) {
             )
         }
 
-        if (!customerPincode || !/^\d{6}$/.test(customerPincode)) {
+        if (!pin || pin.length !== 6) {
             return NextResponse.json(
                 { success: false, error: 'Valid 6-digit Pincode is required for shipping calculations' },
                 { status: 400 }
@@ -38,17 +38,17 @@ export async function POST(req: NextRequest) {
         if (requiresShipping) {
             if (hasServices) {
                 // Determine it's a service request, needing a round trip (pickup & return)
-                shippingResult = await calculateRoundTripShipping(customerPincode)
+                shippingResult = await calculateRoundTripShipping(pin)
             } else if (hasPhysical) {
                 // Cart only contains physical products, meaning we only need to deliver to them (Leg B)
-                shippingResult = await calculateSingleLegShipping(customerPincode)
+                shippingResult = await calculateSingleLegShipping(pin)
             }
 
             if (!shippingResult.success) {
                 return NextResponse.json(
                     {
                         success: false,
-                        error: shippingResult.error || 'Unable to calculate shipping for this pincode',
+                        error: shippingResult.error || 'Unable to calculate round-trip shipping for this pincode. Please check the pincode or contact us.',
                     },
                     { status: 400 }
                 )
@@ -59,7 +59,7 @@ export async function POST(req: NextRequest) {
             return NextResponse.json(
                 {
                     success: false,
-                    error: shippingResult.error || 'Unable to calculate shipping for this pincode',
+                    error: shippingResult.error || 'Unable to calculate round-trip shipping for this pincode. Please check the pincode or contact us.',
                 },
                 { status: 400 }
             )
@@ -84,7 +84,7 @@ export async function POST(req: NextRequest) {
                 legB: shippingResult.legB || 0,
                 total: grandTotal,
                 shippingMessage: requiresShipping
-                    ? (hasServices ? `Round-trip service active for ${customerPincode}` : `Delivery calculated for ${customerPincode}`)
+                    ? (hasServices ? `Round-trip service active for ${pin}` : `Delivery calculated for ${pin}`)
                     : 'No shipping required.'
             },
         })

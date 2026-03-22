@@ -54,13 +54,20 @@ export async function POST(request: NextRequest) {
             success: true,
             order: {
                 id: order.id,
+                customer_name: order.customerName || order.customer?.fullName,
+                customer_email: order.customerEmail || order.customer?.email,
+                customer_phone: order.customerPhone || order.customer?.phone,
+                address_line1: order.addressLine1,
+                pincode: order.pincode,
+                final_quote: order.finalQuote,
+                logistics_deposit: order.logisticsDeposit,
                 service_type: serviceItem?.serviceType || 'Products Only',
                 status: order.status,
                 created_at: order.createdAt,
-                customer_name: order.customer?.fullName,
                 racquet_brand: serviceItem?.racquetBrand,
                 racquet_model: serviceItem?.racquetModel,
-                shiprocket_awb_code: order.shipments[0]?.awbCode,
+                awb_code: order.shipments[0]?.awbCode,
+                shiprocket_awb_code: order.shipments[0]?.awbCode, // backward-compatible response key
             },
         });
     } catch (error) {

@@ -6,6 +6,14 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button'
 import { Loader2, CreditCard, AlertCircle } from 'lucide-react'
 
+declare global {
+    interface Window {
+        Razorpay: new (options: Record<string, unknown>) => {
+            open: () => void
+        }
+    }
+}
+
 export default function ManualPaymentPage() {
     const params = useParams()
     const router = useRouter()
@@ -41,69 +49,110 @@ export default function ManualPaymentPage() {
         }
     }, [orderId])
 
+    const loadRazorpayScript = () =>
+        new Promise<boolean>((resolve) => {
+            if (window.Razorpay) {
+                resolve(true)
+                return
+            }
+
+            const script = document.createElement('script')
+            script.src = 'https://checkout.razorpay.com/v1/checkout.js'
+            script.async = true
+            script.onload = () => resolve(true)
+            script.onerror = () => resolve(false)
+            document.body.appendChild(script)
+        })
+
     const handlePayment = async () => {
         if (!order) return
         setLoading(true)
+        setError(null)
 
         try {
-            // Re-use the create-hash logic but for an existing order
-            const response = await fetch('/api/payu/create-hash', {
+            const sdkReady = await loadRazorpayScript()
+            if (!sdkReady) {
+                throw new Error('Unable to load Razorpay checkout. Please try again.')
+            }
+
+            const amountDue = Number(order.final_quote || order.logistics_deposit || 0)
+            if (!amountDue || Number.isNaN(amountDue) || amountDue <= 0) {
+                throw new Error('Order amount is invalid')
+            }
+
+            const response = await fetch('/api/create-order', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    paymentData: {
-                        serviceType: order.service_type,
+                    existingOrderId: order.id,
+                    amount: amountDue,
+                    customerInfo: {
                         name: order.customer_name,
                         email: order.customer_email,
                         phone: order.customer_phone,
                         address: order.address_line1,
-                        // Add existing order ID to link it
-                        existingOrderId: order.id
+                        pincode: order.pincode,
                     },
-                    costBreakdown: {
-                        total: order.final_quote || order.logistics_deposit || 0
-                    }
+                    pickupAddress: {
+                        line1: order.address_line1,
+                        city: order.city || 'Unknown',
+                        state: order.state || 'Unknown',
+                        pincode: order.pincode,
+                    },
                 })
             })
 
             const data = await response.json()
 
-            if (!data.success) throw new Error(data.error)
+            if (!data.success) throw new Error(data.error || 'Failed to initialize payment')
 
-            const payuUrl = process.env.NEXT_PUBLIC_PAYU_ENV === 'prod'
-                ? 'https://secure.payu.in/_payment'
-                : 'https://test.payu.in/_payment'
-
-            const form = document.createElement('form')
-            form.method = 'POST'
-            form.action = payuUrl
-
-            const fields = {
-                key: data.merchantKey,
-                txnid: data.txnid,
+            const razorpay = new window.Razorpay({
+                key: data.razorpayKeyId || process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
                 amount: data.amount,
-                productinfo: data.productinfo,
-                firstname: data.firstname,
-                email: data.email,
-                phone: order.customer_phone,
-                surl: data.surl,
-                furl: data.furl,
-                hash: data.hash,
-                udf1: order.id,
-            }
+                currency: data.currency || 'INR',
+                name: 'Sajag Sports',
+                description: 'Repair service payment',
+                order_id: data.razorpayOrderId,
+                prefill: {
+                    name: order.customer_name,
+                    email: order.customer_email,
+                    contact: order.customer_phone,
+                },
+                handler: async (paymentResponse: any) => {
+                    try {
+                        const verifyResponse = await fetch('/api/verify-payment', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                orderId: order.id,
+                                razorpay_order_id: paymentResponse.razorpay_order_id,
+                                razorpay_payment_id: paymentResponse.razorpay_payment_id,
+                                razorpay_signature: paymentResponse.razorpay_signature,
+                            }),
+                        })
 
-            Object.entries(fields).forEach(([k, v]: [string, any]) => {
-                const input = document.createElement('input')
-                input.type = 'hidden'
-                input.name = k
-                input.value = v
-                form.appendChild(input)
+                        const verifyData = await verifyResponse.json()
+                        if (!verifyData.success) {
+                            throw new Error(verifyData.error || 'Payment verification failed')
+                        }
+
+                        router.push(`/book/success?order_id=${order.id}`)
+                    } catch (verifyError) {
+                        setError(verifyError instanceof Error ? verifyError.message : 'Payment verification failed')
+                        setLoading(false)
+                    }
+                },
+                modal: {
+                    ondismiss: () => setLoading(false),
+                },
+                theme: {
+                    color: '#0f172a',
+                },
             })
 
-            document.body.appendChild(form)
-            form.submit()
-        } catch (err: any) {
-            setError(err.message)
+            razorpay.open()
+        } catch (err) {
+            setError(err instanceof Error ? err.message : 'Payment initialization failed')
             setLoading(false)
         }
     }
@@ -157,7 +206,7 @@ export default function ManualPaymentPage() {
                         <CreditCard className="w-5 h-5 mr-2" />
                         Pay Now
                     </Button>
-                    <p className="text-center text-xs text-gray-400">Secure payment via PayU</p>
+                    <p className="text-center text-xs text-gray-400">Secure payment via Razorpay</p>
                 </CardContent>
             </Card>
         </div>

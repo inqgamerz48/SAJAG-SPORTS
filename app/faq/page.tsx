@@ -34,7 +34,7 @@ export default function FAQPage() {
                 },
                 {
                     q: "What payment methods do you accept?",
-                    a: "We accept UPI (Google Pay, PhonePe, etc.), Credit/Debit Cards, Net Banking, and Wallets via our secure PayU gateway."
+                    a: "We accept UPI (Google Pay, PhonePe, etc.), Credit/Debit Cards, Net Banking, and Wallets via our secure Razorpay gateway."
                 },
                 {
                     q: "Can I pay Cash on Delivery (COD)?",
