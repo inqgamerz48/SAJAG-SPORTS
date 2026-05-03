@@ -161,6 +161,7 @@ export function StringingForm() {
           racquetBrand: racquet.brand, 
           racquetModel: racquet.model, 
           tension: racquet.tension[0], 
+          stringName: racquet.stringName, 
           customerName: contactInfo.name, 
           customerEmail: contactInfo.email, 
           customerPhone: contactInfo.phone, 

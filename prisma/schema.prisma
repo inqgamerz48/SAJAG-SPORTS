@@ -96,6 +96,8 @@ model OrderItem {
   racquetBrand    String?  @map("racquet_brand")
   racquetModel    String?  @map("racquet_model")
   tensionLbs      Int?     @map("tension_lbs")
+  stringName      String?  @map("string_name") // Selected string type (e.g. BG 65, BG80 Power)
+  comments        String?  // Customer's notes/special instructions for this item
   repairImageUrl  String?  @map("repair_image_url") // Uploaded broken racquet photo
 
   @@map("order_items")

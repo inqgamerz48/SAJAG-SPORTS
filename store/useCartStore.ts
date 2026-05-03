@@ -17,6 +17,7 @@ export interface CartItem {
     racquetModel?: string;
     tension?: number;
     stringId?: string;
+    stringName?: string;
     // Customer Info
     customerName?: string;
     customerEmail?: string;

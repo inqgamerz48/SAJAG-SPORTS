@@ -171,7 +171,7 @@ export function RepairForm() {
         const totalPrice = (basePrice * parseInt(racquet.numberOfCracks)) + stringPrice
 
         addItem({
-          name: `${racquet.brand} ${racquet.model} Repair`,
+          name: `${racquet.brand} ${racquet.model} Repair${racquet.stringType ? ` + ${racquet.stringType}` : ''}`,
           price: totalPrice,
           quantity: 1,
           type: 'service',
@@ -179,6 +179,7 @@ export function RepairForm() {
           racquetBrand: racquet.brand,
           racquetModel: racquet.model,
           tension: racquet.tension_lbs,
+          stringName: racquet.stringType,
           customerName: contactInfo.name,
           customerEmail: contactInfo.email,
           customerPhone: contactInfo.phone,

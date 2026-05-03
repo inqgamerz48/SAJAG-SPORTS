@@ -11,6 +11,10 @@ type CheckoutItem = {
   racquetBrand?: string
   racquetModel?: string
   tension?: number
+  stringName?: string
+  comments?: string
+  repairImageUrl?: string
+  color?: string
   quantity?: number
   price?: number
 }
@@ -126,7 +130,10 @@ export async function POST(req: NextRequest) {
                       racquetBrand: item.racquetBrand || null,
                       racquetModel: item.racquetModel || null,
                       tensionLbs: item.tension || null,
-                      color: null,
+                      stringName: item.stringName || null,
+                      comments: item.comments || null,
+                      repairImageUrl: item.repairImageUrl || null,
+                      color: item.color || null,
                     })),
                   }
                 : undefined,

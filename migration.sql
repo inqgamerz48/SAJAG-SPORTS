@@ -33,3 +33,8 @@ ALTER TABLE "public"."orders" ADD COLUMN IF NOT EXISTS "reverse_pickup_booked_at
 
 ALTER TABLE "public"."orders" DROP COLUMN IF EXISTS "payu_transaction_id";
 ALTER TABLE "public"."orders" DROP COLUMN IF EXISTS "payu_payment_id";
+
+-- Capture full customer choice on each order item so admin can audit later
+ALTER TABLE "public"."order_items" ADD COLUMN IF NOT EXISTS "string_name" TEXT;
+ALTER TABLE "public"."order_items" ADD COLUMN IF NOT EXISTS "comments" TEXT;
+ALTER TABLE "public"."order_items" ADD COLUMN IF NOT EXISTS "repair_image_url" TEXT;
