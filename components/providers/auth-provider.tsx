@@ -1,8 +1,8 @@
 "use client"
 
-import { createContext, useContext, useEffect, useState, useCallback, ReactNode } from "react"
+import { createContext, useContext, useEffect, useState, useCallback, useRef, ReactNode } from "react"
 import { createBrowserClient } from "@supabase/ssr"
-import { User, Session } from "@supabase/supabase-js"
+import type { SupabaseClient, User, Session } from "@supabase/supabase-js"
 import { AuthModal } from "@/components/auth/auth-modal"
 
 interface AuthContextType {
@@ -24,15 +24,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const [isLoading, setIsLoading] = useState(true)
     const [isModalOpen, setIsModalOpen] = useState(false)
 
-    const supabase = createBrowserClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    )
+    // Hold the Supabase client in a ref so we never construct it during SSR /
+    // build-time prerendering (where env vars may be unavailable). It is created
+    // lazily inside an effect, which only runs in the browser.
+    const supabaseRef = useRef<SupabaseClient | null>(null)
 
     const fetchRole = useCallback(async (userId: string) => {
+        const supabase = supabaseRef.current
+        if (!supabase) return
         try {
-            // First check user metadata as it might be faster if synced
-            // Otherwise fetch from profiles
             const { data, error } = await supabase
                 .from('profiles')
                 .select('role')
@@ -50,9 +50,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         } catch (error) {
             console.error("Error in fetchRole:", error)
         }
-    }, [supabase])
+    }, [])
 
     useEffect(() => {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+        const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+        if (!url || !anonKey) {
+            // No Supabase config at runtime — treat as logged-out.
+            console.warn("AuthProvider: Supabase env vars missing. Auth disabled.")
+            setIsLoading(false)
+            return
+        }
+
+        const supabase = createBrowserClient(url, anonKey)
+        supabaseRef.current = supabase
+
         const fetchSession = async () => {
             try {
                 const { data: { session } } = await supabase.auth.getSession()
@@ -87,7 +100,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return () => {
             subscription.unsubscribe()
         }
-    }, [supabase, fetchRole])
+    }, [fetchRole])
 
     const signOut = async () => {
         // Clear local state

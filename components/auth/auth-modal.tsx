@@ -25,10 +25,17 @@ interface AuthModalProps {
 export function AuthModal({ isOpen, onClose }: AuthModalProps) {
     const [loading, setLoading] = useState(false)
     const router = useRouter()
-    const supabase = createBrowserClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    )
+
+    // Lazily build the Supabase client so SSR / build-time prerendering
+    // never crashes when env vars are missing.
+    const getSupabase = () => {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+        const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+        if (!url || !anonKey) {
+            throw new Error("Authentication is not configured. Please contact support.")
+        }
+        return createBrowserClient(url, anonKey)
+    }
 
     // Form States
     const [loginEmail, setLoginEmail] = useState("")
@@ -44,6 +51,7 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
         setLoading(true)
 
         try {
+            const supabase = getSupabase()
             const { error } = await supabase.auth.signInWithPassword({
                 email: loginEmail,
                 password: loginPassword,
@@ -70,6 +78,7 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
         setLoading(true)
 
         try {
+            const supabase = getSupabase()
             const { error } = await supabase.auth.signInWithOtp({
                 email: loginEmail,
                 options: {
@@ -93,6 +102,7 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
         setLoading(true)
 
         try {
+            const supabase = getSupabase()
             const { data, error } = await supabase.auth.signUp({
                 email: signupEmail,
                 password: signupPassword,
@@ -126,6 +136,7 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
     const handleGoogleLogin = async () => {
         setLoading(true)
         try {
+            const supabase = getSupabase()
             const { error } = await supabase.auth.signInWithOAuth({
                 provider: 'google',
                 options: {

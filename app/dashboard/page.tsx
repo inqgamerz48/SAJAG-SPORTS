@@ -11,13 +11,26 @@ import { toast } from 'sonner'
 export default function CustomerDashboard() {
     const [orders, setOrders] = useState<any[]>([])
     const [loading, setLoading] = useState(true)
-    const supabase = createClient()
 
     useEffect(() => {
+        // Build the Supabase client inside the effect so SSR / prerender
+        // never tries to read env vars that may only exist at runtime.
+        let supabase
+        try {
+            supabase = createClient()
+        } catch (err) {
+            console.warn("CustomerDashboard: Supabase not configured", err)
+            setLoading(false)
+            return
+        }
+
         const fetchMyOrders = async () => {
             setLoading(true)
             const { data: { user } } = await supabase.auth.getUser()
-            if (!user) return
+            if (!user) {
+                setLoading(false)
+                return
+            }
 
             const { data, error } = await supabase
                 .from('orders')
@@ -38,7 +51,7 @@ export default function CustomerDashboard() {
         }
 
         fetchMyOrders()
-    }, [supabase])
+    }, [])
 
     return (
         <div className="container mx-auto px-4 py-8 space-y-12">
