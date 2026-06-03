@@ -66,7 +66,7 @@ export default function TrackOrderPage() {
             case 'In_Workshop':
                 return <Package className="w-6 h-6 text-blue-500" />
             case 'Repairing':
-                return <Truck className="w-6 h-6 text-purple-500" />
+                return <Truck className="w-6 h-6 text-orange-500" />
             case 'Ready_to_Return':
                 return <Package className="w-6 h-6 text-green-500" />
             case 'Completed':
@@ -231,7 +231,7 @@ export default function TrackOrderPage() {
                                             className="mt-2 border-zinc-700 text-lime-500 hover:bg-zinc-800"
                                             onClick={() => {
                                                 const trackingUrl = order.waybill
-                                                    ? `https://www.delhivery.com/track/package/${order.waybill}`
+                                                    ? `https://www.shiprocket.com/track/package/${order.waybill}`
                                                     : `https://shiprocket.co/tracking/${order.shiprocket_awb_code}`
                                                 window.open(trackingUrl, '_blank')
                                             }}

@@ -1,14 +1,24 @@
 import { ShopClient } from '@/components/shop/shop-client'
 import { prisma } from '@/lib/prisma'
+import { MOCK_PRODUCTS } from '@/lib/mock-products'
 
 export const dynamic = 'force-dynamic';
 
 export default async function ProductsPage() {
-    const rawProducts = await prisma.product.findMany({
-        where: { stockCount: { gt: -1 } }, // Or whatever condition, assuming all are shown
-        include: { colorVariants: true },
-        orderBy: { createdAt: 'desc' }
-    });
+    let rawProducts = [];
+    try {
+        rawProducts = await prisma.product.findMany({
+            where: { stockCount: { gt: -1 } },
+            include: { colorVariants: true },
+            orderBy: { createdAt: 'desc' }
+        });
+        if (rawProducts.length === 0) {
+            rawProducts = MOCK_PRODUCTS;
+        }
+    } catch (err) {
+        console.warn('ProductsPage: prisma.product.findMany failed, falling back to mock products.', err);
+        rawProducts = MOCK_PRODUCTS;
+    }
 
     const products = rawProducts.map(p => ({
         ...p,

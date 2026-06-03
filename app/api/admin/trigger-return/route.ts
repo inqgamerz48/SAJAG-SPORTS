@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
-import { createForwardShipment } from '@/lib/delhivery'
+import { prisma } from '@/lib/prisma'
+import { createForwardShipment } from '@/lib/shiprocket'
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 
@@ -12,15 +12,8 @@ export async function POST(req: NextRequest) {
     try {
         const session = await getServerSession(authOptions)
 
-        if (!session || !session.user) {
+        if (!session || !session.user || (session.user as any).role !== 'admin') {
             return NextResponse.json({ success: false, error: 'Unauthorized via NextAuth' }, { status: 401 })
-        }
-
-        const supabase = await createClient()
-        const { data: { user }, error: authError } = await supabase.auth.getUser()
-
-        if (authError || !user) {
-            return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
         }
 
         const { order_id } = await req.json()
@@ -29,64 +22,70 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ success: false, error: 'order_id is required' }, { status: 400 })
         }
 
-        // 1. Get order + customer details
-        const { data: order, error: orderError } = await supabase
-            .from('orders')
-            .select(`
-        *,
-        profiles (full_name, email, phone, address, pincode)
-      `)
-            .eq('id', order_id)
-            .single()
+        // 1. Get order + customer details using Prisma
+        const order = await prisma.order.findUnique({
+            where: { id: order_id },
+            include: {
+                customer: true,
+            }
+        })
 
-        if (orderError || !order) {
+        if (!order) {
             return NextResponse.json({ success: false, error: 'Order not found' }, { status: 404 })
         }
 
-        const profile = order.profiles as any
+        const profile = order.customer
+
+        if (!profile) {
+            return NextResponse.json({ success: false, error: 'Customer profile not found for this order' }, { status: 400 })
+        }
 
         // Extract city/state from address
         const addressParts = (profile.address || '').split(',').map((s: string) => s.trim())
         const city = addressParts[addressParts.length - 2] || 'Unknown'
         const state = addressParts[addressParts.length - 1] || 'Unknown'
 
-        // 2. Create forward shipment via Delhivery
-        const delhiveryResult = await createForwardShipment({
+        // 2. Create forward shipment via Shiprocket
+        const shiprocketResult = await createForwardShipment({
             order_id: order.id,
-            customer_name: profile.full_name,
+            customer_name: profile.fullName || 'Customer',
             customer_email: profile.email,
-            customer_phone: profile.phone,
-            customer_address: profile.address,
-            customer_pincode: profile.pincode,
+            customer_phone: profile.phone || '9999999999',
+            customer_address: profile.address || 'Address not provided',
+            customer_pincode: profile.pincode || '',
             customer_city: city,
             customer_state: state,
         })
 
-        if (delhiveryResult.success) {
-            // 3. Save forward shipment record
-            await supabase.from('shipments').insert({
-                order_id: order.id,
-                waybill: delhiveryResult.waybill,
-                delhivery_order_id: delhiveryResult.delhiveryOrderId,
-                shipment_status: 'Manifested',
-                is_reverse: false, // This is a forward shipment
-                provider: 'delhivery',
+        if (shiprocketResult.success) {
+            // 3. Save forward shipment record using Prisma
+            await prisma.shipment.create({
+                data: {
+                    orderId: order.id,
+                    awbCode: shiprocketResult.waybill || null,
+                    shiprocketOrderId: shiprocketResult.shiprocketOrderId || null,
+                    shipmentStatus: 'Manifested',
+                    isReverse: false, // This is a forward shipment
+                    provider: 'shiprocket',
+                }
             })
 
-            // 4. Update order status
-            await supabase
-                .from('orders')
-                .update({ status: 'Ready_to_Return', updated_at: new Date().toISOString() })
-                .eq('id', order_id)
+            // 4. Update order status using Prisma
+            await prisma.order.update({
+                where: { id: order_id },
+                data: {
+                    status: 'Ready_to_Return',
+                }
+            })
 
             return NextResponse.json({
                 success: true,
-                waybill: delhiveryResult.waybill,
+                waybill: shiprocketResult.waybill,
             })
         } else {
             return NextResponse.json({
                 success: false,
-                error: delhiveryResult.error || 'Failed to create return shipment',
+                error: shiprocketResult.error || 'Failed to create return shipment',
             }, { status: 500 })
         }
 
@@ -95,3 +94,4 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ success: false, error: error.message }, { status: 500 })
     }
 }
+

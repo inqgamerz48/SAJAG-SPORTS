@@ -1,12 +1,15 @@
 'use client'
 
 import Link from 'next/link'
+const NextNavigationLink = Link
 import Image from 'next/image'
 import { Button } from '@/components/ui/button'
 import { Menu, X, User, LogOut, LayoutDashboard, ShoppingCart, Search, Truck } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/components/providers/auth-provider'
 import { useCartStore } from '@/store/useCartStore'
+
+import { motion, AnimatePresence } from 'framer-motion'
 
 export function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
@@ -48,7 +51,7 @@ export function Header() {
           </button>
 
           {/* Logo */}
-          <Link href="/" className="flex shrink-0 items-center gap-2">
+          <NextNavigationLink href="/" className="flex shrink-0 items-center gap-2">
             <Image
               src="/logo.jpeg"
               alt="Sajag Sports logo"
@@ -60,27 +63,27 @@ export function Header() {
             <span className="text-lg font-extrabold uppercase italic tracking-tighter text-brand-orange">
               Sajag Sports
             </span>
-          </Link>
+          </NextNavigationLink>
 
           {/* Nav tabs — desktop, right next to logo */}
           <nav className="hidden items-center gap-10 md:flex">
-            <Link href="/" className="text-sm font-medium text-slate-700 hover:text-brand-orange transition-colors">
+            <NextNavigationLink href="/" className="text-sm font-medium text-slate-700 hover:text-brand-orange transition-colors">
               Home
-            </Link>
+            </NextNavigationLink>
             <button
               onClick={scrollToServices}
               className="text-sm font-medium text-slate-700 hover:text-brand-orange transition-colors"
             >
               Services
             </button>
-            <Link href="#contact" className="text-sm font-medium text-slate-700 hover:text-brand-orange transition-colors">
+            <NextNavigationLink href="#contact" className="text-sm font-medium text-slate-700 hover:text-brand-orange transition-colors">
               Contact
-            </Link>
-            <Link href="/shop" className="text-sm font-medium text-slate-700 hover:text-brand-orange transition-colors">
+            </NextNavigationLink>
+            <NextNavigationLink href="/shop" className="text-sm font-medium text-slate-700 hover:text-brand-orange transition-colors">
               Store Front
-            </Link>
+            </NextNavigationLink>
             <Button variant="brand" size="sm" asChild className="animate-pulse-glow">
-              <Link href="/book">Book a Service</Link>
+              <NextNavigationLink href="/book">Book a Service</NextNavigationLink>
             </Button>
           </nav>
 
@@ -98,13 +101,13 @@ export function Header() {
           <div className="flex shrink-0 items-center gap-4 text-slate-800 md:ml-0 ml-auto">
             {user ? (
               <>
-                <Link
+                <NextNavigationLink
                   href={role === 'admin' ? '/admin/dashboard' : '/profile'}
                   className="hidden sm:block"
                   aria-label="Profile"
                 >
                   {role === 'admin' ? <LayoutDashboard className="h-5 w-5" /> : <User className="h-5 w-5" />}
-                </Link>
+                </NextNavigationLink>
                 <button
                   onClick={() => signOut()}
                   className="hidden sm:block text-sm font-medium text-slate-700 hover:text-brand-orange transition-colors"
@@ -122,17 +125,23 @@ export function Header() {
                 <User className="h-5 w-5" />
               </button>
             )}
-            <Link href="/track" className="hidden sm:block" aria-label="Track order">
+            <NextNavigationLink href="/track" className="hidden sm:block" aria-label="Track order">
               <Truck className="h-5 w-5" />
-            </Link>
-            <Link href="/cart" className="relative" aria-label="Cart">
+            </NextNavigationLink>
+            <NextNavigationLink href="/cart" className="relative" aria-label="Cart">
               <ShoppingCart className="h-5 w-5" />
               {mounted && itemsCount > 0 && (
-                <span className="absolute -right-2 -top-2 flex h-4 w-4 items-center justify-center rounded-full bg-brand-orange text-[10px] font-bold text-white">
+                <motion.span
+                  key={itemsCount}
+                  initial={{ scale: 0.6, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  transition={{ type: "spring", stiffness: 500, damping: 12 }}
+                  className="absolute -right-2 -top-2 flex h-4 w-4 items-center justify-center rounded-full bg-brand-orange text-[10px] font-bold text-white"
+                >
                   {itemsCount}
-                </span>
+                </motion.span>
               )}
-            </Link>
+            </NextNavigationLink>
           </div>
         </div>
 
@@ -150,72 +159,80 @@ export function Header() {
       </div>
 
       {/* Mobile dropdown menu */}
-      {mobileMenuOpen && (
-        <div className="border-b border-slate-100 bg-white shadow-lg md:hidden">
-          <nav className="flex flex-col gap-4 px-4 py-4">
-            <Link
-              href="/"
-              className="font-medium text-gray-700 hover:text-brand-orange transition-colors"
-              onClick={() => setMobileMenuOpen(false)}
-            >
-              Home
-            </Link>
-            <button
-              onClick={scrollToServices}
-              className="text-left font-medium text-gray-700 hover:text-brand-orange transition-colors"
-            >
-              Services
-            </button>
-            <Link
-              href="#contact"
-              className="font-medium text-gray-700 hover:text-brand-orange transition-colors"
-              onClick={() => setMobileMenuOpen(false)}
-            >
-              Contact
-            </Link>
-            <Link
-              href="/shop"
-              className="font-medium text-gray-700 hover:text-brand-orange transition-colors"
-              onClick={() => setMobileMenuOpen(false)}
-            >
-              Store Front
-            </Link>
-            <Button variant="brand" className="mt-2 w-full animate-pulse-glow" asChild>
-              <Link href="/book" onClick={() => setMobileMenuOpen(false)}>
-                Book a Service
-              </Link>
-            </Button>
+      <AnimatePresence>
+        {mobileMenuOpen && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.25, ease: "easeInOut" }}
+            className="overflow-hidden border-b border-slate-100 bg-white shadow-lg md:hidden"
+          >
+            <nav className="flex flex-col gap-4 px-4 py-4">
+              <NextNavigationLink
+                href="/"
+                className="font-medium text-gray-700 hover:text-brand-orange transition-colors"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                Home
+              </NextNavigationLink>
+              <button
+                onClick={scrollToServices}
+                className="text-left font-medium text-gray-700 hover:text-brand-orange transition-colors"
+              >
+                Services
+              </button>
+              <NextNavigationLink
+                href="#contact"
+                className="font-medium text-gray-700 hover:text-brand-orange transition-colors"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                Contact
+              </NextNavigationLink>
+              <NextNavigationLink
+                href="/shop"
+                className="font-medium text-gray-700 hover:text-brand-orange transition-colors"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                Store Front
+              </NextNavigationLink>
+              <Button variant="brand" className="mt-2 w-full animate-pulse-glow" asChild>
+                <NextNavigationLink href="/book" onClick={() => setMobileMenuOpen(false)}>
+                  Book a Service
+                </NextNavigationLink>
+              </Button>
 
-            {user ? (
-              <>
-                <Link
-                  href={role === 'admin' ? '/admin/dashboard' : '/profile'}
-                  className="flex items-center font-medium text-gray-700 hover:text-brand-orange transition-colors"
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  {role === 'admin' ? <LayoutDashboard className="mr-2 h-4 w-4" /> : <User className="mr-2 h-4 w-4" />}
-                  {role === 'admin' ? 'Dashboard' : (user?.user_metadata?.full_name || user?.user_metadata?.name || 'Profile')}
-                </Link>
+              {user ? (
+                <>
+                  <NextNavigationLink
+                    href={role === 'admin' ? '/admin/dashboard' : '/profile'}
+                    className="flex items-center font-medium text-gray-700 hover:text-brand-orange transition-colors"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    {role === 'admin' ? <LayoutDashboard className="mr-2 h-4 w-4" /> : <User className="mr-2 h-4 w-4" />}
+                    {role === 'admin' ? 'Dashboard' : (user?.user_metadata?.full_name || user?.user_metadata?.name || 'Profile')}
+                  </NextNavigationLink>
+                  <button
+                    onClick={() => { signOut(); setMobileMenuOpen(false) }}
+                    className="flex items-center text-left font-medium text-gray-700 hover:text-brand-orange transition-colors"
+                  >
+                    <LogOut className="mr-2 h-4 w-4" />
+                    Sign Out
+                  </button>
+                </>
+              ) : (
                 <button
-                  onClick={() => { signOut(); setMobileMenuOpen(false) }}
+                  onClick={() => { openAuthModal(); setMobileMenuOpen(false) }}
                   className="flex items-center text-left font-medium text-gray-700 hover:text-brand-orange transition-colors"
                 >
-                  <LogOut className="mr-2 h-4 w-4" />
-                  Sign Out
+                  <User className="mr-2 h-4 w-4" />
+                  Login
                 </button>
-              </>
-            ) : (
-              <button
-                onClick={() => { openAuthModal(); setMobileMenuOpen(false) }}
-                className="flex items-center text-left font-medium text-gray-700 hover:text-brand-orange transition-colors"
-              >
-                <User className="mr-2 h-4 w-4" />
-                Login
-              </button>
-            )}
-          </nav>
-        </div>
-      )}
+              )}
+            </nav>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </header>
   )
 }

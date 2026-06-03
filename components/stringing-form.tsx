@@ -52,7 +52,7 @@ export function StringingForm() {
     id: Math.random().toString(36).substring(7), 
     brand: '', 
     model: '', 
-    stringName: '', 
+    stringName: 'BG 65', 
     tension: [24], 
     comments: '', 
   }) 
@@ -151,7 +151,7 @@ export function StringingForm() {
       } 
 
       racquets.forEach((racquet) => { 
-        const stringPrice = STRING_PRICES[racquet.stringName as keyof typeof STRING_PRICES] || 600 
+        const stringPrice = racquet.stringName ? (STRING_PRICES[racquet.stringName as keyof typeof STRING_PRICES] || 0) : 0 
         addItem({ 
           name: `${racquet.brand} ${racquet.model} Stringing - ${racquet.stringName}`, 
           price: stringPrice, 
@@ -396,7 +396,7 @@ export function StringingForm() {
               <span className="text-2xl font-bold text-gray-900"> 
                 {formatCurrency( 
                   racquets.reduce((total, r) => { 
-                    let stringPrice = r.stringName ? STRING_PRICES[r.stringName as keyof typeof STRING_PRICES] || 0 : 0; 
+                    const stringPrice = r.stringName ? (STRING_PRICES[r.stringName as keyof typeof STRING_PRICES] || 0) : 0; 
                     return total + stringPrice; 
                   }, 0) 
                 )} 

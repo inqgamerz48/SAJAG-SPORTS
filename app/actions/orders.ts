@@ -1,7 +1,7 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
-import { createReversePickup } from '@/lib/delhivery'
+import { createReversePickup } from '@/lib/shiprocket'
 import { revalidatePath } from 'next/cache'
 
 interface CreateOrderParams {
@@ -88,7 +88,7 @@ export async function approveOrderForPickup(orderId: string) {
   const profile = order.profiles as any
 
   if (order.service_type === 'Frame Repair' && profile?.pincode) {
-    // Create reverse pickup via Delhivery
+    // Create reverse pickup via Shiprocket
     try {
       // Extract city/state from address
       const addressParts = (profile.address || '').split(',').map((s: string) => s.trim())
@@ -111,10 +111,10 @@ export async function approveOrderForPickup(orderId: string) {
         await supabase.from('shipments').insert({
           order_id: order.id,
           waybill: pickupResult.waybill,
-          delhivery_order_id: pickupResult.delhiveryOrderId,
+          shiprocket_order_id: pickupResult.shiprocketOrderId,
           shipment_status: 'Pickup_Scheduled',
           is_reverse: true,
-          provider: 'delhivery',
+          provider: 'shiprocket',
         })
 
         await supabase
@@ -125,10 +125,10 @@ export async function approveOrderForPickup(orderId: string) {
         revalidatePath('/admin/dashboard')
         return { success: true }
       } else {
-        return { success: false, error: pickupResult.error || 'Failed to create Delhivery pickup' }
+        return { success: false, error: pickupResult.error || 'Failed to create Shiprocket pickup' }
       }
     } catch (err: any) {
-      return { success: false, error: err.message || 'Delhivery error' }
+      return { success: false, error: err.message || 'Shiprocket error' }
     }
   }
 

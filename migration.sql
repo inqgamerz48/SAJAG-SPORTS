@@ -14,7 +14,7 @@ CREATE TABLE "public"."product_color_variants" (
 
 ALTER TABLE "public"."product_color_variants" ADD CONSTRAINT "product_color_variants_product_id_fkey" FOREIGN KEY ("product_id") REFERENCES "public"."products"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
--- Razorpay + Delhivery checkout flow alignment
+-- Razorpay + Shiprocket checkout flow alignment
 ALTER TYPE "public"."OrderStatus" ADD VALUE IF NOT EXISTS 'Manual_Fulfillment_Required';
 
 ALTER TABLE "public"."orders" ADD COLUMN IF NOT EXISTS "service_type" TEXT;

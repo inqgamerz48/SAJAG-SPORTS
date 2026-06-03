@@ -2,11 +2,12 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
+const NextNavigationLink = Link
 import Image from 'next/image'
+import dynamic from 'next/dynamic'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
-import { HeroSlider } from '@/components/hero-slider'
 import { StatsCounter } from '@/components/stats-counter'
 import { createClient } from '@/lib/supabase/client'
 import {
@@ -23,8 +24,35 @@ import {
     User,
     MapPin, // Kept for the Stringing Service Card
 } from 'lucide-react'
-import { BeforeAfterSlider } from '@/components/before-after-slider'
 import { ShopClient } from '@/components/shop/shop-client'
+import { motion } from 'framer-motion'
+
+const fadeInUpVariants = {
+  hidden: { opacity: 0, y: 35 },
+  visible: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 80, damping: 15 } }
+} as const
+
+const staggerContainer = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.15
+    }
+  }
+} as const
+
+const HeroSlider = dynamic(() => import('@/components/hero-slider').then(mod => mod.HeroSlider), { 
+    ssr: true,
+    loading: () => <div className="h-[60vh] w-full animate-pulse bg-gray-200 rounded-lg"></div> 
+})
+const BeforeAfterSlider = dynamic(() => import('@/components/before-after-slider').then(mod => mod.BeforeAfterSlider), {
+    loading: () => <div className="h-64 w-full animate-pulse bg-gray-200 rounded-xl"></div>
+})
+const VideoPlayer = dynamic(() => import('@/components/video-player').then(mod => mod.VideoPlayer), {
+    ssr: false,
+    loading: () => <div className="h-full w-full animate-pulse bg-gray-300"></div>
+})
 
 export function HomePageClient({ initialProducts, accessoriesProducts }: { initialProducts: any[], accessoriesProducts: any[] }) {
     const [email, setEmail] = useState('')
@@ -79,18 +107,18 @@ export function HomePageClient({ initialProducts, accessoriesProducts }: { initi
 
             <section className="bg-white px-4 py-8">
                 <div className="mx-auto grid max-w-7xl grid-cols-2 gap-3 md:grid-cols-4">
-                    <Link href="/shop" className="flex items-center justify-center rounded-xl border border-slate-100 bg-slate-50 p-4 transition-shadow hover:shadow-md">
+                    <NextNavigationLink href="/shop" className="flex items-center justify-center rounded-xl border border-slate-100 bg-slate-50 p-4 transition-shadow hover:shadow-md">
                         <span className="font-black italic tracking-tighter text-slate-800">SHOP RACKETS</span>
-                    </Link>
-                    <Link href="/book?service=stringing" className="flex items-center justify-center rounded-xl border border-slate-100 bg-slate-50 p-4 transition-shadow hover:shadow-md">
+                    </NextNavigationLink>
+                    <NextNavigationLink href="/book?service=stringing" className="flex items-center justify-center rounded-xl border border-slate-100 bg-slate-50 p-4 transition-shadow hover:shadow-md">
                         <span className="font-black italic tracking-tighter text-slate-800">STRINGING</span>
-                    </Link>
-                    <Link href="/book?service=repair" className="flex items-center justify-center rounded-xl border border-slate-100 bg-slate-50 p-4 transition-shadow hover:shadow-md">
+                    </NextNavigationLink>
+                    <NextNavigationLink href="/book?service=repair" className="flex items-center justify-center rounded-xl border border-slate-100 bg-slate-50 p-4 transition-shadow hover:shadow-md">
                         <span className="font-black italic tracking-tighter text-slate-800">REPAIR</span>
-                    </Link>
-                    <Link href="/track" className="flex items-center justify-center rounded-xl border border-slate-100 bg-slate-50 p-4 transition-shadow hover:shadow-md">
+                    </NextNavigationLink>
+                    <NextNavigationLink href="/track" className="flex items-center justify-center rounded-xl border border-slate-100 bg-slate-50 p-4 transition-shadow hover:shadow-md">
                         <span className="font-black italic tracking-tighter text-slate-800">TRACK ORDER</span>
-                    </Link>
+                    </NextNavigationLink>
                 </div>
             </section>
 
@@ -108,101 +136,111 @@ export function HomePageClient({ initialProducts, accessoriesProducts }: { initi
                         </p>
                     </div>
 
-                    <div className="grid gap-8 md:grid-cols-2">
+                    <motion.div
+                        variants={staggerContainer}
+                        initial="hidden"
+                        whileInView="visible"
+                        viewport={{ once: true, margin: "-100px" }}
+                        className="grid gap-8 md:grid-cols-2"
+                    >
                         {/* Stringing Service Card */}
-                        <Card className="border-2 border-brand-blue/30 bg-white shadow-lg relative overflow-hidden transition-all duration-300 hover:shadow-2xl hover:-translate-y-2 hover:border-brand-blue/50 rounded-3xl">
-                            <div className="absolute top-4 right-4 z-10">
-                                <span className="bg-gradient-to-r from-brand-orange to-brand-red text-white text-sm font-bold px-4 py-2 rounded-full shadow-lg animate-pulse-glow">
-                                    Same Day Delivery
-                                </span>
-                            </div>
-                            <CardContent className="p-8">
-                                <div className="flex items-center gap-4 mb-4">
-                                    <div className="p-4 rounded-full bg-brand-blue/10">
-                                        <Scissors className="h-8 w-8 text-brand-blue" />
-                                    </div>
-                                    <div>
-                                        <h3 className="text-2xl font-bold text-gray-900">Racquet Stringing</h3>
-                                        <p className="text-sm text-gray-600 flex items-center gap-1 mt-1">
-                                            <MapPin className="h-4 w-4 text-brand-orange" />
-                                            Pune City Only
-                                        </p>
-                                    </div>
+                        <motion.div variants={fadeInUpVariants}>
+                            <Card className="border-2 border-brand-blue/30 bg-white shadow-lg relative overflow-hidden transition-all duration-300 hover:shadow-2xl hover:-translate-y-2 hover:border-brand-blue/50 rounded-3xl h-full">
+                                <div className="absolute top-4 right-4 z-10">
+                                    <span className="bg-gradient-to-r from-brand-orange to-brand-red text-white text-sm font-bold px-4 py-2 rounded-full shadow-lg animate-pulse-glow">
+                                        Same Day Delivery
+                                    </span>
                                 </div>
-                                <p className="text-gray-700 mb-4">
-                                    We provide professional racket stringing services in Pune with fast 24-hour pick-up and delivery. Perfect for players who want consistent tension, precision stringing, and zero hassle.
-                                </p>
-                                <ul className="space-y-2 mb-4">
-                                    <li className="flex items-center gap-2 text-sm text-gray-600">
-                                        <span className="text-brand-blue font-bold">✓</span>
-                                        24-hour pick-up & delivery in Pune City
-                                    </li>
-                                    <li className="flex items-center gap-2 text-sm text-gray-600">
-                                        <span className="text-brand-blue font-bold">✓</span>
-                                        Accurate tension with professional digital machines
-                                    </li>
-                                    <li className="flex items-center gap-2 text-sm text-gray-600">
-                                        <span className="text-brand-blue font-bold">✓</span>
-                                        Suitable for beginners to tournament players
-                                    </li>
-                                    <li className="flex items-center gap-2 text-sm text-gray-600">
-                                        <span className="text-brand-blue font-bold">✓</span>
-                                        Trusted by club & academy players
-                                    </li>
-                                </ul>
-                                <div className="mb-6 rounded-lg border border-brand-blue/30 bg-brand-blue/5 p-4 text-left text-sm text-gray-700">
-                                    <p className="font-semibold mb-1">Service Snapshot</p>
-                                    <p>📍 <span className="font-medium">Service Area:</span> Pune City</p>
-                                    <p>⏱️ <span className="font-medium">Turnaround Time:</span> Within 24 hours</p>
-                                </div>
-                                <Button variant="brand" className="w-full" asChild>
-                                    <Link href="/book?service=stringing">Book Stringing Service</Link>
-                                </Button>
-                            </CardContent>
-                        </Card>
+                                <CardContent className="p-8">
+                                    <div className="flex items-center gap-4 mb-4">
+                                        <div className="p-4 rounded-full bg-brand-blue/10">
+                                            <Scissors className="h-8 w-8 text-brand-blue" />
+                                        </div>
+                                        <div>
+                                            <h3 className="text-2xl font-bold text-gray-900">Racquet Stringing</h3>
+                                            <p className="text-sm text-gray-600 flex items-center gap-1 mt-1">
+                                                <MapPin className="h-4 w-4 text-brand-orange" />
+                                                Pune City Only
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <p className="text-gray-700 mb-4">
+                                        We provide professional racket stringing services in Pune with fast 24-hour pick-up and delivery. Perfect for players who want consistent tension, precision stringing, and zero hassle.
+                                    </p>
+                                    <ul className="space-y-2 mb-4">
+                                        <li className="flex items-center gap-2 text-sm text-gray-600">
+                                            <span className="text-brand-blue font-bold">✓</span>
+                                            24-hour pick-up & delivery in Pune City
+                                        </li>
+                                        <li className="flex items-center gap-2 text-sm text-gray-600">
+                                            <span className="text-brand-blue font-bold">✓</span>
+                                            Accurate tension with professional digital machines
+                                        </li>
+                                        <li className="flex items-center gap-2 text-sm text-gray-600">
+                                            <span className="text-brand-blue font-bold">✓</span>
+                                            Suitable for beginners to tournament players
+                                        </li>
+                                        <li className="flex items-center gap-2 text-sm text-gray-600">
+                                            <span className="text-brand-blue font-bold">✓</span>
+                                            Trusted by club & academy players
+                                        </li>
+                                    </ul>
+                                    <div className="mb-6 rounded-lg border border-brand-blue/30 bg-brand-blue/5 p-4 text-left text-sm text-gray-700">
+                                        <p className="font-semibold mb-1">Service Snapshot</p>
+                                        <p>📍 <span className="font-medium">Service Area:</span> Pune City</p>
+                                        <p>⏱️ <span className="font-medium">Turnaround Time:</span> Within 24 hours</p>
+                                    </div>
+                                    <Button variant="brand" className="w-full" asChild>
+                                        <NextNavigationLink href="/book?service=stringing">Book Stringing Service</NextNavigationLink>
+                                    </Button>
+                                </CardContent>
+                            </Card>
+                        </motion.div>
 
                         {/* Repair Service Card */}
-                        <Card className="border-2 border-brand-orange/30 bg-white shadow-lg transition-all duration-300 hover:shadow-2xl hover:-translate-y-2 hover:border-brand-orange/50 rounded-3xl relative overflow-hidden">
-                            <CardContent className="p-8">
-                                <div className="flex items-center gap-4 mb-4">
-                                    <div className="p-4 rounded-full bg-brand-orange/10">
-                                        <Wrench className="h-8 w-8 text-brand-orange" />
+                        <motion.div variants={fadeInUpVariants}>
+                            <Card className="border-2 border-brand-orange/30 bg-white shadow-lg transition-all duration-300 hover:shadow-2xl hover:-translate-y-2 hover:border-brand-orange/50 rounded-3xl relative overflow-hidden h-full">
+                                <CardContent className="p-8">
+                                    <div className="flex items-center gap-4 mb-4">
+                                        <div className="p-4 rounded-full bg-brand-orange/10">
+                                            <Wrench className="h-8 w-8 text-brand-orange" />
+                                        </div>
+                                        <div>
+                                            <h3 className="text-2xl font-bold text-gray-900">Racquet Repair</h3>
+                                            <p className="text-sm text-gray-600 mt-1">Pan-India Service</p>
+                                        </div>
                                     </div>
-                                    <div>
-                                        <h3 className="text-2xl font-bold text-gray-900">Racquet Repair</h3>
-                                        <p className="text-sm text-gray-600 mt-1">Pan-India Service</p>
+                                    <p className="text-gray-700 mb-4">
+                                        We offer crack racket repair services across India. Courier your racket to us, and our experts will repair and return it safely, with clear post-repair tension limits for durability and safety.
+                                    </p>
+                                    <ul className="space-y-2 mb-4">
+                                        <li className="flex items-center gap-2 text-sm text-gray-600">
+                                            <span className="text-brand-orange font-bold">✓</span>
+                                            Carbon frame restoration
+                                        </li>
+                                        <li className="flex items-center gap-2 text-sm text-gray-600">
+                                            <span className="text-brand-orange font-bold">✓</span>
+                                            Crack repair & frame fixing
+                                        </li>
+                                        <li className="flex items-center gap-2 text-sm text-gray-600">
+                                            <span className="text-brand-orange font-bold">✓</span>
+                                            Pickup & delivery / courier options available
+                                        </li>
+                                    </ul>
+                                    <div className="mb-4 rounded-lg border border-brand-orange/30 bg-brand-orange/5 p-4 text-left text-sm text-gray-700">
+                                        <p className="font-semibold mb-2">Important Tension Guidelines (After Repair)</p>
+                                        <p className="mb-1">⚠️ Tension limits after repair are strictly followed for player safety and racket durability.</p>
+                                        <p className="mb-1">• Rackets with 2 cracks: <span className="font-medium">Max 24 lbs</span></p>
+                                        <p className="mb-1">• Rackets with broken frame (after full repair): <span className="font-medium">Max 26 lbs</span></p>
+                                        <p>✅ For safer performance and longer racket life, we strongly recommend stringing at <span className="font-medium">25 lbs or below</span>.</p>
                                     </div>
-                                </div>
-                                <p className="text-gray-700 mb-4">
-                                    We offer crack racket repair services across India. Courier your racket to us, and our experts will repair and return it safely, with clear post-repair tension limits for durability and safety.
-                                </p>
-                                <ul className="space-y-2 mb-4">
-                                    <li className="flex items-center gap-2 text-sm text-gray-600">
-                                        <span className="text-brand-orange font-bold">✓</span>
-                                        Carbon frame restoration
-                                    </li>
-                                    <li className="flex items-center gap-2 text-sm text-gray-600">
-                                        <span className="text-brand-orange font-bold">✓</span>
-                                        Crack repair & frame fixing
-                                    </li>
-                                    <li className="flex items-center gap-2 text-sm text-gray-600">
-                                        <span className="text-brand-orange font-bold">✓</span>
-                                        Pickup & delivery / courier options available
-                                    </li>
-                                </ul>
-                                <div className="mb-4 rounded-lg border border-brand-orange/30 bg-brand-orange/5 p-4 text-left text-sm text-gray-700">
-                                    <p className="font-semibold mb-2">Important Tension Guidelines (After Repair)</p>
-                                    <p className="mb-1">⚠️ Tension limits after repair are strictly followed for player safety and racket durability.</p>
-                                    <p className="mb-1">• Rackets with 2 cracks: <span className="font-medium">Max 24 lbs</span></p>
-                                    <p className="mb-1">• Rackets with broken frame (after full repair): <span className="font-medium">Max 26 lbs</span></p>
-                                    <p>✅ For safer performance and longer racket life, we strongly recommend stringing at <span className="font-medium">25 lbs or below</span>.</p>
-                                </div>
-                                <Button variant="brand" className="w-full" asChild>
-                                    <Link href="/book?service=repair">Book Repair Service</Link>
-                                </Button>
-                            </CardContent>
-                        </Card>
-                    </div>
+                                    <Button variant="brand" className="w-full" asChild>
+                                        <NextNavigationLink href="/book?service=repair">Book Repair Service</NextNavigationLink>
+                                    </Button>
+                                </CardContent>
+                            </Card>
+                        </motion.div>
+                    </motion.div>
                 </div>
             </section>
 
@@ -225,7 +263,7 @@ export function HomePageClient({ initialProducts, accessoriesProducts }: { initi
                             Use code <span className="bg-white text-brand-orange px-3 py-1 rounded-md font-bold mx-1 shadow-inner">SAJAGSPORTS</span> at checkout for free delivery on equipment orders over ₹700.
                         </p>
                         <Button variant="secondary" size="lg" className="rounded-full px-8 py-6 text-lg font-bold shadow-xl hover:-translate-y-1 transition-transform" asChild>
-                            <Link href="/shop">Shop Now</Link>
+                            <NextNavigationLink href="/shop">Shop Now</NextNavigationLink>
                         </Button>
                     </div>
                 </div>
@@ -247,7 +285,7 @@ export function HomePageClient({ initialProducts, accessoriesProducts }: { initi
 
                     <div className="mt-12 text-center">
                         <Button variant="outline" size="lg" asChild className="animate-pulse-glow">
-                            <Link href="/shop">View All Products</Link>
+                            <NextNavigationLink href="/shop">View All Products</NextNavigationLink>
                         </Button>
                     </div>
                 </div>
@@ -269,7 +307,7 @@ export function HomePageClient({ initialProducts, accessoriesProducts }: { initi
 
                     <div className="mt-12 text-center">
                         <Button variant="outline" size="lg" asChild className="animate-pulse-glow">
-                            <Link href="/shop">View All Accessories</Link>
+                            <NextNavigationLink href="/shop">View All Accessories</NextNavigationLink>
                         </Button>
                     </div>
                 </div>
@@ -354,15 +392,7 @@ export function HomePageClient({ initialProducts, accessoriesProducts }: { initi
                                 className="overflow-hidden rounded-3xl border-2 border-orange-400/30 bg-black shadow-xl transition-all duration-300 hover:shadow-2xl hover:border-orange-400/60 hover:-translate-y-2 animate-fade-in-up"
                                 style={{ animationDelay: `${index * 0.2}s` }}
                             >
-                                <video
-                                    src={src}
-                                    className="h-full w-full object-cover"
-                                    autoPlay
-                                    muted
-                                    loop
-                                    playsInline
-                                    controls={false}
-                                />
+                                <VideoPlayer src={src} />
                             </div>
                         ))}
                     </div>
@@ -381,79 +411,91 @@ export function HomePageClient({ initialProducts, accessoriesProducts }: { initi
                         </p>
                     </div>
 
-                    <div className="grid gap-8 md:grid-cols-3">
+                    <motion.div
+                        variants={staggerContainer}
+                        initial="hidden"
+                        whileInView="visible"
+                        viewport={{ once: true, margin: "-100px" }}
+                        className="grid gap-8 md:grid-cols-3"
+                    >
                         {/* Testimonial 1 */}
-                        <Card className="border-2 border-orange-200 bg-white shadow-lg transition-all duration-300 hover:shadow-2xl hover:-translate-y-2 hover:border-brand-orange animate-fade-in-up rounded-3xl">
-                            <CardContent className="p-6">
-                                <div className="mb-4 flex gap-1">
-                                    {[...Array(5)].map((_, i) => (
-                                        <svg
-                                            key={i}
-                                            className="h-5 w-5 fill-brand-orange"
-                                            viewBox="0 0 20 20"
-                                        >
-                                            <path d="M10 15l-5.878 3.09 1.123-6.545L.489 6.91l6.572-.955L10 0l2.939 5.955 6.572.955-4.756 4.635 1.123 6.545z" />
-                                        </svg>
-                                    ))}
-                                </div>
-                                <p className="mb-4 text-gray-700 italic">
-                                    &quot;My racket had a major crack and I thought it was done for. Sajag Sports not only repaired it but made it feel better than new. The stringing job was perfect!&quot;
-                                </p>
-                                <div className="border-t border-gray-200 pt-4">
-                                    <p className="font-semibold text-gray-900">Rajesh Kumar</p>
-                                    <p className="text-sm text-gray-600">Professional Player, Pune</p>
-                                </div>
-                            </CardContent>
-                        </Card>
+                        <motion.div variants={fadeInUpVariants}>
+                            <Card className="border-2 border-orange-200 bg-white shadow-lg transition-all duration-300 hover:shadow-2xl hover:-translate-y-2 hover:border-brand-orange rounded-3xl h-full">
+                                <CardContent className="p-6">
+                                    <div className="mb-4 flex gap-1">
+                                        {[...Array(5)].map((_, i) => (
+                                            <svg
+                                                key={i}
+                                                className="h-5 w-5 fill-brand-orange"
+                                                viewBox="0 0 20 20"
+                                            >
+                                                <path d="M10 15l-5.878 3.09 1.123-6.545L.489 6.91l6.572-.955L10 0l2.939 5.955 6.572.955-4.756 4.635 1.123 6.545z" />
+                                            </svg>
+                                        ))}
+                                    </div>
+                                    <p className="mb-4 text-gray-700 italic">
+                                        &quot;My racket had a major crack and I thought it was done for. Sajag Sports not only repaired it but made it feel better than new. The stringing job was perfect!&quot;
+                                    </p>
+                                    <div className="border-t border-gray-200 pt-4">
+                                        <p className="font-semibold text-gray-900">Rajesh Kumar</p>
+                                        <p className="text-sm text-gray-600">Professional Player, Pune</p>
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        </motion.div>
 
                         {/* Testimonial 2 */}
-                        <Card className="border-2 border-blue-200 bg-white shadow-lg transition-all duration-300 hover:shadow-2xl hover:-translate-y-2 hover:border-brand-blue animate-fade-in-up rounded-3xl" style={{ animationDelay: '0.2s' }}>
-                            <CardContent className="p-6">
-                                <div className="mb-4 flex gap-1">
-                                    {[...Array(5)].map((_, i) => (
-                                        <svg
-                                            key={i}
-                                            className="h-5 w-5 fill-brand-blue"
-                                            viewBox="0 0 20 20"
-                                        >
-                                            <path d="M10 15l-5.878 3.09 1.123-6.545L.489 6.91l6.572-.955L10 0l2.939 5.955 6.572.955-4.756 4.635 1.123 6.545z" />
-                                        </svg>
-                                    ))}
-                                </div>
-                                <p className="mb-4 text-gray-700 italic">
-                                    &quot;Fast turnaround, excellent service! They repaired my frame crack and restrung my racket in just 2 days. The tension is exactly what I asked for. Highly recommended!&quot;
-                                </p>
-                                <div className="border-t border-gray-200 pt-4">
-                                    <p className="font-semibold text-gray-900">Priya Sharma</p>
-                                    <p className="text-sm text-gray-600">State Level Player, Mumbai</p>
-                                </div>
-                            </CardContent>
-                        </Card>
+                        <motion.div variants={fadeInUpVariants}>
+                            <Card className="border-2 border-blue-200 bg-white shadow-lg transition-all duration-300 hover:shadow-2xl hover:-translate-y-2 hover:border-brand-blue rounded-3xl h-full">
+                                <CardContent className="p-6">
+                                    <div className="mb-4 flex gap-1">
+                                        {[...Array(5)].map((_, i) => (
+                                            <svg
+                                                key={i}
+                                                className="h-5 w-5 fill-brand-blue"
+                                                viewBox="0 0 20 20"
+                                            >
+                                                <path d="M10 15l-5.878 3.09 1.123-6.545L.489 6.91l6.572-.955L10 0l2.939 5.955 6.572.955-4.756 4.635 1.123 6.545z" />
+                                            </svg>
+                                        ))}
+                                    </div>
+                                    <p className="mb-4 text-gray-700 italic">
+                                        &quot;Fast turnaround, excellent service! They repaired my frame crack and restrung my racket in just 2 days. The tension is exactly what I asked for. Highly recommended!&quot;
+                                    </p>
+                                    <div className="border-t border-gray-200 pt-4">
+                                        <p className="font-semibold text-gray-900">Priya Sharma</p>
+                                        <p className="text-sm text-gray-600">State Level Player, Mumbai</p>
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        </motion.div>
 
                         {/* Testimonial 3 */}
-                        <Card className="border-2 border-orange-200 bg-white shadow-lg transition-all duration-300 hover:shadow-2xl hover:-translate-y-2 hover:border-brand-orange animate-fade-in-up rounded-3xl" style={{ animationDelay: '0.4s' }}>
-                            <CardContent className="p-6">
-                                <div className="mb-4 flex gap-1">
-                                    {[...Array(5)].map((_, i) => (
-                                        <svg
-                                            key={i}
-                                            className="h-5 w-5 fill-brand-red"
-                                            viewBox="0 0 20 20"
-                                        >
-                                            <path d="M10 15l-5.878 3.09 1.123-6.545L.489 6.91l6.572-.955L10 0l2.939 5.955 6.572.955-4.756 4.635 1.123 6.545z" />
-                                        </svg>
-                                    ))}
-                                </div>
-                                <p className="mb-4 text-gray-700 italic">
-                                    &quot;Best racket repair service in Pune! They saved my favorite racket that I thought was beyond repair. The team is professional, and the quality is outstanding. Worth every rupee!&quot;
-                                </p>
-                                <div className="border-t border-gray-200 pt-4">
-                                    <p className="font-semibold text-gray-900">Amit Patel</p>
-                                    <p className="text-sm text-gray-600">Club Player, Pune</p>
-                                </div>
-                            </CardContent>
-                        </Card>
-                    </div>
+                        <motion.div variants={fadeInUpVariants}>
+                            <Card className="border-2 border-orange-200 bg-white shadow-lg transition-all duration-300 hover:shadow-2xl hover:-translate-y-2 hover:border-brand-orange rounded-3xl h-full">
+                                <CardContent className="p-6">
+                                    <div className="mb-4 flex gap-1">
+                                        {[...Array(5)].map((_, i) => (
+                                            <svg
+                                                key={i}
+                                                className="h-5 w-5 fill-brand-red"
+                                                viewBox="0 0 20 20"
+                                            >
+                                                <path d="M10 15l-5.878 3.09 1.123-6.545L.489 6.91l6.572-.955L10 0l2.939 5.955 6.572.955-4.756 4.635 1.123 6.545z" />
+                                            </svg>
+                                        ))}
+                                    </div>
+                                    <p className="mb-4 text-gray-700 italic">
+                                        &quot;Best racket repair service in Pune! They saved my favorite racket that I thought was beyond repair. The team is professional, and the quality is outstanding. Worth every rupee!&quot;
+                                    </p>
+                                    <div className="border-t border-gray-200 pt-4">
+                                        <p className="font-semibold text-gray-900">Amit Patel</p>
+                                        <p className="text-sm text-gray-600">Club Player, Pune</p>
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        </motion.div>
+                    </motion.div>
                 </div>
             </section>
 
@@ -469,9 +511,15 @@ export function HomePageClient({ initialProducts, accessoriesProducts }: { initi
                         </p>
                     </div>
 
-                    <div className="grid gap-8 md:grid-cols-3">
+                    <motion.div
+                        variants={staggerContainer}
+                        initial="hidden"
+                        whileInView="visible"
+                        viewport={{ once: true, margin: "-100px" }}
+                        className="grid gap-8 md:grid-cols-3"
+                    >
                         {/* Step 1 */}
-                        <div className="text-center transition-all duration-300 hover:scale-105 animate-fade-in-up">
+                        <motion.div variants={fadeInUpVariants} className="text-center">
                             <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full gradient-orange shadow-lg brand-glow-orange animate-float">
                                 <Package className="h-10 w-10 text-white" />
                             </div>
@@ -484,10 +532,10 @@ export function HomePageClient({ initialProducts, accessoriesProducts }: { initi
                             <p className="text-gray-600">
                                 Visit our center or schedule a pickup. We offer convenient options to get your racket to us.
                             </p>
-                        </div>
+                        </motion.div>
 
                         {/* Step 2 */}
-                        <div className="text-center transition-all duration-300 hover:scale-105 animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
+                        <motion.div variants={fadeInUpVariants} className="text-center">
                             <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full gradient-blue shadow-lg brand-glow-blue animate-float" style={{ animationDelay: '0.5s' }}>
                                 <Settings className="h-10 w-10 text-white" />
                             </div>
@@ -500,10 +548,10 @@ export function HomePageClient({ initialProducts, accessoriesProducts }: { initi
                             <p className="text-gray-600">
                                 Our certified stringers and technicians work on your racket with precision and care.
                             </p>
-                        </div>
+                        </motion.div>
 
                         {/* Step 3 */}
-                        <div className="text-center transition-all duration-300 hover:scale-105 animate-fade-in-up" style={{ animationDelay: '0.4s' }}>
+                        <motion.div variants={fadeInUpVariants} className="text-center">
                             <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full gradient-red shadow-lg brand-glow-red animate-float" style={{ animationDelay: '1s' }}>
                                 <CheckCircle2 className="h-10 w-10 text-white" />
                             </div>
@@ -516,8 +564,8 @@ export function HomePageClient({ initialProducts, accessoriesProducts }: { initi
                             <p className="text-gray-600">
                                 Get notified via SMS/WhatsApp when your racket is ready for pickup or delivery.
                             </p>
-                        </div>
-                    </div>
+                        </motion.div>
+                    </motion.div>
                 </div>
             </section>
 
@@ -629,26 +677,26 @@ export function HomePageClient({ initialProducts, accessoriesProducts }: { initi
             </section>
 
             <div className="fixed bottom-0 left-0 right-0 z-40 flex items-center justify-around border-t border-slate-100 bg-white px-2 py-3 md:hidden">
-                <Link className="flex flex-col items-center gap-1 text-brand-orange" href="/">
+                <NextNavigationLink className="flex flex-col items-center gap-1 text-brand-orange" href="/">
                     <Home className="h-4 w-4" />
                     <span className="text-[10px] font-bold">Home</span>
-                </Link>
-                <Link className="flex flex-col items-center gap-1 text-slate-700" href="/shop">
+                </NextNavigationLink>
+                <NextNavigationLink className="flex flex-col items-center gap-1 text-slate-700" href="/shop">
                     <Grid2x2 className="h-4 w-4" />
                     <span className="text-[10px] font-bold">Shop</span>
-                </Link>
-                <Link className="flex flex-col items-center gap-1 text-slate-700" href="/book">
+                </NextNavigationLink>
+                <NextNavigationLink className="flex flex-col items-center gap-1 text-slate-700" href="/book">
                     <Gift className="h-4 w-4" />
                     <span className="text-[10px] font-bold">Book</span>
-                </Link>
-                <Link className="flex flex-col items-center gap-1 text-slate-700" href="/profile">
+                </NextNavigationLink>
+                <NextNavigationLink className="flex flex-col items-center gap-1 text-slate-700" href="/profile">
                     <User className="h-4 w-4" />
                     <span className="text-[10px] font-bold">Account</span>
-                </Link>
-                <Link className="flex flex-col items-center gap-1 text-slate-700" href="/track">
+                </NextNavigationLink>
+                <NextNavigationLink className="flex flex-col items-center gap-1 text-slate-700" href="/track">
                     <Box className="h-4 w-4" />
                     <span className="text-[10px] font-bold">Track</span>
-                </Link>
+                </NextNavigationLink>
             </div>
 
         </div>

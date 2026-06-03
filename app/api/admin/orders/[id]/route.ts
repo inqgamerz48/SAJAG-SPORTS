@@ -14,7 +14,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
         const data = await req.json();
 
         const validStatuses = [
-            "Pending", "Pickup_Pending", "In_Workshop",
+            "Pending", "Pickup_Pending", "Manual_Fulfillment_Required", "In_Workshop",
             "Repairing", "Ready_to_Return", "Shipped", "Completed", "Cancelled"
         ];
 

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import { revalidateTag } from "next/cache";
 
 export async function PUT(req: Request, { params }: { params: Promise<{ id: string }> }) {
     const session = await getServerSession(authOptions);
@@ -41,6 +42,8 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
             }
         });
 
+        revalidateTag('products', 'default');
+
         return NextResponse.json(updatedProduct);
     } catch (error: any) {
         console.error("Error updating product:", error);
@@ -63,6 +66,8 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
         await prisma.product.delete({
             where: { id }
         });
+
+        revalidateTag('products', 'default');
 
         return NextResponse.json({ success: true });
     } catch (error) {

@@ -257,6 +257,9 @@ export default function CheckoutPage() {
                             throw new Error(verifyData.error || 'Payment verification failed')
                         }
 
+                        // Clear cart state on success
+                        useCartStore.getState().clearCart()
+
                         router.push(`/book/success?order_id=${data.orderId}`)
                     } catch (verifyError) {
                         setError(verifyError instanceof Error ? verifyError.message : 'Payment verification failed')

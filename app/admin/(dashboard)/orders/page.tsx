@@ -55,16 +55,23 @@ export default function OrdersFeedPage() {
     const [filter, setFilter] = useState<Filter>("active");
     const [search, setSearch] = useState("");
 
-    useEffect(() => {
-        fetchOrders();
-    }, []);
+    const [page, setPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(1);
+    const [totalItems, setTotalItems] = useState(0);
 
-    const fetchOrders = async () => {
+    useEffect(() => {
+        fetchOrders(page);
+    }, [page]);
+
+    const fetchOrders = async (currentPage: number = 1) => {
+        setLoading(true);
         try {
-            const res = await fetch("/api/admin/orders");
+            const res = await fetch(`/api/admin/orders?page=${currentPage}&limit=20`);
             if (!res.ok) throw new Error("Failed to fetch");
             const data = await res.json();
-            setOrders(data);
+            setOrders(data.orders || []);
+            setTotalPages(data.totalPages || 1);
+            setTotalItems(data.total || 0);
         } catch (err) {
             toast.error("Could not load orders");
         } finally {
@@ -90,7 +97,7 @@ export default function OrdersFeedPage() {
     const trackShipment = async (orderId: string, awbCode: string) => {
         setTrackingLoading(prev => ({ ...prev, [orderId]: true }));
         try {
-            const res = await fetch("/api/admin/delhivery-track", {
+            const res = await fetch("/api/admin/shiprocket-track", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ awbCode }),
@@ -115,7 +122,7 @@ export default function OrdersFeedPage() {
             });
             const data = await res.json();
             if (!res.ok || !data.success) {
-                throw new Error(data.error || "Failed to retry Delhivery pickup");
+                throw new Error(data.error || "Failed to retry Shiprocket pickup");
             }
             toast.success(data.message || "Reverse pickup retry succeeded");
             fetchOrders();
@@ -144,7 +151,7 @@ export default function OrdersFeedPage() {
 
     const customerOf = (order: any) => {
         return {
-            name: order.customer?.fullName || order.customerName || "Guest",
+            name: order.customer?.fullName || order.customerName || "—",
             email: order.customer?.email || order.customerEmail || "—",
             phone: order.customer?.phone || order.customerPhone || "—",
         };
@@ -234,7 +241,7 @@ export default function OrdersFeedPage() {
             </div>
 
             <div className="text-xs text-gray-500">
-                Showing <span className="font-semibold text-gray-700">{filteredOrders.length}</span> of {orders.length} orders
+                Showing <span className="font-semibold text-gray-700">{filteredOrders.length}</span> on this page (Total orders: {totalItems})
             </div>
 
             <div className="grid gap-6">
@@ -252,10 +259,10 @@ export default function OrdersFeedPage() {
                         const isOpen = expanded[order.id] ?? true;
 
                         const reverseShipment = order.shipments?.find(
-                            (s: any) => s.provider === "delhivery" && s.isReverse
+                            (s: any) => s.provider === "shiprocket" && s.isReverse
                         );
                         const hasValidReverseShipment = Boolean(
-                            reverseShipment?.awbCode || reverseShipment?.delhiveryOrderId
+                            reverseShipment?.awbCode || reverseShipment?.shiprocketOrderId
                         );
                         const awbCode = reverseShipment?.awbCode || null;
                         const canRetryReversePickup =
@@ -416,12 +423,12 @@ export default function OrdersFeedPage() {
                                                                                 View full
                                                                             </span>
                                                                         </a>
-                                                                    ) : isService ? (
+                                                                    ) : (
                                                                         <div className="h-24 w-24 sm:h-28 sm:w-28 rounded-md border border-dashed bg-white flex flex-col items-center justify-center text-gray-400 text-[11px] text-center px-2">
                                                                             <ImageIcon className="w-6 h-6 mb-1" />
-                                                                            No photo
+                                                                            —
                                                                         </div>
-                                                                    ) : null}
+                                                                    )}
                                                                 </div>
 
                                                                 {/* Item details */}
@@ -429,60 +436,43 @@ export default function OrdersFeedPage() {
                                                                     <div className="flex justify-between items-start gap-3 flex-wrap">
                                                                         <div>
                                                                             <p className="font-semibold text-gray-900">
-                                                                                {item.quantity}× {isService
-                                                                                    ? `${item.serviceType} ${
-                                                                                          racquetLabel
-                                                                                              ? `– ${racquetLabel}`
-                                                                                              : ""
-                                                                                      }`
-                                                                                    : `Product (${
-                                                                                          item.productId?.slice(0, 8) || "n/a"
-                                                                                      })`}
+                                                                                {item.quantity}× {item.serviceType || "—"}
                                                                             </p>
-                                                                            {item.color && (
-                                                                                <p className="text-xs text-gray-500 mt-0.5">
-                                                                                    Color: <span className="font-medium">{item.color}</span>
-                                                                                </p>
-                                                                            )}
                                                                         </div>
                                                                         <p className="text-sm font-semibold text-gray-700 shrink-0">
-                                                                            ₹{Number(item.priceAtPurchase).toLocaleString()}
+                                                                            {item.priceAtPurchase != null ? `₹${Number(item.priceAtPurchase).toLocaleString()}` : "—"}
                                                                         </p>
                                                                     </div>
 
                                                                     {/* Service spec grid */}
-                                                                    {isService && (
-                                                                        <div className="mt-3 grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-2 text-xs">
-                                                                            <SpecField
-                                                                                label="String"
-                                                                                value={item.stringName}
-                                                                                highlight
-                                                                            />
-                                                                            <SpecField
-                                                                                label="Tension"
-                                                                                value={
-                                                                                    item.tensionLbs
-                                                                                        ? `${item.tensionLbs} lbs`
-                                                                                        : null
-                                                                                }
-                                                                            />
-                                                                            <SpecField
-                                                                                label="Brand"
-                                                                                value={item.racquetBrand}
-                                                                            />
-                                                                            <SpecField
-                                                                                label="Model"
-                                                                                value={item.racquetModel}
-                                                                            />
-                                                                        </div>
-                                                                    )}
+                                                                    <div className="mt-3 grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-2 text-xs">
+                                                                        <SpecField
+                                                                            label="Brand"
+                                                                            value={item.racquetBrand}
+                                                                        />
+                                                                        <SpecField
+                                                                            label="Model"
+                                                                            value={item.racquetModel}
+                                                                        />
+                                                                        <SpecField
+                                                                            label="String"
+                                                                            value={item.stringName}
+                                                                            highlight
+                                                                        />
+                                                                        <SpecField
+                                                                            label="Tension"
+                                                                            value={
+                                                                                item.tensionLbs
+                                                                                    ? `${item.tensionLbs} lbs`
+                                                                                    : null
+                                                                            }
+                                                                        />
+                                                                    </div>
 
-                                                                    {item.comments && (
-                                                                        <div className="mt-3 rounded-md bg-amber-50 border border-amber-100 p-2 text-xs text-amber-900">
-                                                                            <span className="font-semibold">Customer note: </span>
-                                                                            {item.comments}
-                                                                        </div>
-                                                                    )}
+                                                                    <div className="mt-3 text-xs text-gray-700">
+                                                                        <span className="font-semibold uppercase tracking-wide text-gray-500">Comments: </span>
+                                                                        <span className="font-medium text-gray-900">{item.comments || "—"}</span>
+                                                                    </div>
                                                                 </div>
                                                             </div>
                                                         </div>
@@ -521,7 +511,7 @@ export default function OrdersFeedPage() {
                                             {canRetryReversePickup && (
                                                 <div className="md:col-span-1 border rounded-lg p-3 bg-amber-50/60">
                                                     <p className="text-xs text-amber-800 mb-2">
-                                                        Delhivery pickup not created for this paid order.
+                                                        Shiprocket pickup not created for this paid order.
                                                     </p>
                                                     <button
                                                         onClick={() => retryReversePickup(order.id)}
@@ -531,7 +521,7 @@ export default function OrdersFeedPage() {
                                                         <RotateCcw className="w-3.5 h-3.5" />
                                                         {retryLoading[order.id]
                                                             ? "Retrying..."
-                                                            : "Retry Delhivery Pickup"}
+                                                            : "Retry Shiprocket Pickup"}
                                                     </button>
                                                 </div>
                                             )}
@@ -576,6 +566,29 @@ export default function OrdersFeedPage() {
                     })
                 )}
             </div>
+
+            {/* Pagination Controls */}
+            {totalPages > 1 && (
+                <div className="flex items-center justify-between border-t pt-4 mt-6">
+                    <button
+                        onClick={() => setPage((p) => Math.max(1, p - 1))}
+                        disabled={page === 1}
+                        className="px-4 py-2 border rounded-md text-sm font-medium disabled:opacity-50"
+                    >
+                        Previous
+                    </button>
+                    <span className="text-sm text-gray-600">
+                        Page {page} of {totalPages}
+                    </span>
+                    <button
+                        onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                        disabled={page === totalPages}
+                        className="px-4 py-2 border rounded-md text-sm font-medium disabled:opacity-50"
+                    >
+                        Next
+                    </button>
+                </div>
+            )}
         </div>
     );
 }

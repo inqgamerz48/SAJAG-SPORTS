@@ -4,6 +4,8 @@ import { useState, useRef, useEffect } from 'react'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import Image from 'next/image'
 
+import { motion, AnimatePresence } from 'framer-motion'
+
 interface BeforeAfterImage {
   id: number
   before: string
@@ -55,90 +57,97 @@ export function BeforeAfterSlider({ images }: BeforeAfterSliderProps) {
       {/* Image Counter */}
       {images.length > 1 && (
         <div className="mb-4 flex items-center justify-between">
-          <div className="text-sm text-gray-600">
+          <div className="text-sm font-semibold text-slate-500">
             {currentIndex + 1} / {images.length}
           </div>
           <div className="flex gap-2">
             <button
               onClick={prevImage}
-              className="rounded-full bg-white p-2 shadow-md transition-all hover:bg-gray-100"
+              className="rounded-full bg-white p-2 shadow-md border border-slate-100 transition-all hover:bg-slate-50 active:scale-95"
               aria-label="Previous image"
             >
-              <ChevronLeft className="h-5 w-5 text-gray-700" />
+              <ChevronLeft className="h-5 w-5 text-slate-700" />
             </button>
             <button
               onClick={nextImage}
-              className="rounded-full bg-white p-2 shadow-md transition-all hover:bg-gray-100"
+              className="rounded-full bg-white p-2 shadow-md border border-slate-100 transition-all hover:bg-slate-50 active:scale-95"
               aria-label="Next image"
             >
-              <ChevronRight className="h-5 w-5 text-gray-700" />
+              <ChevronRight className="h-5 w-5 text-slate-700" />
             </button>
           </div>
         </div>
       )}
 
       {/* Before/After Slider Container */}
-      <div
-        ref={sliderRef}
-        className="relative h-[400px] w-full overflow-hidden rounded-lg border-2 border-gray-200 md:h-[450px]"
-        onMouseMove={handleMouseMove}
-        onMouseUp={() => setIsDragging(false)}
-        onMouseLeave={() => setIsDragging(false)}
-        onTouchMove={handleTouchMove}
-        onTouchEnd={() => setIsDragging(false)}
-      >
-        {/* After Image (Full) */}
-        <div className="absolute inset-0">
-          <Image
-            src={currentImage.after}
-            alt="After repair"
-            fill
-            className="object-cover"
-            priority
-          />
-        </div>
-
-        {/* Before Image (Clipped) */}
-        <div
-          className="absolute inset-0 overflow-hidden"
-          style={{ clipPath: `inset(0 ${100 - sliderPosition}% 0 0)` }}
-        >
-          <Image
-            src={currentImage.before}
-            alt="Before repair"
-            fill
-            className="object-cover"
-            priority
-          />
-        </div>
-
-        {/* Slider Line */}
-        <div
-          className="absolute top-0 bottom-0 w-1 bg-white shadow-lg"
-          style={{ left: `${sliderPosition}%` }}
-        >
-          {/* Slider Handle */}
-          <div
-            className="absolute left-1/2 top-1/2 h-12 w-12 -translate-x-1/2 -translate-y-1/2 cursor-grab rounded-full bg-white shadow-lg transition-all active:cursor-grabbing active:scale-110"
-            onMouseDown={() => setIsDragging(true)}
-            onTouchStart={() => setIsDragging(true)}
+      <div className="overflow-hidden rounded-2xl border border-slate-100 shadow-md">
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={currentIndex}
+            initial={{ opacity: 0, scale: 0.98 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.98 }}
+            transition={{ duration: 0.25, ease: "easeInOut" }}
+            ref={sliderRef}
+            className="relative h-[400px] w-full overflow-hidden md:h-[450px]"
+            onMouseMove={handleMouseMove}
+            onMouseUp={() => setIsDragging(false)}
+            onMouseLeave={() => setIsDragging(false)}
+            onTouchMove={handleTouchMove}
+            onTouchEnd={() => setIsDragging(false)}
           >
-            <div className="flex h-full w-full items-center justify-center">
-              <div className="flex gap-1">
-                <div className="h-1 w-1 rounded-full bg-gray-400"></div>
-                <div className="h-1 w-1 rounded-full bg-gray-400"></div>
+            {/* After Image (Full) */}
+            <div className="absolute inset-0">
+              <Image
+                src={currentImage.after}
+                alt="After repair"
+                fill
+                className="object-cover"
+                priority
+              />
+            </div>
+
+            {/* Before Image (Clipped) */}
+            <div
+              className="absolute inset-0 overflow-hidden"
+              style={{ clipPath: `inset(0 ${100 - sliderPosition}% 0 0)` }}
+            >
+              <Image
+                src={currentImage.before}
+                alt="Before repair"
+                fill
+                className="object-cover"
+                priority
+              />
+            </div>
+
+            {/* Slider Line */}
+            <div
+              className="absolute top-0 bottom-0 w-1 bg-white shadow-lg"
+              style={{ left: `${sliderPosition}%` }}
+            >
+              {/* Slider Handle */}
+              <div
+                className="absolute left-1/2 top-1/2 h-12 w-12 -translate-x-1/2 -translate-y-1/2 cursor-grab rounded-full bg-white shadow-lg transition-all active:cursor-grabbing active:scale-110 flex items-center justify-center border border-slate-100"
+                onMouseDown={() => setIsDragging(true)}
+                onTouchStart={() => setIsDragging(true)}
+              >
+                <div className="flex gap-1.5 items-center">
+                  <ChevronLeft className="w-3.5 h-3.5 text-slate-500" />
+                  <ChevronRight className="w-3.5 h-3.5 text-slate-500" />
+                </div>
               </div>
             </div>
-          </div>
-        </div>
 
-        {/* Labels */}
-        <div className="absolute left-4 top-4 rounded bg-black/70 px-3 py-1.5 text-sm font-semibold text-white backdrop-blur-sm">
-          Before
-        </div>
-        <div className="absolute right-4 top-4 rounded bg-black/70 px-3 py-1.5 text-sm font-semibold text-white backdrop-blur-sm">
-          After
-        </div>
+            {/* Labels */}
+            <div className="absolute left-4 top-4 rounded-xl bg-slate-900/80 px-3 py-1.5 text-xs font-bold text-white backdrop-blur-md shadow-sm">
+              Before
+            </div>
+            <div className="absolute right-4 top-4 rounded-xl bg-slate-900/80 px-3 py-1.5 text-xs font-bold text-white backdrop-blur-md shadow-sm">
+              After
+            </div>
+          </motion.div>
+        </AnimatePresence>
       </div>
 
       {/* Image Info */}

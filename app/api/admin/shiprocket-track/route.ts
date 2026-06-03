@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { trackShipment } from "@/lib/delhivery";
+import { trackShipment } from "@/lib/shiprocket";
 
 export async function POST(req: Request) {
     const session = await getServerSession(authOptions);
@@ -20,13 +20,13 @@ export async function POST(req: Request) {
         const trackingData = await trackShipment(awbCode);
 
         if (!trackingData.success) {
-            throw new Error(trackingData.error || "Delhivery API returned an error");
+            throw new Error(trackingData.error || "Shiprocket API returned an error");
         }
 
         return NextResponse.json(trackingData);
 
     } catch (error) {
-        console.error("Error fetching Delhivery tracking:", error);
+        console.error("Error fetching Shiprocket tracking:", error);
         return NextResponse.json({ error: "Failed to fetch tracking data" }, { status: 500 });
     }
 }

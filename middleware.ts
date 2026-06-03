@@ -1,7 +1,42 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
+const rateLimitMap = new Map<string, number[]>()
+
+function applyRateLimit(ip: string) {
+  const windowMs = 60 * 1000 // 1 minute
+  const limit = 50 
+  const now = Date.now()
+  const windowStart = now - windowMs
+
+  const requestTimestamps = (rateLimitMap.get(ip) || []).filter(t => t > windowStart)
+  
+  if (requestTimestamps.length >= limit) {
+    return false // Rate limited
+  }
+
+  requestTimestamps.push(now)
+  rateLimitMap.set(ip, requestTimestamps)
+  return true
+}
+
 export async function middleware(request: NextRequest) {
+  // 1. RATE LIMITING
+  // Get IP (works for Vercel, Cloudflare, or local)
+  const ip = request.headers.get('x-forwarded-for') ?? request.headers.get('x-real-ip') ?? 'unknown'
+  
+  // Protect API routes
+  if (request.nextUrl.pathname.startsWith('/api/')) {
+    const isAllowed = applyRateLimit(ip)
+    if (!isAllowed) {
+      return new NextResponse(
+        JSON.stringify({ error: 'Too many requests. Please try again later.' }), 
+        { status: 429, headers: { 'Content-Type': 'application/json' } }
+      )
+    }
+  }
+
+  // 2. SUPABASE ROUTE PROTECTION
   // Check if Supabase environment variables are set
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
@@ -65,6 +100,6 @@ export const config = {
      * - favicon.ico (favicon file)
      * - public files (images, videos, etc.)
      */
-    '/((?!api|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|mp4|heic)$).*)',
+    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|mp4|heic)$).*)',
   ],
 }

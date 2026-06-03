@@ -11,7 +11,7 @@ datasource db {
 model Profile {
   id         String     @id @db.Uuid // Supabase auth.users ID
   email      String     @unique
-  fullName   String?
+  fullName   String?    @map("full_name")
   phone      String?
   address    String?
   pincode    String?
@@ -92,7 +92,7 @@ model OrderItem {
   color           String?  // Optional selected color variant
   
   // Or it can be a service
-  serviceType     String?  // 'stringing', 'repair'
+  serviceType     String?  @map("service_type") // 'stringing', 'repair'
   racquetBrand    String?  @map("racquet_brand")
   racquetModel    String?  @map("racquet_model")
   tensionLbs      Int?     @map("tension_lbs")
@@ -107,11 +107,11 @@ model Shipment {
   id                  String   @id @default(uuid()) @db.Uuid
   orderId             String   @map("order_id") @db.Uuid
   order               Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  delhiveryOrderId    String?  @map("delhivery_order_id")
+  shiprocketOrderId    String?  @map("shiprocket_order_id")
   awbCode             String?  @map("awb_code")
   shipmentStatus      String?  @map("shipment_status")
   isReverse           Boolean  @default(false) @map("is_reverse")
-  provider            String   @default("delhivery")
+  provider            String   @default("shiprocket")
   createdAt           DateTime @default(now()) @map("created_at")
   updatedAt           DateTime @default(now()) @updatedAt @map("updated_at")
 
@@ -130,3 +130,13 @@ model ProductColorVariant {
 
   @@map("product_color_variants")
 }
+
+model Settings {
+  id                  String   @id @default(uuid()) @db.Uuid
+  repairPriceBelow4k  Decimal  @default(500.00) @db.Decimal(10, 2) @map("repair_price_below_4k")
+  repairPriceAbove4k  Decimal  @default(700.00) @db.Decimal(10, 2) @map("repair_price_above_4k")
+  updatedAt           DateTime @default(now()) @updatedAt @map("updated_at")
+
+  @@map("settings")
+}
+

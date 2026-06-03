@@ -36,3 +36,10 @@ yarn-error.log*
 next-env.d.ts
 
 /lib/generated/prisma
+
+# Antigravity/Agent meta files
+.agent/
+*.md
+!README.md
+*.log
+

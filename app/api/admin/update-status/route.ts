@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { prisma } from '@/lib/prisma'
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 
@@ -7,26 +7,20 @@ export async function POST(req: NextRequest) {
     try {
         const session = await getServerSession(authOptions)
 
-        if (!session || !session.user) {
+        if (!session || !session.user || (session.user as any).role !== 'admin') {
             return NextResponse.json({ success: false, error: 'Unauthorized via NextAuth' }, { status: 401 })
-        }
-
-        const supabase = await createClient()
-        const { data: { user }, error: authError } = await supabase.auth.getUser()
-
-        // Fallback check for supabase admin role if needed (though NextAuth protects the route now)
-        if (authError || !user) {
-            return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
         }
 
         const { order_id, new_status } = await req.json()
 
-        const { error: updateError } = await supabase
-            .from('orders')
-            .update({ status: new_status })
-            .eq('id', order_id)
+        if (!order_id || !new_status) {
+            return NextResponse.json({ success: false, error: 'order_id and new_status are required' }, { status: 400 })
+        }
 
-        if (updateError) throw updateError
+        await prisma.order.update({
+            where: { id: order_id },
+            data: { status: new_status },
+        })
 
         // Trigger Notifications (WhatsApp/Email)
         // This would call lib/notifications.ts
@@ -38,3 +32,4 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ success: false, error: error.message }, { status: 500 })
     }
 }
+

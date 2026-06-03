@@ -5,27 +5,27 @@ const razorpayEnvSchema = z.object({
   RAZORPAY_KEY_SECRET: z.string().min(1),
 })
 
-const delhiveryEnvSchema = z.object({
-  DELHIVERY_API_TOKEN: z.string().min(1),
-  DELHIVERY_PICKUP_LOCATION_NAME: z.string().min(1).optional(),
-  DELHIVERY_PICKUP_NAME: z.string().min(1).optional(),
-  DELHIVERY_PICKUP_PHONE: z.string().min(7).optional(),
-  DELHIVERY_PICKUP_ADDRESS: z.string().min(1).optional(),
-  DELHIVERY_PICKUP_CITY: z.string().min(1).optional(),
-  DELHIVERY_PICKUP_STATE: z.string().min(1).optional(),
-  DELHIVERY_PICKUP_PINCODE: z.string().regex(/^\d{6}$/).optional(),
-  // GST fields - required by Delhivery API for order creation
-  DELHIVERY_SELLER_GST_TIN: z.string().optional(),
-  DELHIVERY_HSN_CODE: z.string().optional(),
-  // Registered client name - must match exactly (case-sensitive) with Delhivery account
-  DELHIVERY_CLIENT_NAME: z.string().optional(),
+const shiprocketEnvSchema = z.object({
+  SHIPROCKET_API_TOKEN: z.string().min(1),
+  SHIPROCKET_PICKUP_LOCATION_NAME: z.string().min(1).optional(),
+  SHIPROCKET_PICKUP_NAME: z.string().min(1).optional(),
+  SHIPROCKET_PICKUP_PHONE: z.string().min(7).optional(),
+  SHIPROCKET_PICKUP_ADDRESS: z.string().min(1).optional(),
+  SHIPROCKET_PICKUP_CITY: z.string().min(1).optional(),
+  SHIPROCKET_PICKUP_STATE: z.string().min(1).optional(),
+  SHIPROCKET_PICKUP_PINCODE: z.string().regex(/^\d{6}$/).optional(),
+  // GST fields - required by Shiprocket API for order creation
+  SHIPROCKET_SELLER_GST_TIN: z.string().optional(),
+  SHIPROCKET_HSN_CODE: z.string().optional(),
+  // Registered client name - must match exactly (case-sensitive) with Shiprocket account
+  SHIPROCKET_CLIENT_NAME: z.string().optional(),
 })
 
 export type RazorpayEnv = z.infer<typeof razorpayEnvSchema>
-export type DelhiveryEnv = z.infer<typeof delhiveryEnvSchema>
+export type ShiprocketEnv = z.infer<typeof shiprocketEnvSchema>
 
 let cachedRazorpayEnv: RazorpayEnv | null = null
-let cachedDelhiveryEnv: DelhiveryEnv | null = null
+let cachedShiprocketEnv: ShiprocketEnv | null = null
 
 export function getRazorpayEnv(): RazorpayEnv {
   if (cachedRazorpayEnv) return cachedRazorpayEnv
@@ -40,15 +40,15 @@ export function getRazorpayEnv(): RazorpayEnv {
   return cachedRazorpayEnv
 }
 
-export function getDelhiveryEnv(): DelhiveryEnv {
-  if (cachedDelhiveryEnv) return cachedDelhiveryEnv
+export function getShiprocketEnv(): ShiprocketEnv {
+  if (cachedShiprocketEnv) return cachedShiprocketEnv
 
-  const parsed = delhiveryEnvSchema.safeParse(process.env)
+  const parsed = shiprocketEnvSchema.safeParse(process.env)
   if (!parsed.success) {
     const missing = parsed.error.issues.map((issue) => issue.path.join('.')).join(', ')
-    throw new Error(`Invalid Delhivery environment variables: ${missing}`)
+    throw new Error(`Invalid Shiprocket environment variables: ${missing}`)
   }
 
-  cachedDelhiveryEnv = parsed.data
-  return cachedDelhiveryEnv
+  cachedShiprocketEnv = parsed.data
+  return cachedShiprocketEnv
 }

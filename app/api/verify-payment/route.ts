@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { createReversePickup } from '@/lib/delhivery'
+import { createReversePickup } from '@/lib/shiprocket'
 import { verifyRazorpaySignature } from '@/lib/razorpay'
+import { sendEmailNotification, sendSMSNotification, templates } from '@/lib/notifications'
 
 type VerifyPaymentPayload = {
   orderId?: string
@@ -33,7 +34,7 @@ export async function POST(req: NextRequest) {
 
     const order = await prisma.order.findUnique({
       where: { id: orderId },
-      include: { shipments: true },
+      include: { shipments: true, orderItems: true },
     })
     if (!order) {
       return NextResponse.json({ success: false, error: 'Order not found' }, { status: 404 })
@@ -44,10 +45,10 @@ export async function POST(req: NextRequest) {
     }
 
     const validReverseShipment = order.shipments.find(
-      (shipment) =>
-        shipment.provider === 'delhivery' &&
+      (shipment: any) =>
+        shipment.provider === 'shiprocket' &&
         shipment.isReverse &&
-        Boolean(shipment.awbCode || shipment.delhiveryOrderId)
+        Boolean(shipment.awbCode || shipment.shiprocketOrderId)
     )
     if (validReverseShipment) {
       return NextResponse.json({
@@ -58,11 +59,11 @@ export async function POST(req: NextRequest) {
     }
 
     const incompleteReverseShipments = order.shipments.filter(
-      (shipment) =>
-        shipment.provider === 'delhivery' &&
+      (shipment: any) =>
+        shipment.provider === 'shiprocket' &&
         shipment.isReverse &&
         !shipment.awbCode &&
-        !shipment.delhiveryOrderId
+        !shipment.shiprocketOrderId
     )
     if (incompleteReverseShipments.length > 0) {
       await prisma.$transaction([
@@ -107,6 +108,43 @@ export async function POST(req: NextRequest) {
       })
     }
 
+    const isAllStringing = order.orderItems && order.orderItems.length > 0 && order.orderItems.every(
+      (item) => item.serviceType === 'stringing'
+    )
+
+    if (isAllStringing) {
+      await prisma.order.update({
+        where: { id: order.id },
+        data: {
+          status: 'In_Workshop',
+          paymentStatus: 'fully_paid',
+        },
+      })
+
+      // Fire orderConfirmed notification
+      const customerName = order.customerName || 'Customer'
+      const customerPhone = order.customerPhone || '9999999999'
+      const email = order.customerEmail || null
+      const confirmedTemplate = templates.orderConfirmed(order.id, customerName)
+      if (email) {
+        sendEmailNotification({
+          to: email,
+          subject: confirmedTemplate.subject,
+          text: confirmedTemplate.text
+        }).catch(err => console.error('Failed to send orderConfirmed email', err))
+      }
+      if (customerPhone) {
+        sendSMSNotification(customerPhone, confirmedTemplate.sms).catch(err => console.error('Failed to send orderConfirmed SMS', err))
+      }
+
+      return NextResponse.json({
+        success: true,
+        orderId: order.id,
+        manualShippingRequired: false,
+        message: 'Payment verified. Local Pune stringing order assigned directly to workshop.',
+      })
+    }
+
     const amount = Number(order.finalQuote ?? order.logisticsDeposit ?? 0)
     const customerName = order.customerName || 'Customer'
     const customerPhone = order.customerPhone || '9999999999'
@@ -114,9 +152,23 @@ export async function POST(req: NextRequest) {
     const customerPincode = order.pincode || ''
     const customerCity = order.city || 'Unknown'
     const customerState = order.state || 'Unknown'
+    const email = order.customerEmail || null;
+
+    // Fire orderConfirmed
+    const confirmedTemplate = templates.orderConfirmed(order.id, customerName);
+    if (email) {
+      sendEmailNotification({
+        to: email,
+        subject: confirmedTemplate.subject,
+        text: confirmedTemplate.text
+      }).catch(err => console.error('Failed to send orderConfirmed email', err));
+    }
+    if (customerPhone) {
+      sendSMSNotification(customerPhone, confirmedTemplate.sms).catch(err => console.error('Failed to send orderConfirmed SMS', err));
+    }
 
     try {
-      const delhiveryResult = await createReversePickup({
+      const shiprocketResult = await createReversePickup({
         orderId: order.id,
         customerName,
         customerPhone,
@@ -127,19 +179,19 @@ export async function POST(req: NextRequest) {
         amount,
       })
 
-      if (!delhiveryResult.success) {
-        throw new Error(delhiveryResult.error || 'Delhivery reverse pickup failed')
+      if (!shiprocketResult.success) {
+        throw new Error(shiprocketResult.error || 'Shiprocket reverse pickup failed')
       }
 
       await prisma.$transaction([
         prisma.shipment.create({
           data: {
             orderId: order.id,
-            awbCode: delhiveryResult.waybill || null,
-            delhiveryOrderId: delhiveryResult.delhiveryOrderId || null,
+            awbCode: shiprocketResult.waybill || null,
+            shiprocketOrderId: shiprocketResult.shiprocketOrderId || null,
             shipmentStatus: 'Pickup_Scheduled',
             isReverse: true,
-            provider: 'delhivery',
+            provider: 'shiprocket',
           },
         }),
         prisma.order.update({
@@ -151,16 +203,29 @@ export async function POST(req: NextRequest) {
         }),
       ])
 
+      const awb = shiprocketResult.waybill || shiprocketResult.shiprocketOrderId || 'Pending';
+      const pickupTemplate = templates.pickupScheduled(order.id, awb);
+      if (email) {
+        sendEmailNotification({
+          to: email,
+          subject: pickupTemplate.subject,
+          text: pickupTemplate.text
+        }).catch(err => console.error('Failed to send pickupScheduled email', err));
+      }
+      if (customerPhone) {
+        sendSMSNotification(customerPhone, pickupTemplate.sms).catch(err => console.error('Failed to send pickupScheduled SMS', err));
+      }
+
       return NextResponse.json({
         success: true,
         orderId: order.id,
         manualShippingRequired: false,
       })
-    } catch (delhiveryError) {
+    } catch (shiprocketError) {
       const safeError =
-        delhiveryError instanceof Error ? delhiveryError.message : 'Unknown Delhivery error'
+        shiprocketError instanceof Error ? shiprocketError.message : 'Unknown Shiprocket error'
 
-      console.error('Delhivery reverse pickup failed', {
+      console.error('Shiprocket reverse pickup failed', {
         orderId: order.id,
         error: safeError,
       })
@@ -170,7 +235,7 @@ export async function POST(req: NextRequest) {
         data: {
           status: 'Manual_Fulfillment_Required',
           paymentStatus: 'paid_manual_shipping_required',
-          // Allow safe retry once Delhivery config is fixed.
+          // Allow safe retry once Shiprocket config is fixed.
           reversePickupBookedAt: null,
         },
       })

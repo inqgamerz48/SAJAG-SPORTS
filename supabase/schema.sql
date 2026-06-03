@@ -72,9 +72,9 @@ CREATE TABLE IF NOT EXISTS orders (
     payu_transaction_id VARCHAR(255),
     payu_payment_id VARCHAR(255),
     
-    -- Shiprocket Integration (now Delhivery)
+    -- Shiprocket Integration (now Shiprocket)
     shiprocket_awb_code VARCHAR(100), -- Keeping this for now, will be moved to shipments table
-    delhivery_order_id VARCHAR(255), -- This replaces shiprocket_order_id in orders table
+    Shiprocket_order_id VARCHAR(255), -- This replaces shiprocket_order_id in orders table
     shiprocket_status VARCHAR(50), -- Keeping this for now, will be moved to shipments table
     
     -- Timestamps
@@ -87,11 +87,11 @@ CREATE TABLE IF NOT EXISTS orders (
 CREATE TABLE IF NOT EXISTS public.shipments (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     order_id UUID REFERENCES public.orders(id) ON DELETE CASCADE,
-    delhivery_order_id VARCHAR(255),
+    Shiprocket_order_id VARCHAR(255),
     awb_code VARCHAR(255),
     shipment_status VARCHAR(255),
     is_reverse BOOLEAN DEFAULT false,
-    provider VARCHAR(255) DEFAULT 'delhivery',
+    provider VARCHAR(255) DEFAULT 'Shiprocket',
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );

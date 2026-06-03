@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { calculateRoundTripShipping } from '@/lib/delhivery'
+import { calculateRoundTripShipping } from '@/lib/shiprocket'
 
 export async function POST(req: NextRequest) {
     try {
@@ -46,7 +46,7 @@ export async function POST(req: NextRequest) {
             serviceable: true,
             pincode: pin,
             rates: {
-                courier_name: 'Delhivery Surface',
+                courier_name: 'Shiprocket Surface',
                 rate: result.grandTotal || 200, // Fallback if 0
                 etd: '3-4 days'
             },

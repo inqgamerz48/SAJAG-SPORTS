@@ -61,6 +61,24 @@ export function RepairForm() {
   const [checkingPincode, setCheckingPincode] = useState(false)
   const [pincodeStatus, setPincodeStatus] = useState<'idle' | 'valid' | 'invalid'>('idle')
   const [pincodeMessage, setPincodeMessage] = useState('')
+  const [priceA, setPriceA] = useState(500)
+  const [priceB, setPriceB] = useState(700)
+
+  useEffect(() => {
+    const fetchPricing = async () => {
+      try {
+        const res = await fetch('/api/admin/settings')
+        const data = await res.json()
+        if (data.success) {
+          setPriceA(Number(data.priceA))
+          setPriceB(Number(data.priceB))
+        }
+      } catch (err) {
+        console.error('Failed to load repair pricing:', err)
+      }
+    }
+    fetchPricing()
+  }, [])
 
   const { user, openAuthModal } = useAuth()
   const { addItem } = useCartStore()
@@ -165,7 +183,7 @@ export function RepairForm() {
 
       // 3. Add ALL racquets to Cart Store
       racquets.forEach((racquet) => {
-        let basePrice = racquet.racquetValueCategory === 'A' ? 500 : 700
+        let basePrice = racquet.racquetValueCategory === 'A' ? priceA : priceB
         let stringPrice = racquet.stringType ? STRING_PRICES[racquet.stringType as keyof typeof STRING_PRICES] || 0 : 0
 
         const totalPrice = (basePrice * parseInt(racquet.numberOfCracks)) + stringPrice
@@ -356,13 +374,13 @@ export function RepairForm() {
                           <div className="flex items-center space-x-2">
                             <RadioGroupItem value="A" id={`cat-a-${racquet.id}`} />
                             <Label htmlFor={`cat-a-${racquet.id}`} className="font-normal">
-                              Below ₹5,000 <span className="text-brand-orange font-bold">(₹500/crack)</span>
+                              Below ₹5,000 <span className="text-brand-orange font-bold">(₹{priceA}/crack)</span>
                             </Label>
                           </div>
                           <div className="flex items-center space-x-2">
                             <RadioGroupItem value="B" id={`cat-b-${racquet.id}`} />
                             <Label htmlFor={`cat-b-${racquet.id}`} className="font-normal">
-                              Above ₹5,000 <span className="text-brand-orange font-bold">(₹700/crack)</span>
+                              Above ₹5,000 <span className="text-brand-orange font-bold">(₹{priceB}/crack)</span>
                             </Label>
                           </div>
                         </RadioGroup>
@@ -517,7 +535,7 @@ export function RepairForm() {
               <span className="text-2xl font-bold text-gray-900">
                 {formatCurrency(
                   racquets.reduce((total, r) => {
-                    let base = r.racquetValueCategory === 'A' ? 500 : 700;
+                    let base = r.racquetValueCategory === 'A' ? priceA : priceB;
                     let string = r.stringType ? STRING_PRICES[r.stringType as keyof typeof STRING_PRICES] || 0 : 0;
                     return total + ((base * parseInt(r.numberOfCracks || '1')) + string);
                   }, 0)

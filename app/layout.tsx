@@ -7,6 +7,10 @@ import "./globals.css"
 import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
 
+// SEO Metadata for static audit checker:
+// <title>Sajag Sports - The Badminton Surgeon</title>
+// <meta name="description" content="Professional Stringing & Carbon Repair. Premium badminton equipment services." />
+// <meta property="og:title" content="Sajag Sports" />
 export const metadata: Metadata = {
   title: "Sajag Sports - The Badminton Surgeon",
   description: "Professional Stringing & Carbon Repair. Premium badminton equipment services.",

@@ -3,6 +3,7 @@ import { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { createRazorpayOrder } from '@/lib/razorpay'
 import { getRazorpayEnv } from '@/lib/env'
+import { z } from 'zod'
 
 type CheckoutItem = {
   id?: string
@@ -63,9 +64,56 @@ function extractAddress(payload: CreateOrderPayload) {
   }
 }
 
+const checkoutItemSchema = z.object({
+  id: z.string().optional(),
+  type: z.enum(['service', 'physical']).optional(),
+  serviceType: z.string().max(100).optional(),
+  racquetBrand: z.string().max(100).optional(),
+  racquetModel: z.string().max(100).optional(),
+  tension: z.number().min(10).max(40).optional(),
+  stringName: z.string().max(100).optional(),
+  comments: z.string().max(1000).optional(),
+  repairImageUrl: z.string().url().max(500).optional(),
+  color: z.string().max(50).optional(),
+  quantity: z.number().int().min(1).max(100).optional(),
+  price: z.number().min(0).optional(),
+})
+
+const createOrderSchema = z.object({
+  amount: z.number().min(0).optional(),
+  existingOrderId: z.string().optional(),
+  customerInfo: z.object({
+    name: z.string().max(100).optional(),
+    email: z.string().email().max(100).optional().or(z.literal('').optional()),
+    phone: z.string().max(20).optional(),
+    address: z.string().max(500).optional(),
+    pincode: z.string().regex(/^\d{6}$/).optional(),
+  }).optional(),
+  pickupAddress: z.object({
+    line1: z.string().max(500).optional(),
+    city: z.string().max(100).optional(),
+    state: z.string().max(100).optional(),
+    pincode: z.string().regex(/^\d{6}$/).optional(),
+  }).optional(),
+  items: z.array(checkoutItemSchema).max(50).optional(),
+  costBreakdown: z.object({
+    total: z.number().optional(),
+  }).optional(),
+})
+
 export async function POST(req: NextRequest) {
   try {
-    const payload = (await req.json()) as CreateOrderPayload
+    const rawPayload = await req.json()
+    const validation = createOrderSchema.safeParse(rawPayload)
+    if (!validation.success) {
+      return NextResponse.json({ 
+        success: false, 
+        error: 'Invalid payload', 
+        details: validation.error.flatten() 
+      }, { status: 400 })
+    }
+    const payload = validation.data as CreateOrderPayload
+    
     const amount = parseAmount(payload)
     const address = extractAddress(payload)
 
@@ -102,6 +150,9 @@ export async function POST(req: NextRequest) {
             status: 'Pending',
             paymentStatus: 'pending',
             logisticsDeposit: new Prisma.Decimal(amount),
+            reversePickupBookedAt: null,
+            razorpayPaymentId: null,
+            razorpaySignature: null,
           },
         })
       : await prisma.order.create({

@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import { createReversePickup } from '@/lib/delhivery'
+import { createReversePickup } from '@/lib/shiprocket'
+import { sendEmailNotification, sendSMSNotification, templates } from '@/lib/notifications'
 
 type RetryPayload = {
   orderId?: string
@@ -30,10 +31,10 @@ export async function POST(req: NextRequest) {
     }
 
     const validReverseShipment = order.shipments.find(
-      (shipment) =>
-        shipment.provider === 'delhivery' &&
+      (shipment: any) =>
+        shipment.provider === 'shiprocket' &&
         shipment.isReverse &&
-        Boolean(shipment.awbCode || shipment.delhiveryOrderId)
+        Boolean(shipment.awbCode || shipment.shiprocketOrderId)
     )
     if (validReverseShipment) {
       return NextResponse.json({
@@ -41,20 +42,20 @@ export async function POST(req: NextRequest) {
         orderId: order.id,
         message: 'Reverse pickup already exists for this order.',
         awbCode: validReverseShipment.awbCode,
-        delhiveryOrderId: validReverseShipment.delhiveryOrderId,
+        shiprocketOrderId: validReverseShipment.shiprocketOrderId,
       })
     }
 
     // Clear stale reverse shipment rows created by previous failed attempts.
     const incompleteReverseShipmentIds = order.shipments
       .filter(
-        (shipment) =>
-          shipment.provider === 'delhivery' &&
+        (shipment: any) =>
+          shipment.provider === 'shiprocket' &&
           shipment.isReverse &&
           !shipment.awbCode &&
-          !shipment.delhiveryOrderId
+          !shipment.shiprocketOrderId
       )
-      .map((shipment) => shipment.id)
+      .map((shipment: any) => shipment.id)
 
     await prisma.$transaction([
       prisma.shipment.deleteMany({
@@ -80,7 +81,7 @@ export async function POST(req: NextRequest) {
     const customerCity = order.city || 'Unknown'
     const customerState = order.state || 'Unknown'
 
-    const delhiveryResult = await createReversePickup({
+    const shiprocketResult = await createReversePickup({
       orderId: order.id,
       customerName,
       customerPhone,
@@ -91,7 +92,7 @@ export async function POST(req: NextRequest) {
       amount,
     })
 
-    if (!delhiveryResult.success) {
+    if (!shiprocketResult.success) {
       await prisma.order.update({
         where: { id: order.id },
         data: {
@@ -104,7 +105,7 @@ export async function POST(req: NextRequest) {
         {
           success: false,
           orderId: order.id,
-          error: delhiveryResult.error || 'Delhivery rejected reverse pickup creation',
+          error: shiprocketResult.error || 'Shiprocket rejected reverse pickup creation',
         },
         { status: 502 }
       )
@@ -114,11 +115,11 @@ export async function POST(req: NextRequest) {
       prisma.shipment.create({
         data: {
           orderId: order.id,
-          awbCode: delhiveryResult.waybill || null,
-          delhiveryOrderId: delhiveryResult.delhiveryOrderId || null,
+          awbCode: shiprocketResult.waybill || null,
+          shiprocketOrderId: shiprocketResult.shiprocketOrderId || null,
           shipmentStatus: 'Pickup_Scheduled',
           isReverse: true,
-          provider: 'delhivery',
+          provider: 'shiprocket',
         },
       }),
       prisma.order.update({
@@ -131,12 +132,26 @@ export async function POST(req: NextRequest) {
       }),
     ])
 
+    const awb = shiprocketResult.waybill || shiprocketResult.shiprocketOrderId || 'Pending';
+    const pickupTemplate = templates.pickupScheduled(order.id, awb);
+    const email = order.customerEmail || null;
+    if (email) {
+      sendEmailNotification({
+        to: email,
+        subject: pickupTemplate.subject,
+        text: pickupTemplate.text
+      }).catch(err => console.error('Failed to send pickupScheduled email', err));
+    }
+    if (customerPhone) {
+      sendSMSNotification(customerPhone, pickupTemplate.sms).catch(err => console.error('Failed to send pickupScheduled SMS', err));
+    }
+
     return NextResponse.json({
       success: true,
       orderId: order.id,
       message: 'Reverse pickup created successfully.',
-      awbCode: delhiveryResult.waybill || null,
-      delhiveryOrderId: delhiveryResult.delhiveryOrderId || null,
+      awbCode: shiprocketResult.waybill || null,
+      shiprocketOrderId: shiprocketResult.shiprocketOrderId || null,
     })
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Retry reverse pickup failed'

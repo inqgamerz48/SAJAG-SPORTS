@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { calculateRoundTripShipping, calculateSingleLegShipping } from '@/lib/delhivery'
+import { calculateRoundTripShipping, calculateSingleLegShipping } from '@/lib/shiprocket'
 
 /**
- * Calculate complete pricing quote including Delhivery shipping
+ * Calculate complete pricing quote including Shiprocket shipping
  * 
  * POST /api/calculate-quote
  * Body: { racquetValue, numberOfCracks, stringType, pickupPincode }

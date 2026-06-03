@@ -66,7 +66,7 @@ export default function DashboardPage() {
 
         <div className="bg-white p-6 rounded-xl border shadow-sm">
           <div className="flex items-center space-x-3 mb-2">
-            <div className="p-2 bg-purple-100 rounded-lg"><Activity className="w-5 h-5 text-purple-600" /></div>
+            <div className="p-2 bg-teal-100 rounded-lg"><Activity className="w-5 h-5 text-teal-600" /></div>
             <h3 className="font-semibold text-sm text-gray-500">Active Services</h3>
           </div>
           <p className="text-3xl font-bold text-gray-900">

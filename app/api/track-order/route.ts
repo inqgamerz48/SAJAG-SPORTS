@@ -58,6 +58,8 @@ export async function POST(request: NextRequest) {
                 customer_email: order.customerEmail || order.customer?.email,
                 customer_phone: order.customerPhone || order.customer?.phone,
                 address_line1: order.addressLine1,
+                city: order.city,
+                state: order.state,
                 pincode: order.pincode,
                 final_quote: order.finalQuote,
                 logistics_deposit: order.logisticsDeposit,

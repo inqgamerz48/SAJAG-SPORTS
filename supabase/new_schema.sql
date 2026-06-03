@@ -9,6 +9,7 @@ CREATE TABLE IF NOT EXISTS profiles (
     phone TEXT,
     address TEXT,
     pincode TEXT,
+    role TEXT DEFAULT 'customer' CHECK (role IN ('customer', 'admin')),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
@@ -49,32 +50,32 @@ CREATE TABLE IF NOT EXISTS racquet_specs (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- 4. Shipments Table (supports Delhivery)
+-- 4. Shipments Table (supports Shiprocket)
 CREATE TABLE IF NOT EXISTS shipments (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     order_id UUID REFERENCES orders(id) ON DELETE CASCADE,
     
-    -- Delhivery fields
-    delhivery_order_id TEXT,
+    -- Shiprocket fields
+    Shiprocket_order_id TEXT,
     awb_code TEXT,
     
-    -- Delhivery fields
+    -- Shiprocket fields
     waybill TEXT,
     pickup_id TEXT,
-    delhivery_order_id TEXT,
+    Shiprocket_order_id TEXT,
     
     -- Common fields
     shipment_status TEXT,
     is_reverse BOOLEAN DEFAULT FALSE,
-    provider TEXT DEFAULT 'delhivery', -- 'shiprocket' or 'delhivery'
+    provider TEXT DEFAULT 'Shiprocket', -- 'shiprocket' or 'Shiprocket'
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
 -- 5. Logistics Config (for API token caching - supports multiple providers)
 CREATE TABLE IF NOT EXISTS logistics_config (
-    id TEXT PRIMARY KEY, -- e.g., 'delhivery_token', 'shiprocket_token'
-    provider TEXT NOT NULL, -- 'delhivery' or 'shiprocket'
+    id TEXT PRIMARY KEY, -- e.g., 'Shiprocket_token', 'shiprocket_token'
+    provider TEXT NOT NULL, -- 'Shiprocket' or 'shiprocket'
     token TEXT NOT NULL,
     expires_at TIMESTAMP WITH TIME ZONE NOT NULL
 );
@@ -130,3 +131,24 @@ CREATE POLICY "Users can insert own racquet specs" ON racquet_specs FOR INSERT W
 CREATE POLICY "Users can view own shipments" ON shipments FOR SELECT USING (
     EXISTS (SELECT 1 FROM orders WHERE orders.id = order_id AND orders.customer_id = auth.uid())
 );
+
+-- 7. Settings Table
+CREATE TABLE IF NOT EXISTS settings (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    repair_price_below_4k NUMERIC DEFAULT 500.00,
+    repair_price_above_4k NUMERIC DEFAULT 700.00,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Enable RLS
+ALTER TABLE settings ENABLE ROW LEVEL SECURITY;
+
+-- Policies for settings
+CREATE POLICY "Public can view settings" ON settings FOR SELECT USING (true);
+CREATE POLICY "Admins can update settings" ON settings FOR ALL USING (
+    EXISTS (
+        SELECT 1 FROM profiles
+        WHERE profiles.id = auth.uid() AND profiles.role = 'admin'
+    )
+);
+

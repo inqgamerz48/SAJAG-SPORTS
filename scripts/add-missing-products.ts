@@ -49,7 +49,7 @@ async function main() {
       stockCount: 20,
       description: 'Beautiful gift box containing a miniature badminton racquet keychain.',
       images: [
-        '/images/Badminton racquet gift box.jpeg',
+        '/products/Badminton racquet gift box.JPG',
       ]
     }
   ]

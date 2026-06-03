@@ -128,7 +128,7 @@ export default function TrackRepairPage() {
                                         </p>
                                         <a
                                             href={orderData.waybill
-                                                ? `https://www.delhivery.com/track/package/${orderData.waybill}`
+                                                ? `https://www.shiprocket.com/track/package/${orderData.waybill}`
                                                 : `https://shiprocket.co/tracking/${orderData.shiprocket_awb_code}`}
                                             target="_blank"
                                             rel="noopener noreferrer"
