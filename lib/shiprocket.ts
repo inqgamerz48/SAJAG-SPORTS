@@ -38,11 +38,41 @@ const DEFAULT_STORE_STATE = 'Maharashtra'
 const DEFAULT_STORE_PINCODE = '411028'
 
 // Module-level token caching
+let cachedToken: string | null = null
+let tokenExpiryTime = 0
 
 async function getShiprocketToken(): Promise<string> {
-  const token = process.env.SHIPROCKET_API_TOKEN
-  if (!token) throw new Error('SHIPROCKET_API_TOKEN is not configured')
-  return token
+  const now = Date.now()
+  if (cachedToken && tokenExpiryTime > now + 5 * 60 * 1000) {
+    return cachedToken
+  }
+
+  const email = process.env.SHIPROCKET_EMAIL
+  const password = process.env.SHIPROCKET_PASSWORD
+
+  if (!email || !password) {
+    throw new Error('Shiprocket credentials are not configured')
+  }
+
+  const authRes = await fetch('https://apiv2.shiprocket.in/v1/external/auth/login', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, password }),
+  })
+
+  if (!authRes.ok) {
+    throw new Error(`Shiprocket auth login failed with HTTP ${authRes.status}`)
+  }
+
+  const authData = await authRes.json()
+  if (!authData.token) {
+    throw new Error('Shiprocket auth response did not contain a token')
+  }
+
+  cachedToken = authData.token
+  // Token expires in 24 hours
+  tokenExpiryTime = Date.now() + 24 * 60 * 60 * 1000
+  return authData.token
 }
 
 function getStorePickupLocation() {
