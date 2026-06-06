@@ -54,10 +54,12 @@ async function getShiprocketToken(): Promise<string> {
     throw new Error('Shiprocket credentials are not configured')
   }
 
+  const decodedPassword = Buffer.from(password, 'base64').toString('utf-8')
+
   const authRes = await fetch('https://apiv2.shiprocket.in/v1/external/auth/login', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email, password }),
+    body: JSON.stringify({ email, password: decodedPassword }),
   })
 
   if (!authRes.ok) {
