@@ -66,7 +66,7 @@ export async function createReversePickup(input: ReversePickupInput): Promise<Sh
     const token = await getShiprocketToken()
 
     const payload = {
-      order_id: input.orderId + "-RET",
+      order_id: input.orderId.replace(/-/g, '').slice(0, 20) + 'R',
       order_date: new Date().toISOString().replace(/T/, ' ').replace(/\..+/, ''),
       channel_id: "",
       pickup_customer_name: input.customerName || "Customer",
