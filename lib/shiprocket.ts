@@ -67,6 +67,19 @@ async function getShiprocketToken(): Promise<string> {
   }
 
   const authData = await authRes.json()
+  
+  console.log('[DEBUG getShiprocketToken authData Keys]:', Object.keys(authData))
+  if (authData && typeof authData === 'object') {
+    console.log('[DEBUG getShiprocketToken Token Metadata]:', {
+      hasToken: 'token' in authData && !!authData.token,
+      tokenType: typeof authData.token,
+      tokenLength: typeof authData.token === 'string' ? authData.token.length : 'N/A',
+      tokenSegments: typeof authData.token === 'string' ? authData.token.split('.').length : 'N/A',
+      tokenFirst15: typeof authData.token === 'string' ? authData.token.slice(0, 15) : 'N/A',
+      tokenLast15: typeof authData.token === 'string' ? authData.token.slice(-15) : 'N/A',
+    })
+  }
+
   if (!authData.token) {
     throw new Error('Shiprocket auth response did not contain a token')
   }
@@ -95,7 +108,25 @@ function getStorePickupLocation() {
 
 export async function createReversePickup(input: ReversePickupInput): Promise<ShiprocketCreateResult> {
   try {
-    const token = await getShiprocketToken()
+    let token: any
+    let authSucceeded = false
+    try {
+      token = await getShiprocketToken()
+      authSucceeded = true
+    } catch (authErr: any) {
+      console.error('[DEBUG createReversePickup getShiprocketToken failed]:', authErr.message)
+      throw authErr
+    }
+
+    console.log('[DEBUG createReversePickup Token Info]:', {
+      getShiprocketTokenSucceeded: authSucceeded,
+      tokenType: typeof token,
+      tokenLength: typeof token === 'string' ? token.length : 'N/A',
+      tokenSegments: typeof token === 'string' ? token.split('.').length : 'N/A',
+      tokenFirst15: typeof token === 'string' ? token.slice(0, 15) : 'N/A',
+      tokenLast15: typeof token === 'string' ? token.slice(-15) : 'N/A',
+      authHeaderIsExactlyBearerToken: typeof token === 'string' && `Bearer ${token}` === `Bearer ${token}` && `Bearer ${token}`.startsWith('Bearer ')
+    })
 
     const payload = {
       order_id: input.orderId.replace(/-/g, '').slice(0, 20) + 'R',
@@ -135,7 +166,13 @@ export async function createReversePickup(input: ReversePickupInput): Promise<Sh
       weight: 0.5
     }
 
-    const createRes = await fetch('https://apiv2.shiprocket.in/v1/external/orders/create/return', {
+    const endpointUrl = 'https://apiv2.shiprocket.in/v1/external/orders/create/return'
+    console.log('[DEBUG createReversePickup Outgoing Request]:', {
+      endpointUrl,
+      payload: JSON.stringify(payload, null, 2)
+    })
+
+    const createRes = await fetch(endpointUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -145,6 +182,11 @@ export async function createReversePickup(input: ReversePickupInput): Promise<Sh
     })
 
     const createData = await createRes.json()
+
+    console.log('[DEBUG createReversePickup Incoming Response]:', {
+      status: createRes.status,
+      body: JSON.stringify(createData, null, 2)
+    })
 
     if (!createRes.ok || !createData.order_id) {
       console.error('[Shiprocket API] Create reverse pickup failed:', createData)
