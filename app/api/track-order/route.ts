@@ -75,7 +75,11 @@ export async function POST(request: NextRequest) {
     } catch (error) {
         console.error('Track order error:', error);
         return NextResponse.json(
-            { success: false, error: 'Internal server error' },
+            { 
+                success: false, 
+                error: 'Failed to retrieve order tracking details', 
+                reason: 'An unexpected internal error occurred while tracking the order.' 
+            },
             { status: 500 }
         );
     }

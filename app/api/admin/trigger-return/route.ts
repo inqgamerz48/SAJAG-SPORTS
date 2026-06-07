@@ -85,13 +85,18 @@ export async function POST(req: NextRequest) {
         } else {
             return NextResponse.json({
                 success: false,
-                error: shiprocketResult.error || 'Failed to create return shipment',
+                error: 'Failed to create return shipment',
+                reason: shiprocketResult.error || 'The delivery provider rejected the return shipment creation.'
             }, { status: 500 })
         }
 
     } catch (error: any) {
         console.error('Trigger Return Error:', error)
-        return NextResponse.json({ success: false, error: error.message }, { status: 500 })
+        return NextResponse.json({ 
+            success: false, 
+            error: 'Trigger return failed', 
+            reason: 'An unexpected internal error occurred while triggering the return shipment.' 
+        }, { status: 500 })
     }
 }
 

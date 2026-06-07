@@ -222,13 +222,7 @@ export async function POST(req: NextRequest) {
         manualShippingRequired: false,
       })
     } catch (shiprocketError) {
-      const safeError =
-        shiprocketError instanceof Error ? shiprocketError.message : 'Unknown Shiprocket error'
-
-      console.error('Shiprocket reverse pickup failed', {
-        orderId: order.id,
-        error: safeError,
-      })
+      console.error('Shiprocket reverse pickup failed for order:', order.id, shiprocketError)
 
       await prisma.order.update({
         where: { id: order.id },
@@ -248,8 +242,11 @@ export async function POST(req: NextRequest) {
       })
     }
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Payment verification failed'
-    console.error('Verify payment error:', message)
-    return NextResponse.json({ success: false, error: message }, { status: 500 })
+    console.error('Verify payment error:', error)
+    return NextResponse.json({ 
+      success: false, 
+      error: 'Payment verification failed', 
+      reason: 'An unexpected internal error occurred during payment verification.' 
+    }, { status: 500 })
   }
 }

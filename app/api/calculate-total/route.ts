@@ -113,7 +113,8 @@ export async function POST(request: NextRequest) {
     console.error('Calculate Total API Error:', error)
     return NextResponse.json(
       {
-        error: error instanceof Error ? error.message : 'Failed to calculate total',
+        error: 'Failed to calculate total order price',
+        reason: 'An unexpected internal error occurred during checkout total calculation.'
       },
       { status: 500 }
     )

@@ -55,7 +55,11 @@ export async function POST(req: NextRequest) {
     } catch (error) {
         console.error('Shipping calculation API error:', error)
         return NextResponse.json(
-            { success: false, error: 'Internal server error' },
+            { 
+                success: false, 
+                error: 'Failed to calculate shipping rate', 
+                reason: 'An unexpected internal error occurred during the shipping calculation.' 
+            },
             { status: 500 }
         )
     }

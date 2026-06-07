@@ -199,8 +199,9 @@ export async function POST(req: NextRequest) {
         notes: { orderId: order.id },
       })
     } catch (error) {
+      console.error('Failed to create Razorpay order during order creation process:', error)
       if (!isExistingOrder) {
-        await prisma.order.delete({ where: { id: order.id } }).catch(() => undefined)
+        await prisma.order.delete({ where: { id: order.id } }).catch((delErr) => console.error('Failed to cleanup order after Razorpay creation error:', delErr))
       }
       throw error
     }
@@ -222,8 +223,11 @@ export async function POST(req: NextRequest) {
       razorpayKeyId: RAZORPAY_KEY_ID,
     })
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Failed to create order'
-    console.error('Create order error:', message)
-    return NextResponse.json({ success: false, error: message }, { status: 500 })
+    console.error('Create order error:', error)
+    return NextResponse.json({ 
+      success: false, 
+      error: 'Failed to create order', 
+      reason: 'An unexpected internal error occurred while creating your order.' 
+    }, { status: 500 })
   }
 }

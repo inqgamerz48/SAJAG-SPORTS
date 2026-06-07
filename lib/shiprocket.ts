@@ -62,7 +62,12 @@ async function getShiprocketToken(): Promise<string> {
     body: JSON.stringify({ email, password: decodedPassword }),
   })
 
-  if (!authRes.ok) {
+  if (authRes.status !== 200) {
+    let bodyText = ''
+    try {
+      bodyText = await authRes.text()
+    } catch (_) {}
+    console.error(`[Shiprocket API] Auth login failed with HTTP ${authRes.status}. Response body:`, bodyText)
     throw new Error(`Shiprocket auth login failed with HTTP ${authRes.status}`)
   }
 
@@ -114,7 +119,7 @@ export async function createReversePickup(input: ReversePickupInput): Promise<Sh
       token = await getShiprocketToken()
       authSucceeded = true
     } catch (authErr: any) {
-      console.error('[DEBUG createReversePickup getShiprocketToken failed]:', authErr.message)
+      console.error('[DEBUG createReversePickup getShiprocketToken failed]:', authErr)
       throw authErr
     }
 
@@ -181,6 +186,23 @@ export async function createReversePickup(input: ReversePickupInput): Promise<Sh
       body: JSON.stringify(payload)
     })
 
+    if (createRes.status !== 200) {
+      let bodyText = ''
+      try {
+        bodyText = await createRes.text()
+      } catch (_) {}
+      console.error(`[Shiprocket API] Create reverse pickup failed with HTTP ${createRes.status}. Response body:`, bodyText)
+      let parsedJson: any = null
+      try {
+        parsedJson = JSON.parse(bodyText)
+      } catch (_) {}
+      return {
+        success: false,
+        error: parsedJson?.message || 'Failed to create Shiprocket reverse pickup',
+        raw: parsedJson || bodyText
+      }
+    }
+
     const createData = await createRes.json()
 
     console.log('[DEBUG createReversePickup Incoming Response]:', {
@@ -188,8 +210,8 @@ export async function createReversePickup(input: ReversePickupInput): Promise<Sh
       body: JSON.stringify(createData, null, 2)
     })
 
-    if (!createRes.ok || !createData.order_id) {
-      console.error('[Shiprocket API] Create reverse pickup failed:', createData)
+    if (!createData.order_id) {
+      console.error('[Shiprocket API] Create reverse pickup succeeded but response missing order_id:', createData)
       return {
         success: false,
         error: createData.message || 'Failed to create Shiprocket reverse pickup',
@@ -258,10 +280,27 @@ export async function createForwardShipment(
       body: JSON.stringify(payload)
     })
 
+    if (createRes.status !== 200) {
+      let bodyText = ''
+      try {
+        bodyText = await createRes.text()
+      } catch (_) {}
+      console.error(`[Shiprocket API] Create forward shipment failed with HTTP ${createRes.status}. Response body:`, bodyText)
+      let parsedJson: any = null
+      try {
+        parsedJson = JSON.parse(bodyText)
+      } catch (_) {}
+      return {
+        success: false,
+        error: parsedJson?.message || 'Failed to create Shiprocket forward shipment',
+        raw: parsedJson || bodyText
+      }
+    }
+
     const createData = await createRes.json()
 
-    if (!createRes.ok || !createData.order_id) {
-      console.error('[Shiprocket API] Create forward shipment failed:', createData)
+    if (!createData.order_id) {
+      console.error('[Shiprocket API] Create forward shipment succeeded but response missing order_id:', createData)
       return {
         success: false,
         error: createData.message || 'Failed to create Shiprocket forward shipment',
@@ -297,13 +336,23 @@ export async function trackShipment(awbCode: string): Promise<{
       }
     })
 
-    const data = await response.json()
-    if (!response.ok) {
+    if (response.status !== 200) {
+      let bodyText = ''
+      try {
+        bodyText = await response.text()
+      } catch (_) {}
+      console.error(`[Shiprocket API] Track shipment failed with HTTP ${response.status}. Response body:`, bodyText)
+      let parsedJson: any = null
+      try {
+        parsedJson = JSON.parse(bodyText)
+      } catch (_) {}
       return {
         success: false,
-        error: data?.error || data?.message || `Tracking failed with HTTP ${response.status}`,
+        error: parsedJson?.error || parsedJson?.message || `Tracking failed with HTTP ${response.status}`,
       }
     }
+
+    const data = await response.json()
 
     return { success: true, data }
   } catch (error: any) {

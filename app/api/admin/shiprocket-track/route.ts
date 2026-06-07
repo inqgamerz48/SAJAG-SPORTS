@@ -27,6 +27,9 @@ export async function POST(req: Request) {
 
     } catch (error) {
         console.error("Error fetching Shiprocket tracking:", error);
-        return NextResponse.json({ error: "Failed to fetch tracking data" }, { status: 500 });
+        return NextResponse.json({ 
+            error: "Failed to fetch tracking data", 
+            reason: "An unexpected error occurred while communicating with Shiprocket tracking API." 
+        }, { status: 500 });
     }
 }

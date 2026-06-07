@@ -18,7 +18,11 @@ export async function GET() {
         });
         return NextResponse.json(products);
     } catch (error) {
-        return NextResponse.json({ error: "Failed to fetch products" }, { status: 500 });
+        console.error("Error fetching admin inventory products:", error);
+        return NextResponse.json({ 
+            error: "Failed to fetch products", 
+            reason: "An unexpected database error occurred while fetching the product list." 
+        }, { status: 500 });
     }
 }
 
@@ -66,6 +70,9 @@ export async function POST(req: Request) {
         if (error?.code === 'P2002') {
             return NextResponse.json({ error: "Product with this SKU already exists" }, { status: 400 });
         }
-        return NextResponse.json({ error: "Failed to create product" }, { status: 500 });
+        return NextResponse.json({ 
+            error: "Failed to create product", 
+            reason: "An unexpected database error occurred while creating the product." 
+        }, { status: 500 });
     }
 }

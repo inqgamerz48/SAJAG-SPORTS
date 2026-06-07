@@ -29,7 +29,11 @@ export async function POST(req: NextRequest) {
 
     } catch (error: any) {
         console.error('Update Status Error:', error)
-        return NextResponse.json({ success: false, error: error.message }, { status: 500 })
+        return NextResponse.json({ 
+            success: false, 
+            error: 'Failed to update order status', 
+            reason: 'An unexpected database error occurred while updating the order status.' 
+        }, { status: 500 })
     }
 }
 

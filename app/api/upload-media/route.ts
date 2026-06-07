@@ -102,7 +102,11 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('Upload error:', error)
     return NextResponse.json(
-      { success: false, error: 'Internal server error' },
+      { 
+        success: false, 
+        error: 'Upload failed', 
+        reason: 'An unexpected internal error occurred during the media upload.' 
+      },
       { status: 500 }
     )
   }

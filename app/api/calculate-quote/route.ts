@@ -91,7 +91,11 @@ export async function POST(req: NextRequest) {
     } catch (error: any) {
         console.error('Calculate quote error:', error)
         return NextResponse.json(
-            { success: false, error: error.message || 'Internal server error' },
+            { 
+                success: false, 
+                error: 'Failed to calculate pricing quote', 
+                reason: 'An unexpected internal error occurred during the quote calculation.' 
+            },
             { status: 500 }
         )
     }

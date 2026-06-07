@@ -154,8 +154,11 @@ export async function POST(req: NextRequest) {
       shiprocketOrderId: shiprocketResult.shiprocketOrderId || null,
     })
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Retry reverse pickup failed'
-    console.error('Retry reverse pickup error:', message)
-    return NextResponse.json({ success: false, error: message }, { status: 500 })
+    console.error('Retry reverse pickup error:', error)
+    return NextResponse.json({ 
+      success: false, 
+      error: 'Retry reverse pickup failed', 
+      reason: 'An unexpected internal error occurred while retrying the reverse pickup creation.' 
+    }, { status: 500 })
   }
 }

@@ -50,7 +50,10 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
         if (error?.code === 'P2002') {
             return NextResponse.json({ error: "Product with this SKU already exists" }, { status: 400 });
         }
-        return NextResponse.json({ error: "Failed to update product" }, { status: 500 });
+        return NextResponse.json({ 
+            error: "Failed to update product", 
+            reason: "An unexpected database error occurred while updating the product details." 
+        }, { status: 500 });
     }
 }
 
@@ -72,6 +75,9 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
         return NextResponse.json({ success: true });
     } catch (error) {
         console.error("Error deleting product:", error);
-        return NextResponse.json({ error: "Failed to delete product" }, { status: 500 });
+        return NextResponse.json({ 
+            error: "Failed to delete product", 
+            reason: "An unexpected database error occurred while deleting the product." 
+        }, { status: 500 });
     }
 }

@@ -68,6 +68,9 @@ export async function GET() {
 
     } catch (error) {
         console.error("Error fetching analytics:", error);
-        return NextResponse.json({ error: "Failed to fetch analytics" }, { status: 500 });
+        return NextResponse.json({ 
+            error: "Failed to fetch analytics", 
+            reason: "An unexpected database or calculation error occurred while retrieving admin analytics." 
+        }, { status: 500 });
     }
 }

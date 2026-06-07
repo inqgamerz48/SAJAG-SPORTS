@@ -38,6 +38,9 @@ export async function GET(request: Request) {
     });
   } catch (error) {
     console.error("Error fetching orders:", error);
-    return NextResponse.json({ error: "Failed to fetch orders" }, { status: 500 });
+    return NextResponse.json({ 
+      error: "Failed to fetch orders", 
+      reason: "An unexpected database error occurred while retrieving the order list." 
+    }, { status: 500 });
   }
 }

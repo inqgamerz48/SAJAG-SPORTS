@@ -37,6 +37,9 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
         return NextResponse.json(updatedOrder);
     } catch (error) {
         console.error("Error updating order:", error);
-        return NextResponse.json({ error: "Failed to update order" }, { status: 500 });
+        return NextResponse.json({ 
+            error: "Failed to update order", 
+            reason: "An unexpected database error occurred while updating the order status." 
+        }, { status: 500 });
     }
 }

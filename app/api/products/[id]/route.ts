@@ -16,6 +16,9 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
         return NextResponse.json(product);
     } catch (error) {
         console.error("Error fetching product:", error);
-        return NextResponse.json({ error: "Failed to fetch product" }, { status: 500 });
+        return NextResponse.json({ 
+            error: "Failed to fetch product", 
+            reason: "An unexpected database or server error occurred while retrieving product details." 
+        }, { status: 500 });
     }
 }

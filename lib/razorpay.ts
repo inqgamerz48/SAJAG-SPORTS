@@ -29,6 +29,7 @@ export async function createRazorpayOrder(params: {
       notes: params.notes,
     })
   } catch (error: any) {
+    console.error('[Razorpay API] createRazorpayOrder exception:', error)
     const message =
       error?.error?.description ||
       error?.message ||
