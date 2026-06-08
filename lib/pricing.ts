@@ -1,15 +1,15 @@
 /**
  * Pricing Engine for Sajag Sports Racquet Repairs
  * 
- * Tiered pricing based on racquet value:
- * - Category A (< ₹5,000): ₹500 per crack
- * - Category B (≥ ₹5,000): ₹700 per crack
+ * Default Tiered pricing based on racquet value:
+ * - Category A (< ₹4,000): ₹550 per crack
+ * - Category B (≥ ₹4,000): ₹850 per crack
  */
 
-// Pricing constants
-const CATEGORY_A_THRESHOLD = 5000
-const CATEGORY_A_RATE = 500 // per crack
-const CATEGORY_B_RATE = 700 // per crack
+// Default pricing constants
+export const DEFAULT_REPAIR_THRESHOLD = 4000
+export const DEFAULT_REPAIR_PRICE_BELOW = 550 // per crack
+export const DEFAULT_REPAIR_PRICE_ABOVE = 850 // per crack
 
 export const STRING_PRICES: Record<string, number> = {
     'BG 65 Titanium': 700,
@@ -17,6 +17,12 @@ export const STRING_PRICES: Record<string, number> = {
     'BG80 Power': 890,
     'BG66 Ultimax': 850,
     'none': 0,
+}
+
+export interface RepairSettings {
+    priceBelow: number
+    priceAbove: number
+    threshold: number
 }
 
 export interface RepairCostBreakdown {
@@ -45,11 +51,40 @@ export interface PricingBreakdown {
 }
 
 /**
+ * Retrieve pricing settings from the database (server-only)
+ */
+export async function getRepairSettings(): Promise<RepairSettings> {
+    try {
+        const { prisma } = await import('@/lib/prisma')
+        const settings = await prisma.setting.findMany()
+
+        const priceBelow = settings.find(s => s.key === 'repair_price_below')?.value
+        const priceAbove = settings.find(s => s.key === 'repair_price_above')?.value
+        const threshold = settings.find(s => s.key === 'repair_threshold')?.value
+
+        return {
+            priceBelow: priceBelow ? parseFloat(priceBelow) : DEFAULT_REPAIR_PRICE_BELOW,
+            priceAbove: priceAbove ? parseFloat(priceAbove) : DEFAULT_REPAIR_PRICE_ABOVE,
+            threshold: threshold ? parseFloat(threshold) : DEFAULT_REPAIR_THRESHOLD,
+        }
+    } catch (err) {
+        // Fallback to default values if database is empty or not configured
+        console.warn('Failed to fetch settings from DB, using defaults:', err)
+        return {
+            priceBelow: DEFAULT_REPAIR_PRICE_BELOW,
+            priceAbove: DEFAULT_REPAIR_PRICE_ABOVE,
+            threshold: DEFAULT_REPAIR_THRESHOLD,
+        }
+    }
+}
+
+/**
  * Calculate repair cost based on racquet value and number of cracks
  */
 export function calculateRepairCost(
     racquetValue: number,
-    numberOfCracks: number
+    numberOfCracks: number,
+    settings?: RepairSettings
 ): RepairCostBreakdown {
     // Input validation
     if (racquetValue <= 0) {
@@ -61,8 +96,12 @@ export function calculateRepairCost(
     }
 
     // Determine category and rate
-    const category = racquetValue < CATEGORY_A_THRESHOLD ? 'A' : 'B'
-    const repairRate = category === 'A' ? CATEGORY_A_RATE : CATEGORY_B_RATE
+    const threshold = settings?.threshold ?? DEFAULT_REPAIR_THRESHOLD
+    const rateBelow = settings?.priceBelow ?? DEFAULT_REPAIR_PRICE_BELOW
+    const rateAbove = settings?.priceAbove ?? DEFAULT_REPAIR_PRICE_ABOVE
+
+    const category = racquetValue < threshold ? 'A' : 'B'
+    const repairRate = category === 'A' ? rateBelow : rateAbove
     const repairCost = repairRate * numberOfCracks
 
     return {
@@ -111,9 +150,10 @@ export function calculatePricingBreakdown(
     racquetValue: number,
     numberOfCracks: number,
     stringType: string,
-    shippingCost: number
+    shippingCost: number,
+    settings?: RepairSettings
 ): PricingBreakdown {
-    const repairBreakdown = calculateRepairCost(racquetValue, numberOfCracks)
+    const repairBreakdown = calculateRepairCost(racquetValue, numberOfCracks, settings)
     const stringBreakdown = calculateStringCost(stringType)
     const totals = calculateGrandTotal(
         repairBreakdown.repairCost,
@@ -128,6 +168,7 @@ export function calculatePricingBreakdown(
         ...totals,
     }
 }
+
 
 /**
  * Format currency for display

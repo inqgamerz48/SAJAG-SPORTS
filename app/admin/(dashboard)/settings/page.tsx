@@ -8,8 +8,9 @@ import { Button } from '@/components/ui/button'
 import { toast } from 'sonner'
 
 export default function SettingsPage() {
-  const [priceA, setPriceA] = useState('500')
-  const [priceB, setPriceB] = useState('700')
+  const [priceA, setPriceA] = useState('550')
+  const [priceB, setPriceB] = useState('850')
+  const [threshold, setThreshold] = useState('4000')
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
@@ -20,6 +21,7 @@ export default function SettingsPage() {
         if (data.success) {
           setPriceA(String(data.priceA))
           setPriceB(String(data.priceB))
+          setThreshold(String(data.threshold ?? '4000'))
         }
       } catch (err) {
         console.error('Failed to fetch settings:', err)
@@ -29,12 +31,22 @@ export default function SettingsPage() {
   }, [])
 
   const handleSave = async () => {
+    const numPriceA = Number(priceA)
+    const numPriceB = Number(priceB)
+    const numThreshold = Number(threshold)
+
+    // Validation
+    if (isNaN(numPriceA) || numPriceA <= 0 || isNaN(numPriceB) || numPriceB <= 0 || isNaN(numThreshold) || numThreshold <= 0) {
+      toast.error('All inputs must be positive numbers only')
+      return
+    }
+
     setLoading(true)
     try {
       const res = await fetch('/api/admin/settings', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ priceA, priceB }),
+        body: JSON.stringify({ priceA: numPriceA, priceB: numPriceB, threshold: numThreshold }),
       })
       const data = await res.json()
       if (data.success) {
@@ -50,21 +62,64 @@ export default function SettingsPage() {
     }
   }
 
+  const handleReset = async () => {
+    if (!confirm('Are you sure you want to reset all repair pricing to defaults?')) {
+      return
+    }
+    setLoading(true)
+    try {
+      const res = await fetch('/api/admin/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reset: true }),
+      })
+      const data = await res.json()
+      if (data.success) {
+        setPriceA(String(data.priceA))
+        setPriceB(String(data.priceB))
+        setThreshold(String(data.threshold))
+        toast.success('Pricing settings reset to defaults')
+      } else {
+        toast.error(data.error || 'Failed to reset settings')
+      }
+    } catch (err) {
+      console.error('Failed to reset settings:', err)
+      toast.error('Failed to reset settings')
+    } finally {
+      setLoading(false)
+    }
+  }
+
   return (
     <div className="space-y-6 max-w-2xl">
       <h1 className="text-3xl font-bold text-gray-900">Settings</h1>
       
       <Card>
         <CardHeader>
-          <CardTitle>Repair Pricing</CardTitle>
+          <CardTitle>Repair Pricing Settings</CardTitle>
           <CardDescription>
-            Update the base repair prices per crack for different racquet value categories.
+            Configure the base repair prices per crack and racquet value categories.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="space-y-4">
             <div>
-              <Label htmlFor="price-a">Category A (Value &lt; ₹5,000) Price per crack (₹)</Label>
+              <Label htmlFor="threshold-val">Racquet Value Threshold (₹)</Label>
+              <Input
+                id="threshold-val"
+                type="number"
+                value={threshold}
+                onChange={(e) => setThreshold(e.target.value)}
+                className="mt-1"
+                disabled={loading}
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                Threshold value determining Category A vs Category B (Default: 4000)
+              </p>
+            </div>
+
+            <div>
+              <Label htmlFor="price-a">Category A (Value &lt; ₹{Number(threshold).toLocaleString('en-IN')}) Price per crack (₹)</Label>
               <Input
                 id="price-a"
                 type="number"
@@ -76,7 +131,7 @@ export default function SettingsPage() {
             </div>
             
             <div>
-              <Label htmlFor="price-b">Category B (Value &ge; ₹5,000) Price per crack (₹)</Label>
+              <Label htmlFor="price-b">Category B (Value &ge; ₹{Number(threshold).toLocaleString('en-IN')}) Price per crack (₹)</Label>
               <Input
                 id="price-b"
                 type="number"
@@ -88,9 +143,15 @@ export default function SettingsPage() {
             </div>
           </div>
 
-          <Button onClick={handleSave} className="w-full sm:w-auto" disabled={loading}>
-            {loading ? 'Saving...' : 'Save Settings'}
-          </Button>
+          <div className="flex gap-4">
+            <Button onClick={handleSave} className="flex-1 sm:flex-initial bg-brand-orange hover:bg-brand-orange/90 text-white" disabled={loading}>
+              {loading ? 'Saving...' : 'Save Settings'}
+            </Button>
+            
+            <Button onClick={handleReset} variant="outline" className="flex-1 sm:flex-initial text-gray-600 border-gray-300" disabled={loading}>
+              Reset to Defaults
+            </Button>
+          </div>
         </CardContent>
       </Card>
     </div>

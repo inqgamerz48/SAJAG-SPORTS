@@ -5,6 +5,7 @@
 // <meta name="description" content="Pricing details for stringing, carbon repair, and shipping at Sajag Sports." />
 // <meta property="og:title" content="Pricing Estimates" />
 
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
@@ -12,6 +13,58 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Info, CheckCircle2, IndianRupee, Truck, Calculator, Wrench } from 'lucide-react'
 
 export default function PricingPage() {
+    const [priceA, setPriceA] = useState(550)
+    const [priceB, setPriceB] = useState(850)
+    const [threshold, setThreshold] = useState(4000)
+    const [loading, setLoading] = useState(true)
+
+    useEffect(() => {
+        const fetchSettings = async () => {
+            try {
+                const res = await fetch('/api/admin/settings')
+                const data = await res.json()
+                if (data.success) {
+                    setPriceA(Number(data.priceA))
+                    setPriceB(Number(data.priceB))
+                    if (data.threshold) {
+                        setThreshold(Number(data.threshold))
+                    }
+                }
+            } catch (err) {
+                console.error('Failed to fetch pricing settings:', err)
+            } finally {
+                setLoading(false)
+            }
+        }
+        fetchSettings()
+    }, [])
+
+    const thresholdFormatted = threshold.toLocaleString('en-IN')
+
+    // Dynamic calculations for Example 1
+    const ex1Repair = priceA * 1
+    const ex1String = 630
+    const ex1ServiceSubtotal = ex1Repair + ex1String
+    const ex1Shipping = 80 + 80
+    const ex1Gst = Math.round(ex1Shipping * 0.18)
+    const ex1Total = ex1ServiceSubtotal + ex1Shipping + ex1Gst
+
+    // Dynamic calculations for Example 2
+    const ex2Repair = priceB * 2
+    const ex2String = 700
+    const ex2ServiceSubtotal = ex2Repair + ex2String
+    const ex2Shipping = 90 + 90
+    const ex2Gst = Math.round(ex2Shipping * 0.18)
+    const ex2Total = ex2ServiceSubtotal + ex2Shipping + ex2Gst
+
+    // Dynamic calculations for Example 3
+    const ex3Repair = priceB * 3
+    const ex3String = 630
+    const ex3ServiceSubtotal = ex3Repair + ex3String
+    const ex3Shipping = 100 + 100
+    const ex3Gst = Math.round(ex3Shipping * 0.18)
+    const ex3Total = ex3ServiceSubtotal + ex3Shipping + ex3Gst
+
     return (
         <div className="min-h-screen bg-slate-50 py-16">
             <div className="container mx-auto px-4 max-w-5xl">
@@ -37,23 +90,23 @@ export default function PricingPage() {
                             <div className="flex justify-between items-center p-4 bg-slate-50 rounded-xl">
                                 <div>
                                     <p className="font-bold">Budget Rackets</p>
-                                    <p className="text-sm text-slate-500">Under ₹5,000 original price</p>
+                                    <p className="text-sm text-slate-500">Under ₹{thresholdFormatted} original price</p>
                                 </div>
-                                <div className="text-xl font-bold text-brand-blue">₹499 / crack</div>
+                                <div className="text-xl font-bold text-brand-blue">₹{priceA} / crack</div>
                             </div>
                             <div className="flex justify-between items-center p-4 bg-brand-orange/5 rounded-xl border border-brand-orange/10">
                                 <div>
                                     <p className="font-bold">Premium Rackets</p>
-                                    <p className="text-sm text-slate-500">Above ₹5,000 original price</p>
+                                    <p className="text-sm text-slate-500">Above ₹{thresholdFormatted} original price</p>
                                 </div>
-                                <div className="text-xl font-bold text-brand-orange">₹599 / crack</div>
+                                <div className="text-xl font-bold text-brand-orange">₹{priceB} / crack</div>
                             </div>
                         </CardContent>
                     </div>
                 </div>
 
                 {/* Stringing Charges */}
-                <div className="bg-white p-8 rounded-2xl shadow-lg border border-slate-100">
+                <div className="bg-white p-8 rounded-2xl shadow-lg border border-slate-100 mb-16">
                     <div className="flex items-center gap-3 mb-6">
                         <CheckCircle2 className="h-6 w-6 text-green-600" />
                         <h2 className="text-2xl font-bold">Stringing (Mandatory)</h2>
@@ -89,82 +142,82 @@ export default function PricingPage() {
                         </div>
                     </div>
                 </div>
+
+                {/* Detailed Examples */}
+                <section className="mb-20">
+                    <div className="flex items-center gap-3 mb-8">
+                        <Calculator className="h-7 w-7 text-brand-blue" />
+                        <h2 className="text-3xl font-bold">Pricing Examples</h2>
+                    </div>
+                    <div className="grid md:grid-cols-3 gap-6">
+                        {/* Example 1 */}
+                        <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
+                            <div className="bg-slate-100 p-4 border-b font-bold text-sm uppercase tracking-wider text-slate-600">
+                                Example 1: Budget Racket
+                            </div>
+                            <div className="p-6">
+                                <div className="space-y-2 mb-6 text-sm">
+                                    <div className="flex justify-between"><span>1 Crack Repair</span><span>₹{ex1Repair}</span></div>
+                                    <div className="flex justify-between border-b pb-2"><span>BG 65 String</span><span>₹{ex1String}</span></div>
+                                    <div className="flex justify-between font-bold pt-2"><span>Service Subtotal</span><span>₹{ex1ServiceSubtotal}</span></div>
+                                    <div className="flex justify-between text-slate-500 italic"><span>Forward Shipping (est)</span><span>₹80</span></div>
+                                    <div className="flex justify-between text-slate-500 italic border-b pb-2"><span>Return Shipping (est)</span><span>₹80</span></div>
+                                    <div className="flex justify-between font-bold pt-2"><span>Total Before GST</span><span>₹{ex1ServiceSubtotal + ex1Shipping}</span></div>
+                                    <div className="flex justify-between"><span>GST @ 18% (on shipping)</span><span>₹{ex1Gst}</span></div>
+                                </div>
+                                <div className="pt-4 border-t-2 border-dashed border-slate-200 flex justify-between items-center">
+                                    <span className="font-bold text-lg">GRAND TOTAL</span>
+                                    <span className="text-2xl font-bold text-brand-blue">₹{ex1Total}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Example 2 */}
+                        <div className="bg-brand-blue text-white rounded-xl overflow-hidden shadow-xl scale-105 relative z-10 border-2 border-brand-orange">
+                            <div className="bg-brand-blue-700 p-4 border-b border-brand-blue-600 font-bold text-sm uppercase tracking-wider text-blue-200">
+                                Example 2: Premium Racket
+                            </div>
+                            <div className="p-6">
+                                <div className="space-y-2 mb-6 text-sm">
+                                    <div className="flex justify-between"><span>2 Cracks Repair (₹{priceB} ea)</span><span>₹{ex2Repair}</span></div>
+                                    <div className="flex justify-between border-b border-blue-400/30 pb-2"><span>BG65 Titanium</span><span>₹{ex2String}</span></div>
+                                    <div className="flex justify-between font-bold pt-2"><span>Service Subtotal</span><span>₹{ex2ServiceSubtotal}</span></div>
+                                    <div className="flex justify-between text-blue-200 italic"><span>Forward Shipping (est)</span><span>₹90</span></div>
+                                    <div className="flex justify-between text-blue-200 italic border-b border-blue-400/30 pb-2"><span>Return Shipping (est)</span><span>₹90</span></div>
+                                    <div className="flex justify-between font-bold pt-2 text-white"><span>Total Before GST</span><span>₹{ex2ServiceSubtotal + ex2Shipping}</span></div>
+                                    <div className="flex justify-between"><span>GST @ 18% (on shipping)</span><span>₹{ex2Gst}</span></div>
+                                </div>
+                                <div className="pt-4 border-t-2 border-dashed border-blue-400 flex justify-between items-center">
+                                    <span className="font-bold text-lg">GRAND TOTAL</span>
+                                    <span className="text-3xl font-bold text-brand-orange">₹{ex2Total}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Example 3 */}
+                        <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
+                            <div className="bg-slate-100 p-4 border-b font-bold text-sm uppercase tracking-wider text-slate-600">
+                                Example 3: Heavy Damage
+                            </div>
+                            <div className="p-6">
+                                <div className="space-y-2 mb-6 text-sm">
+                                    <div className="flex justify-between"><span>3 Cracks Repair (₹{priceB} ea)</span><span>₹{ex3Repair}</span></div>
+                                    <div className="flex justify-between border-b pb-2"><span>BG 65 String</span><span>₹{ex3String}</span></div>
+                                    <div className="flex justify-between font-bold pt-2"><span>Service Subtotal</span><span>₹{ex3ServiceSubtotal}</span></div>
+                                    <div className="flex justify-between text-slate-500 italic"><span>Forward Shipping (est)</span><span>₹100</span></div>
+                                    <div className="flex justify-between text-slate-500 italic border-b pb-2"><span>Return Shipping (est)</span><span>₹100</span></div>
+                                    <div className="flex justify-between font-bold pt-2"><span>Total Before GST</span><span>₹{ex3ServiceSubtotal + ex3Shipping}</span></div>
+                                    <div className="flex justify-between"><span>GST @ 18% (on shipping)</span><span>₹{ex3Gst}</span></div>
+                                </div>
+                                <div className="pt-4 border-t-2 border-dashed border-slate-200 flex justify-between items-center">
+                                    <span className="font-bold text-lg">GRAND TOTAL</span>
+                                    <span className="text-2xl font-bold text-brand-blue">₹{ex3Total}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
             </div>
-
-            {/* Detailed Examples */}
-            <section className="mb-20">
-                <div className="flex items-center gap-3 mb-8">
-                    <Calculator className="h-7 w-7 text-brand-blue" />
-                    <h2 className="text-3xl font-bold">Pricing Examples</h2>
-                </div>
-                <div className="grid md:grid-cols-3 gap-6">
-                    {/* Example 1 */}
-                    <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
-                        <div className="bg-slate-100 p-4 border-b font-bold text-sm uppercase tracking-wider text-slate-600">
-                            Example 1: Budget Racket
-                        </div>
-                        <div className="p-6">
-                            <div className="space-y-2 mb-6 text-sm">
-                                <div className="flex justify-between"><span>1 Crack Repair</span><span>₹499</span></div>
-                                <div className="flex justify-between border-b pb-2"><span>BG 65 String</span><span>₹630</span></div>
-                                <div className="flex justify-between font-bold pt-2"><span>Service Subtotal</span><span>₹1,129</span></div>
-                                <div className="flex justify-between text-slate-500 italic"><span>Forward Shipping (est)</span><span>₹80</span></div>
-                                <div className="flex justify-between text-slate-500 italic border-b pb-2"><span>Return Shipping (est)</span><span>₹80</span></div>
-                                <div className="flex justify-between font-bold pt-2"><span>Total Before GST</span><span>₹1,289</span></div>
-                                <div className="flex justify-between"><span>GST @ 18%</span><span>₹232</span></div>
-                            </div>
-                            <div className="pt-4 border-t-2 border-dashed border-slate-200 flex justify-between items-center">
-                                <span className="font-bold text-lg">GRAND TOTAL</span>
-                                <span className="text-2xl font-bold text-brand-blue">₹1,521</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Example 2 */}
-                    <div className="bg-brand-blue text-white rounded-xl overflow-hidden shadow-xl scale-105 relative z-10 border-2 border-brand-orange">
-                        <div className="bg-brand-blue-700 p-4 border-b border-brand-blue-600 font-bold text-sm uppercase tracking-wider text-blue-200">
-                            Example 2: Premium Racket
-                        </div>
-                        <div className="p-6">
-                            <div className="space-y-2 mb-6 text-sm">
-                                <div className="flex justify-between"><span>2 Cracks Repair (₹599 ea)</span><span>₹1,198</span></div>
-                                <div className="flex justify-between border-b border-blue-400/30 pb-2"><span>BG65 Titanium</span><span>₹700</span></div>
-                                <div className="flex justify-between font-bold pt-2"><span>Service Subtotal</span><span>₹1,898</span></div>
-                                <div className="flex justify-between text-blue-200 italic"><span>Forward Shipping (est)</span><span>₹90</span></div>
-                                <div className="flex justify-between text-blue-200 italic border-b border-blue-400/30 pb-2"><span>Return Shipping (est)</span><span>₹90</span></div>
-                                <div className="flex justify-between font-bold pt-2 text-white"><span>Total Before GST</span><span>₹2,078</span></div>
-                                <div className="flex justify-between"><span>GST @ 18%</span><span>₹374</span></div>
-                            </div>
-                            <div className="pt-4 border-t-2 border-dashed border-blue-400 flex justify-between items-center">
-                                <span className="font-bold text-lg">GRAND TOTAL</span>
-                                <span className="text-3xl font-bold text-brand-orange">₹2,452</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Example 3 */}
-                    <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
-                        <div className="bg-slate-100 p-4 border-b font-bold text-sm uppercase tracking-wider text-slate-600">
-                            Example 3: Heavy Damage
-                        </div>
-                        <div className="p-6">
-                            <div className="space-y-2 mb-6 text-sm">
-                                <div className="flex justify-between"><span>3 Cracks Repair (₹700 ea)</span><span>₹2,100</span></div>
-                                <div className="flex justify-between border-b pb-2"><span>BG 65 String</span><span>₹630</span></div>
-                                <div className="flex justify-between font-bold pt-2"><span>Service Subtotal</span><span>₹2,730</span></div>
-                                <div className="flex justify-between text-slate-500 italic"><span>Forward Shipping (est)</span><span>₹100</span></div>
-                                <div className="flex justify-between text-slate-500 italic border-b pb-2"><span>Return Shipping (est)</span><span>₹100</span></div>
-                                <div className="flex justify-between font-bold pt-2"><span>Total Before GST</span><span>₹2,930</span></div>
-                                <div className="flex justify-between"><span>GST @ 18%</span><span>₹527</span></div>
-                            </div>
-                            <div className="pt-4 border-t-2 border-dashed border-slate-200 flex justify-between items-center">
-                                <span className="font-bold text-lg">GRAND TOTAL</span>
-                                <span className="text-2xl font-bold text-brand-blue">₹3,457</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </section>
 
             {/* Shipping Table */}
             <section className="bg-white p-8 rounded-2xl shadow-lg border border-slate-100 mb-16">

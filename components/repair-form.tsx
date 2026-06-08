@@ -61,8 +61,9 @@ export function RepairForm() {
   const [checkingPincode, setCheckingPincode] = useState(false)
   const [pincodeStatus, setPincodeStatus] = useState<'idle' | 'valid' | 'invalid'>('idle')
   const [pincodeMessage, setPincodeMessage] = useState('')
-  const [priceA, setPriceA] = useState(500)
-  const [priceB, setPriceB] = useState(700)
+  const [priceA, setPriceA] = useState(550)
+  const [priceB, setPriceB] = useState(850)
+  const [threshold, setThreshold] = useState(4000)
 
   useEffect(() => {
     const fetchPricing = async () => {
@@ -72,6 +73,9 @@ export function RepairForm() {
         if (data.success) {
           setPriceA(Number(data.priceA))
           setPriceB(Number(data.priceB))
+          if (data.threshold) {
+            setThreshold(Number(data.threshold))
+          }
         }
       } catch (err) {
         console.error('Failed to load repair pricing:', err)
@@ -374,13 +378,13 @@ export function RepairForm() {
                           <div className="flex items-center space-x-2">
                             <RadioGroupItem value="A" id={`cat-a-${racquet.id}`} />
                             <Label htmlFor={`cat-a-${racquet.id}`} className="font-normal">
-                              Below ₹5,000 <span className="text-brand-orange font-bold">(₹{priceA}/crack)</span>
+                              Below ₹{threshold.toLocaleString('en-IN')} <span className="text-brand-orange font-bold">(₹{priceA}/crack)</span>
                             </Label>
                           </div>
                           <div className="flex items-center space-x-2">
                             <RadioGroupItem value="B" id={`cat-b-${racquet.id}`} />
                             <Label htmlFor={`cat-b-${racquet.id}`} className="font-normal">
-                              Above ₹5,000 <span className="text-brand-orange font-bold">(₹{priceB}/crack)</span>
+                              Above ₹{threshold.toLocaleString('en-IN')} <span className="text-brand-orange font-bold">(₹{priceB}/crack)</span>
                             </Label>
                           </div>
                         </RadioGroup>

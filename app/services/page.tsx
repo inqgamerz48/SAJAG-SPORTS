@@ -1,11 +1,37 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { CheckCircle2, ChevronRight, Package, Wrench, Truck, ShieldCheck, MessageSquare } from 'lucide-react'
 
 export default function ServicesPage() {
+    const [priceA, setPriceA] = useState(550)
+    const [priceB, setPriceB] = useState(850)
+    const [threshold, setThreshold] = useState(4000)
+
+    useEffect(() => {
+        const fetchPricing = async () => {
+            try {
+                const res = await fetch('/api/admin/settings')
+                const data = await res.json()
+                if (data.success) {
+                    setPriceA(Number(data.priceA))
+                    setPriceB(Number(data.priceB))
+                    if (data.threshold) {
+                        setThreshold(Number(data.threshold))
+                    }
+                }
+            } catch (err) {
+                console.error('Failed to load repair pricing:', err)
+            }
+        }
+        fetchPricing()
+    }, [])
+
+    const thresholdFormatted = threshold.toLocaleString('en-IN')
+
     return (
         <div className="min-h-screen bg-slate-50">
             {/* Hero Section */}
@@ -34,12 +60,12 @@ export default function ServicesPage() {
                                 <Package className="h-6 w-6 text-slate-600" />
                                 <span className="font-semibold uppercase tracking-wider text-slate-500 text-sm">Budget Category</span>
                             </div>
-                            <CardTitle className="text-3xl font-bold">Rackets Under ₹5,000</CardTitle>
+                            <CardTitle className="text-3xl font-bold">Rackets Under ₹{thresholdFormatted}</CardTitle>
                         </div>
                         <CardContent className="p-8">
                             <div className="space-y-4 mb-8">
                                 {[
-                                    '₹500 per crack repair',
+                                    `₹${priceA} per crack repair`,
                                     'Complete structural fix',
                                     'Professional restringing',
                                     'Choice of 4 premium Yonex strings',
@@ -58,7 +84,7 @@ export default function ServicesPage() {
                             <div className="flex flex-col gap-4">
                                 <div className="text-center">
                                     <span className="text-slate-500 text-sm">Starting from</span>
-                                    <div className="text-3xl font-bold text-brand-blue">₹1,546*</div>
+                                    <div className="text-3xl font-bold text-brand-blue">₹{priceA + 1046}*</div>
                                     <span className="text-xs text-slate-400">*Includes 1 crack, stringing, shipping & GST</span>
                                 </div>
                                 <Button asChild className="w-full bg-brand-blue hover:bg-brand-blue/90">
@@ -78,12 +104,12 @@ export default function ServicesPage() {
                                 <ShieldCheck className="h-6 w-6 text-brand-orange" />
                                 <span className="font-semibold uppercase tracking-wider text-brand-orange text-sm">Premium Category</span>
                             </div>
-                            <CardTitle className="text-3xl font-bold">Rackets Above ₹5,000</CardTitle>
+                            <CardTitle className="text-3xl font-bold">Rackets Above ₹{thresholdFormatted}</CardTitle>
                         </div>
                         <CardContent className="p-8">
                             <div className="space-y-4 mb-8">
                                 {[
-                                    '₹700 per crack repair',
+                                    `₹${priceB} per crack repair`,
                                     'Premium carbon reinforcement',
                                     'Professional high-tension stringing',
                                     'Choice of 4 premium Yonex strings',
@@ -102,7 +128,7 @@ export default function ServicesPage() {
                             <div className="flex flex-col gap-4">
                                 <div className="text-center">
                                     <span className="text-slate-500 text-sm">Starting from</span>
-                                    <div className="text-3xl font-bold text-brand-blue">₹1,768*</div>
+                                    <div className="text-3xl font-bold text-brand-blue">₹{priceB + 1068}*</div>
                                     <span className="text-xs text-slate-400">*Includes 1 crack, stringing, shipping & GST</span>
                                 </div>
                                 <Button asChild className="w-full bg-brand-orange hover:bg-brand-orange/90">

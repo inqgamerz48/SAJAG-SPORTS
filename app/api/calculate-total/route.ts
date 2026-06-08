@@ -47,7 +47,10 @@ export async function POST(request: NextRequest) {
     }
 
     // Step 1: Repair price by racquet value + stringing cost (if any)
-    const repairCostByValue = racketValue < 5000 ? 499 : 599
+    const { getRepairSettings } = await import('@/lib/pricing')
+    const repairSettings = await getRepairSettings()
+
+    const repairCostByValue = racketValue < repairSettings.threshold ? repairSettings.priceBelow : repairSettings.priceAbove
     let serviceCost = 0
     let repairCost = 0
     let stringCost = 0
@@ -56,7 +59,10 @@ export async function POST(request: NextRequest) {
     if (stringType === 'none' || !stringType) {
       repairCost = repairCostByValue
       serviceCost = repairCostByValue
-      serviceDescription = racketValue < 5000 ? 'Repair Only (Below ₹5,000)' : 'Repair Only (Above ₹5,000)'
+      const thresholdFormatted = repairSettings.threshold.toLocaleString('en-IN')
+      serviceDescription = racketValue < repairSettings.threshold 
+        ? `Repair Only (Below ₹${thresholdFormatted})` 
+        : `Repair Only (Above ₹${thresholdFormatted})`
     } else {
       repairCost = repairCostByValue
       stringCost = (await import('@/lib/pricing')).STRING_PRICES[stringType] || 0
