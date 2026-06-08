@@ -12,21 +12,27 @@ export async function GET() {
   try {
     const dbSettings = await prisma.setting.findMany()
 
-    const priceA = dbSettings.find(s => s.key === 'repair_price_below')?.value || String(DEFAULT_REPAIR_PRICE_BELOW)
-    const priceB = dbSettings.find(s => s.key === 'repair_price_above')?.value || String(DEFAULT_REPAIR_PRICE_ABOVE)
-    const threshold = dbSettings.find(s => s.key === 'repair_threshold')?.value || String(DEFAULT_REPAIR_THRESHOLD)
+    const priceBelow = dbSettings.find(s => s.key === 'price_per_crack_below_threshold')?.value || String(DEFAULT_REPAIR_PRICE_BELOW)
+    const priceAbove = dbSettings.find(s => s.key === 'price_per_crack_above_threshold')?.value || String(DEFAULT_REPAIR_PRICE_ABOVE)
+    const threshold = dbSettings.find(s => s.key === 'racquet_value_threshold')?.value || String(DEFAULT_REPAIR_THRESHOLD)
 
     return NextResponse.json({
       success: true,
-      priceA: parseFloat(priceA),
-      priceB: parseFloat(priceB),
+      price_per_crack_below_threshold: parseFloat(priceBelow),
+      price_per_crack_above_threshold: parseFloat(priceAbove),
+      racquet_value_threshold: parseFloat(threshold),
+      // Legacy fields for backward compatibility with existing components
+      priceA: parseFloat(priceBelow),
+      priceB: parseFloat(priceAbove),
       threshold: parseFloat(threshold),
     })
   } catch (error: any) {
     console.warn('Fetch Settings Error (falling back to dynamic defaults):', error)
-    // Return hardcoded default configurations to prevent frontend failure
     return NextResponse.json({
       success: true,
+      price_per_crack_below_threshold: DEFAULT_REPAIR_PRICE_BELOW,
+      price_per_crack_above_threshold: DEFAULT_REPAIR_PRICE_ABOVE,
+      racquet_value_threshold: DEFAULT_REPAIR_THRESHOLD,
       priceA: DEFAULT_REPAIR_PRICE_BELOW,
       priceB: DEFAULT_REPAIR_PRICE_ABOVE,
       threshold: DEFAULT_REPAIR_THRESHOLD,
@@ -51,55 +57,63 @@ export async function POST(req: NextRequest) {
         await prisma.setting.deleteMany({
           where: {
             key: {
-              in: ['repair_price_below', 'repair_price_above', 'repair_threshold']
+              in: [
+                'price_per_crack_below_threshold',
+                'price_per_crack_above_threshold',
+                'racquet_value_threshold'
+              ]
             }
           }
         })
       } catch (dbErr) {
-        console.warn('Could not delete setting keys, database may be uninitialized:', dbErr)
+        console.warn('Could not delete setting keys from database:', dbErr)
       }
       return NextResponse.json({
         success: true,
+        price_per_crack_below_threshold: DEFAULT_REPAIR_PRICE_BELOW,
+        price_per_crack_above_threshold: DEFAULT_REPAIR_PRICE_ABOVE,
+        racquet_value_threshold: DEFAULT_REPAIR_THRESHOLD,
+        // Legacy keys
         priceA: DEFAULT_REPAIR_PRICE_BELOW,
         priceB: DEFAULT_REPAIR_PRICE_ABOVE,
         threshold: DEFAULT_REPAIR_THRESHOLD,
       })
     }
 
-    const { priceA, priceB, threshold } = body
+    const { key, value } = body
 
-    if (priceA === undefined || priceB === undefined || threshold === undefined) {
-      return NextResponse.json({ success: false, error: 'priceA, priceB, and threshold are required' }, { status: 400 })
+    if (!key || value === undefined) {
+      return NextResponse.json({ success: false, error: 'key and value are required' }, { status: 400 })
     }
 
-    const numPriceA = Number(priceA)
-    const numPriceB = Number(priceB)
-    const numThreshold = Number(threshold)
+    const numValue = Number(value)
 
     // Enforce positive numbers only
-    if (isNaN(numPriceA) || numPriceA <= 0 || isNaN(numPriceB) || numPriceB <= 0 || isNaN(numThreshold) || numThreshold <= 0) {
+    if (isNaN(numValue) || numValue <= 0) {
       return NextResponse.json({ success: false, error: 'All pricing inputs must be positive numbers only' }, { status: 400 })
     }
 
-    const settingsData = [
-      { key: 'repair_price_below', value: String(numPriceA) },
-      { key: 'repair_price_above', value: String(numPriceB) },
-      { key: 'repair_threshold', value: String(numThreshold) },
+    // Validate key name
+    const allowedKeys = [
+      'price_per_crack_below_threshold',
+      'price_per_crack_above_threshold',
+      'racquet_value_threshold'
     ]
 
-    for (const item of settingsData) {
-      await prisma.setting.upsert({
-        where: { key: item.key },
-        update: { value: item.value },
-        create: { key: item.key, value: item.value },
-      })
+    if (!allowedKeys.includes(key)) {
+      return NextResponse.json({ success: false, error: `Invalid configuration key: ${key}` }, { status: 400 })
     }
+
+    await prisma.setting.upsert({
+      where: { key },
+      update: { value: String(numValue) },
+      create: { key, value: String(numValue) },
+    })
 
     return NextResponse.json({
       success: true,
-      priceA: numPriceA,
-      priceB: numPriceB,
-      threshold: numThreshold,
+      key,
+      value: numValue
     })
   } catch (error: any) {
     console.error('Update Settings Error:', error)
@@ -110,4 +124,3 @@ export async function POST(req: NextRequest) {
     }, { status: 500 })
   }
 }
-

@@ -9,6 +9,7 @@ const navItems = [
     { name: "Dashboard", href: "/admin/dashboard", icon: LayoutDashboard },
     { name: "Orders", href: "/admin/orders", icon: ShoppingCart },
     { name: "Inventory", href: "/admin/inventory", icon: Package },
+    { name: "Settings", href: "/admin/settings", icon: Settings },
 ];
 
 export default function AdminSidebar() {

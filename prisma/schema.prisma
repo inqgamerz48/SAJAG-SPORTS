@@ -141,11 +141,8 @@ model Settings {
 }
 
 model Setting {
-  id        String   @id @default(uuid()) @db.Uuid
-  key       String   @unique
-  value     String
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
+  key   String @id @unique
+  value String
 
   @@map("system_settings")
 }

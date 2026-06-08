@@ -58,9 +58,9 @@ export async function getRepairSettings(): Promise<RepairSettings> {
         const { prisma } = await import('@/lib/prisma')
         const settings = await prisma.setting.findMany()
 
-        const priceBelow = settings.find(s => s.key === 'repair_price_below')?.value
-        const priceAbove = settings.find(s => s.key === 'repair_price_above')?.value
-        const threshold = settings.find(s => s.key === 'repair_threshold')?.value
+        const priceBelow = settings.find(s => s.key === 'price_per_crack_below_threshold')?.value
+        const priceAbove = settings.find(s => s.key === 'price_per_crack_above_threshold')?.value
+        const threshold = settings.find(s => s.key === 'racquet_value_threshold')?.value
 
         return {
             priceBelow: priceBelow ? parseFloat(priceBelow) : DEFAULT_REPAIR_PRICE_BELOW,
