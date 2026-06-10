@@ -6,7 +6,9 @@ type ShiprocketCreateResult = {
   shiprocketOrderId?: string
   raw?: unknown
   error?: string
+  isValidationError?: boolean
 }
+
 
 type ReversePickupInput = {
   orderId: string
@@ -111,7 +113,40 @@ function getStorePickupLocation() {
   }
 }
 
+export function normalizePhone(phone: string): string {
+  const clean = phone.replace(/\D/g, '')
+  if (clean.length === 12 && clean.startsWith('91')) {
+    return clean.slice(2)
+  }
+  if (clean.length === 11 && clean.startsWith('0')) {
+    return clean.slice(1)
+  }
+  return clean.slice(-10)
+}
+
+export function validateShiprocketPayload(pickupPhone: string, pickupPincode: string) {
+  if (!/^\d{10}$/.test(pickupPhone)) {
+    throw new Error(`Invalid pickup phone number format: ${pickupPhone}. Must be a 10-digit number.`)
+  }
+  if (!/^\d{6}$/.test(pickupPincode)) {
+    throw new Error(`Invalid pickup pincode format: ${pickupPincode}. Must be a 6-digit number.`)
+  }
+}
+
 export async function createReversePickup(input: ReversePickupInput): Promise<ShiprocketCreateResult> {
+  const cleanPhone = normalizePhone(input.customerPhone)
+
+  try {
+    validateShiprocketPayload(cleanPhone, input.customerPincode)
+  } catch (validationErr: any) {
+    console.warn('[Shiprocket API] Validation failure before API call:', validationErr.message)
+    return {
+      success: false,
+      error: validationErr.message,
+      isValidationError: true,
+    }
+  }
+
   try {
     let token: any
     let authSucceeded = false
@@ -145,7 +180,7 @@ export async function createReversePickup(input: ReversePickupInput): Promise<Sh
       pickup_country: "India",
       pickup_pincode: input.customerPincode,
       pickup_email: "customer@sajagsports.com",
-      pickup_phone: input.customerPhone,
+      pickup_phone: cleanPhone,
       shipping_customer_name: "Sajag Sports",
       shipping_last_name: "",
       shipping_address: "Pune",

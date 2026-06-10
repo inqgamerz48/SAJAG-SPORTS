@@ -180,6 +180,36 @@ export async function POST(req: NextRequest) {
       })
 
       if (!shiprocketResult.success) {
+        if (shiprocketResult.isValidationError) {
+          console.error('[Verify Payment] Validation failure before Shiprocket call for order:', order.id, shiprocketResult.error)
+
+          await prisma.order.update({
+            where: { id: order.id },
+            data: {
+              reversePickupBookedAt: null,
+              paymentStatus: 'paid',
+            },
+          })
+
+          const adminTemplate = templates.validationFailedAdminAlert(
+            order.id,
+            customerName,
+            shiprocketResult.error || 'Validation failed for customer details'
+          )
+          sendEmailNotification({
+            to: process.env.ADMIN_EMAIL || 'admin@sajagsports.com',
+            subject: adminTemplate.subject,
+            text: adminTemplate.text,
+          }).catch(err => console.error('Failed to send admin validation failure alert email', err))
+
+          return NextResponse.json({
+            success: true,
+            orderId: order.id,
+            manualShippingRequired: false,
+            message: 'Payment received successfully. However, we noticed an issue with your address or phone number. Our team will verify and resolve this to arrange your pickup.',
+          })
+        }
+
         throw new Error(shiprocketResult.error || 'Shiprocket reverse pickup failed')
       }
 
@@ -221,7 +251,7 @@ export async function POST(req: NextRequest) {
         orderId: order.id,
         manualShippingRequired: false,
       })
-    } catch (shiprocketError) {
+    } catch (shiprocketError: any) {
       console.error('Shiprocket reverse pickup failed for order:', order.id, shiprocketError)
 
       await prisma.order.update({
@@ -233,6 +263,31 @@ export async function POST(req: NextRequest) {
           reversePickupBookedAt: null,
         },
       })
+
+      // Dispatch failure emails to customer and admin
+      const failureTemplate = templates.pickupFailedCustomer(order.id)
+      const adminTemplate = templates.pickupFailedAdminAlert(
+        order.id,
+        customerName,
+        shiprocketError.message || 'Shiprocket API rejected return creation'
+      )
+
+      if (email) {
+        sendEmailNotification({
+          to: email,
+          subject: failureTemplate.subject,
+          text: failureTemplate.text
+        }).catch(err => console.error('Failed to send customer pickupFailed email', err))
+      }
+      sendEmailNotification({
+        to: process.env.ADMIN_EMAIL || 'admin@sajagsports.com',
+        subject: adminTemplate.subject,
+        text: adminTemplate.text
+      }).catch(err => console.error('Failed to send admin alert email', err))
+
+      if (customerPhone) {
+        sendSMSNotification(customerPhone, failureTemplate.sms).catch(err => console.error('Failed to send customer pickupFailed SMS', err))
+      }
 
       return NextResponse.json({
         success: true,

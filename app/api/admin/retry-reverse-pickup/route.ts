@@ -93,6 +93,18 @@ export async function POST(req: NextRequest) {
     })
 
     if (!shiprocketResult.success) {
+      if (shiprocketResult.isValidationError) {
+        console.error('[Admin Retry] Validation failure for order:', order.id, shiprocketResult.error)
+        return NextResponse.json(
+          {
+            success: false,
+            orderId: order.id,
+            error: `Validation error: ${shiprocketResult.error}. Please correct the customer details.`,
+          },
+          { status: 400 }
+        )
+      }
+
       await prisma.order.update({
         where: { id: order.id },
         data: {
@@ -101,6 +113,33 @@ export async function POST(req: NextRequest) {
           reversePickupBookedAt: null,
         },
       })
+
+      // Dispatch failure emails/SMS
+      const failureTemplate = templates.pickupFailedCustomer(order.id)
+      const adminTemplate = templates.pickupFailedAdminAlert(
+        order.id,
+        customerName,
+        shiprocketResult.error || 'Shiprocket API rejected return creation during retry'
+      )
+      const email = order.customerEmail || null
+
+      if (email) {
+        sendEmailNotification({
+          to: email,
+          subject: failureTemplate.subject,
+          text: failureTemplate.text
+        }).catch(err => console.error('Failed to send customer pickupFailed email during retry', err))
+      }
+      sendEmailNotification({
+        to: process.env.ADMIN_EMAIL || 'admin@sajagsports.com',
+        subject: adminTemplate.subject,
+        text: adminTemplate.text
+      }).catch(err => console.error('Failed to send admin alert email during retry', err))
+
+      if (customerPhone) {
+        sendSMSNotification(customerPhone, failureTemplate.sms).catch(err => console.error('Failed to send customer pickupFailed SMS during retry', err))
+      }
+
       return NextResponse.json(
         {
           success: false,

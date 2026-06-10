@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { createForwardShipment } from '@/lib/shiprocket'
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
+import { sendEmailNotification, sendSMSNotification, templates } from '@/lib/notifications'
 
 /**
  * Admin: Trigger return shipment (Workshop → Customer)
@@ -77,6 +78,19 @@ export async function POST(req: NextRequest) {
                     status: 'Ready_to_Return',
                 }
             })
+
+            // 5. Notify customer of return shipment
+            const returnTemplate = templates.shipmentShipped(order.id, shiprocketResult.waybill || 'Pending')
+            if (profile.email) {
+                sendEmailNotification({
+                    to: profile.email,
+                    subject: returnTemplate.subject,
+                    text: returnTemplate.text
+                }).catch(err => console.error('Failed to send shipmentShipped email', err))
+            }
+            if (profile.phone) {
+                sendSMSNotification(profile.phone, returnTemplate.sms).catch(err => console.error('Failed to send shipmentShipped SMS', err))
+            }
 
             return NextResponse.json({
                 success: true,

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import { sendEmailNotification, sendSMSNotification, templates } from "@/lib/notifications";
 
 export async function PUT(req: Request, { params }: { params: Promise<{ id: string }> }) {
     const session = await getServerSession(authOptions);
@@ -23,6 +24,10 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
         }
 
         const { id } = await params;
+        const existingOrder = await prisma.order.findUnique({
+            where: { id }
+        });
+
         const updatedOrder = await prisma.order.update({
             where: { id },
             data: {
@@ -33,6 +38,23 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
                 shipments: true,
             }
         });
+
+        if (data.status === 'Completed' && existingOrder?.status !== 'Completed') {
+            const customerEmail = updatedOrder.customerEmail || updatedOrder.customer?.email;
+            const customerPhone = updatedOrder.customerPhone || updatedOrder.customer?.phone;
+            const completeTemplate = templates.orderCompleted(updatedOrder.id);
+
+            if (customerEmail) {
+                sendEmailNotification({
+                    to: customerEmail,
+                    subject: completeTemplate.subject,
+                    text: completeTemplate.text
+                }).catch(err => console.error('Failed to send orderCompleted email', err));
+            }
+            if (customerPhone) {
+                sendSMSNotification(customerPhone, completeTemplate.sms).catch(err => console.error('Failed to send orderCompleted SMS', err));
+            }
+        }
 
         return NextResponse.json(updatedOrder);
     } catch (error) {

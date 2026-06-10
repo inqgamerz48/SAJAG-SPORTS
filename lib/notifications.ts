@@ -96,5 +96,30 @@ export const templates = {
         subject: `Repair Quote Ready - #${orderId}`,
         text: `Our surgeons have analyzed your racquet. The final repair cost is ₹${amount}. Please pay now to proceed: ${process.env.NEXT_PUBLIC_APP_URL}/pay/${orderId}`,
         sms: `Sajag Sports: Quote ready for order #${orderId}. Amount: ₹${amount}. Pay now: ${process.env.NEXT_PUBLIC_APP_URL}/pay/${orderId}`
+    }),
+    pickupFailedCustomer: (orderId: string) => ({
+        subject: `Payment Confirmed - Pickup Update - #${orderId}`,
+        text: `Payment received successfully for order #${orderId}. However, automatic pickup scheduling could not be completed at this time. Our team has been notified and will arrange your pickup manually. No action is required from you.`,
+        sms: `Sajag Sports: Payment verified for order #${orderId}. Automated pickup scheduling failed. Our team will arrange collection manually.`
+    }),
+    pickupFailedAdminAlert: (orderId: string, customer: string, reason: string) => ({
+        subject: `CRITICAL ALERT: Shiprocket Reverse Pickup Failed - #${orderId}`,
+        text: `Logistics alert. Reverse pickup creation failed for Order #${orderId}.\n\nCustomer: ${customer}\nReason: ${reason}\n\nRequired Action: Please log into the admin panel and retry shipment creation manually.`,
+        sms: `Sajag Sports Alert: Reverse pickup failed for Order #${orderId}. Reason: ${reason}`
+    }),
+    validationFailedAdminAlert: (orderId: string, customer: string, reason: string) => ({
+        subject: `CRITICAL ALERT: Order Address/Phone Validation Failed - #${orderId}`,
+        text: `Logistics alert. Order #${orderId} failed local pre-validation checks before calling Shiprocket.\n\nCustomer: ${customer}\nReason: ${reason}\n\nRequired Action: Please update the customer's phone/address details on the admin panel and retry shipment creation manually.`,
+        sms: `Sajag Sports Alert: Pre-validation checks failed for Order #${orderId}. Reason: ${reason}`
+    }),
+    shipmentShipped: (orderId: string, awb: string) => ({
+        subject: `Your Racquet is on its Way Back! - #${orderId}`,
+        text: `Repairs are complete! Your racquet has been shipped back to you. Waybill/AWB Code: ${awb}. Track live updates on our portal.`,
+        sms: `Sajag Sports: Your racquet has been shipped back. AWB: ${awb}. Track: ${process.env.NEXT_PUBLIC_APP_URL}/track`
+    }),
+    orderCompleted: (orderId: string) => ({
+        subject: `Order Completed - #${orderId} - Sajag Sports`,
+        text: `Your racquet repair order #${orderId} is completed and delivered. Thank you for choosing Sajag Sports!`,
+        sms: `Sajag Sports: Order #${orderId} is complete and delivered. Thank you!`
     })
 }
