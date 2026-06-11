@@ -356,6 +356,19 @@ async function generatePickup(shipmentId: string, token: string): Promise<void> 
 export async function createForwardShipment(
   input: ForwardShipmentInput
 ): Promise<ShiprocketCreateResult> {
+  const cleanPhone = normalizePhone(input.customer_phone)
+
+  try {
+    validateShiprocketPayload(cleanPhone, input.customer_pincode)
+  } catch (validationErr: any) {
+    console.warn('[Shiprocket API] Forward validation failure before API call:', validationErr.message)
+    return {
+      success: false,
+      error: validationErr.message,
+      isValidationError: true,
+    }
+  }
+
   try {
     const token = await getShiprocketToken()
     const store = getStorePickupLocation()
@@ -372,7 +385,7 @@ export async function createForwardShipment(
       billing_country: "India",
       billing_pincode: input.customer_pincode,
       billing_email: input.customer_email || "customer@sajagsports.com",
-      billing_phone: input.customer_phone,
+      billing_phone: cleanPhone,
       shipping_is_billing: true,
       order_items: [
         {
