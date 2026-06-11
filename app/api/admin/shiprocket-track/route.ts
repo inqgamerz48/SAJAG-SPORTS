@@ -19,6 +19,11 @@ export async function POST(req: Request) {
 
         const trackingData = await trackShipment(awbCode);
 
+        console.log(
+            "[SHIPROCKET RAW TRACKING RESPONSE]",
+            JSON.stringify(trackingData, null, 2)
+        );
+
         if (!trackingData.success) {
             throw new Error(trackingData.error || "Shiprocket API returned an error");
         }
