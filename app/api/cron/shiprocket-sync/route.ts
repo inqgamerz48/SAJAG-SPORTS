@@ -37,7 +37,10 @@ export async function GET(req: NextRequest) {
 
       const address = order.addressLine1 || profile?.address || 'Address not provided'
       const pincode = order.pincode || profile?.pincode || ''
-      const phone = order.customerPhone || profile?.phone || '9999999999'
+      const phone = order.customerPhone || profile?.phone || ''
+      if (!phone) {
+        throw new Error('Customer phone number is missing. Cannot book pickup.')
+      }
       const name = order.customerName || profile?.fullName || 'Customer'
 
       const addressParts = (address || '').split(',').map((s: string) => s.trim())

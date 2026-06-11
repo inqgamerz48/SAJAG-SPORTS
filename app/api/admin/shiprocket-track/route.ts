@@ -2,6 +2,11 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { trackShipment } from "@/lib/shiprocket";
+import { z } from "zod";
+
+const shiprocketTrackSchema = z.object({
+  awbCode: z.string().min(1, 'AWB Code is required'),
+})
 
 export async function POST(req: Request) {
     const session = await getServerSession(authOptions);
@@ -11,11 +16,12 @@ export async function POST(req: Request) {
     }
 
     try {
-        const { awbCode } = await req.json();
-
-        if (!awbCode) {
-            return NextResponse.json({ error: "AWB Code is required" }, { status: 400 });
+        const body = await req.json();
+        const parsed = shiprocketTrackSchema.safeParse(body);
+        if (!parsed.success) {
+            return NextResponse.json({ error: parsed.error.issues[0]?.message || 'Invalid payload', details: parsed.error.flatten() }, { status: 400 });
         }
+        const { awbCode } = parsed.data;
 
         const trackingData = await trackShipment(awbCode);
 

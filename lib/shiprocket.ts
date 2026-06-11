@@ -1,4 +1,4 @@
-import { getShiprocketEnv } from '@/lib/env'
+import { getShiprocketEnv, getStoreEnv } from '@/lib/env'
 
 type ShiprocketCreateResult = {
   success: boolean
@@ -34,11 +34,7 @@ type ForwardShipmentInput = {
 }
 
 const DEFAULT_STORE_NAME = 'Sajag Sports Store'
-const DEFAULT_STORE_PHONE = process.env.STORE_PHONE || '9999999999'
-const DEFAULT_STORE_ADDRESS = 'Pune'
-const DEFAULT_STORE_CITY = 'Pune'
-const DEFAULT_STORE_STATE = 'Maharashtra'
-const DEFAULT_STORE_PINCODE = '411028'
+
 
 // Module-level token caching
 let cachedToken: string | null = null
@@ -100,16 +96,17 @@ async function getShiprocketToken(): Promise<string> {
 
 function getStorePickupLocation() {
   const env = getShiprocketEnv()
+  const storeEnv = getStoreEnv()
   const registeredLocationName = env.SHIPROCKET_PICKUP_LOCATION_NAME || env.SHIPROCKET_PICKUP_NAME
   const storeName = registeredLocationName || DEFAULT_STORE_NAME
 
   return {
     name: storeName,
-    phone: env.SHIPROCKET_PICKUP_PHONE || DEFAULT_STORE_PHONE,
-    add: env.SHIPROCKET_PICKUP_ADDRESS || DEFAULT_STORE_ADDRESS,
-    city: env.SHIPROCKET_PICKUP_CITY || DEFAULT_STORE_CITY,
-    state: env.SHIPROCKET_PICKUP_STATE || DEFAULT_STORE_STATE,
-    pin: env.SHIPROCKET_PICKUP_PINCODE || DEFAULT_STORE_PINCODE,
+    phone: env.SHIPROCKET_PICKUP_PHONE || storeEnv.STORE_PHONE,
+    add: env.SHIPROCKET_PICKUP_ADDRESS || storeEnv.STORE_ADDRESS,
+    city: env.SHIPROCKET_PICKUP_CITY || storeEnv.STORE_CITY,
+    state: env.SHIPROCKET_PICKUP_STATE || storeEnv.STORE_STATE,
+    pin: env.SHIPROCKET_PICKUP_PINCODE || storeEnv.STORE_PINCODE,
     country: 'India',
   }
 }
@@ -157,12 +154,13 @@ export function validateShiprocketPayload(pickupPhone: string, pickupPincode: st
 export async function createReversePickup(input: ReversePickupInput, suffix?: string): Promise<ShiprocketCreateResult> {
   let cleanPhone = ''
   let cleanStorePhone = ''
+  const storeEnv = getStoreEnv()
 
   try {
     cleanPhone = normalizePhone(input.customerPhone)
-    cleanStorePhone = normalizePhone(process.env.STORE_PHONE || DEFAULT_STORE_PHONE)
+    cleanStorePhone = normalizePhone(storeEnv.STORE_PHONE)
     validateShiprocketPayload(cleanPhone, input.customerPincode)
-    validateShiprocketPayload(cleanStorePhone, DEFAULT_STORE_PINCODE)
+    validateShiprocketPayload(cleanStorePhone, storeEnv.STORE_PINCODE)
   } catch (validationErr: any) {
     console.warn('[Shiprocket API] Validation failure before API call:', validationErr.message)
     return {
@@ -210,11 +208,11 @@ export async function createReversePickup(input: ReversePickupInput, suffix?: st
       pickup_phone: cleanPhone,
       shipping_customer_name: "Sajag Sports",
       shipping_last_name: "",
-      shipping_address: "Pune",
-      shipping_city: "Pune",
+      shipping_address: storeEnv.STORE_ADDRESS,
+      shipping_city: storeEnv.STORE_CITY,
       shipping_country: "India",
-      shipping_pincode: "411028",
-      shipping_state: "Maharashtra",
+      shipping_pincode: storeEnv.STORE_PINCODE,
+      shipping_state: storeEnv.STORE_STATE,
       shipping_email: "store@sajagsports.com",
       shipping_phone: cleanStorePhone,
       order_items: [
@@ -312,13 +310,14 @@ export async function createReversePickup(input: ReversePickupInput, suffix?: st
         console.log(`[Shiprocket API] Auto pickup generation completed successfully for shipment ${shipmentId}.`)
       } catch (courierErr: any) {
         console.error('[Shiprocket API] Failed to auto-schedule courier:', courierErr)
+        throw courierErr
       }
     }
 
     return {
       success: true,
       shiprocketOrderId: createData.order_id.toString(),
-      waybill: realAwbCode || (createData.shipment_id ? createData.shipment_id.toString() : undefined),
+      waybill: realAwbCode,
       pickupScheduled,
       raw: createData
     }
@@ -490,13 +489,14 @@ export async function createForwardShipment(
         console.log(`[Shiprocket API] Auto pickup generation completed successfully for forward shipment ${shipmentId}.`)
       } catch (courierErr: any) {
         console.error('[Shiprocket API] Failed to auto-schedule forward courier:', courierErr)
+        throw courierErr
       }
     }
 
     return {
       success: true,
       shiprocketOrderId: createData.order_id.toString(),
-      waybill: realAwbCode || (createData.shipment_id ? createData.shipment_id.toString() : undefined),
+      waybill: realAwbCode,
       pickupScheduled,
       raw: createData
     }

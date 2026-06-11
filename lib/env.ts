@@ -21,11 +21,21 @@ const shiprocketEnvSchema = z.object({
   SHIPROCKET_CLIENT_NAME: z.string().optional(),
 })
 
+const storeEnvSchema = z.object({
+  STORE_PHONE: z.string().regex(/^[6-9]\d{9}$/, 'STORE_PHONE must be a 10-digit number starting with 6, 7, 8, or 9'),
+  STORE_ADDRESS: z.string().min(1, 'STORE_ADDRESS is required'),
+  STORE_CITY: z.string().min(1, 'STORE_CITY is required'),
+  STORE_STATE: z.string().min(1, 'STORE_STATE is required'),
+  STORE_PINCODE: z.string().regex(/^\d{6}$/, 'STORE_PINCODE must be exactly 6 digits'),
+})
+
 export type RazorpayEnv = z.infer<typeof razorpayEnvSchema>
 export type ShiprocketEnv = z.infer<typeof shiprocketEnvSchema>
+export type StoreEnv = z.infer<typeof storeEnvSchema>
 
 let cachedRazorpayEnv: RazorpayEnv | null = null
 let cachedShiprocketEnv: ShiprocketEnv | null = null
+let cachedStoreEnv: StoreEnv | null = null
 
 export function getRazorpayEnv(): RazorpayEnv {
   if (cachedRazorpayEnv) return cachedRazorpayEnv
@@ -52,3 +62,22 @@ export function getShiprocketEnv(): ShiprocketEnv {
   cachedShiprocketEnv = parsed.data
   return cachedShiprocketEnv
 }
+
+export function getStoreEnv(): StoreEnv {
+  if (cachedStoreEnv) return cachedStoreEnv
+
+  const parsed = storeEnvSchema.safeParse(process.env)
+  if (!parsed.success) {
+    const missing = parsed.error.issues.map((issue) => `${issue.path.join('.')}: ${issue.message}`).join(', ')
+    throw new Error(`Invalid Store environment variables: ${missing}`)
+  }
+
+  cachedStoreEnv = parsed.data
+  return cachedStoreEnv
+}
+
+// Trigger validation at startup/load time:
+if (typeof window === 'undefined') {
+  getStoreEnv()
+}
+

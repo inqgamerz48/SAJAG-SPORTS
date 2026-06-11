@@ -4,6 +4,11 @@ import { createForwardShipment } from '@/lib/shiprocket'
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { sendEmailNotification, sendSMSNotification, templates } from '@/lib/notifications'
+import { z } from 'zod'
+
+const triggerReturnSchema = z.object({
+  order_id: z.string().uuid('Invalid order ID format'),
+})
 
 /**
  * Admin: Trigger return shipment (Workshop → Customer)
@@ -17,11 +22,12 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ success: false, error: 'Unauthorized via NextAuth' }, { status: 401 })
         }
 
-        const { order_id } = await req.json()
-
-        if (!order_id) {
-            return NextResponse.json({ success: false, error: 'order_id is required' }, { status: 400 })
+        const body = await req.json()
+        const parsed = triggerReturnSchema.safeParse(body)
+        if (!parsed.success) {
+            return NextResponse.json({ success: false, error: parsed.error.issues[0]?.message || 'Invalid payload', details: parsed.error.flatten() }, { status: 400 })
         }
+        const { order_id } = parsed.data
 
         // 1. Get order + customer details using Prisma
         const order = await prisma.order.findUnique({
@@ -46,12 +52,17 @@ export async function POST(req: NextRequest) {
         const city = addressParts[addressParts.length - 2] || 'Unknown'
         const state = addressParts[addressParts.length - 1] || 'Unknown'
 
+        const customerPhone = profile.phone || ''
+        if (!customerPhone) {
+            throw new Error('Customer phone number is missing. Cannot book pickup.')
+        }
+
         // 2. Create forward shipment via Shiprocket
         const shiprocketResult = await createForwardShipment({
             order_id: order.id,
             customer_name: profile.fullName || 'Customer',
             customer_email: profile.email,
-            customer_phone: profile.phone || '9999999999',
+            customer_phone: customerPhone,
             customer_address: profile.address || 'Address not provided',
             customer_pincode: profile.pincode || '',
             customer_city: city,

@@ -1,31 +1,29 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { calculateRoundTripShipping, calculateSingleLegShipping } from '@/lib/shiprocket'
+import { z } from 'zod'
 
-/**
- * Calculate complete pricing quote including Shiprocket shipping
- * 
- * POST /api/calculate-quote
- * Body: { racquetValue, numberOfCracks, stringType, pickupPincode }
- */
+const calculateQuoteSchema = z.object({
+  items: z.array(z.object({
+    type: z.string().optional(),
+    price: z.number().min(0),
+    quantity: z.number().int().min(1),
+    serviceType: z.string().optional(),
+  })).min(1, 'Cart is empty'),
+  customerPincode: z.string().regex(/^\d{6}$/, 'Valid 6-digit Pincode is required for shipping calculations'),
+})
+
 export async function POST(req: NextRequest) {
     try {
         const body = await req.json()
-        const { items, customerPincode } = body
-        const pin = String(customerPincode || '').trim().replace(/\D/g, '').slice(0, 6)
-
-        if (!items || !Array.isArray(items) || items.length === 0) {
+        const parsed = calculateQuoteSchema.safeParse(body)
+        if (!parsed.success) {
             return NextResponse.json(
-                { success: false, error: 'Cart is empty' },
+                { success: false, error: parsed.error.issues[0]?.message || 'Invalid payload', details: parsed.error.flatten() },
                 { status: 400 }
             )
         }
-
-        if (!pin || pin.length !== 6) {
-            return NextResponse.json(
-                { success: false, error: 'Valid 6-digit Pincode is required for shipping calculations' },
-                { status: 400 }
-            )
-        }
+        const { items, customerPincode } = parsed.data
+        const pin = customerPincode.trim()
 
         // Check if there are any physical products or services that require round-trip shipping
         const hasServices = items.some((item: any) => item.type === 'service')

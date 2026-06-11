@@ -4,10 +4,11 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { createReversePickup, cancelShiprocketOrder } from '@/lib/shiprocket'
 import { sendEmailNotification, sendSMSNotification, templates } from '@/lib/notifications'
+import { z } from 'zod'
 
-type RetryPayload = {
-  orderId?: string
-}
+const retryReversePickupSchema = z.object({
+  orderId: z.string().uuid('Invalid order ID format'),
+})
 
 // In-memory retry counter per order (resets on server restart)
 const retryCountMap = new Map<string, number>()
@@ -19,11 +20,12 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const body = (await req.json()) as RetryPayload
-    const orderId = body.orderId?.trim()
-    if (!orderId) {
-      return NextResponse.json({ success: false, error: 'orderId is required' }, { status: 400 })
+    const body = await req.json()
+    const parsed = retryReversePickupSchema.safeParse(body)
+    if (!parsed.success) {
+      return NextResponse.json({ success: false, error: parsed.error.issues[0]?.message || 'Invalid payload', details: parsed.error.flatten() }, { status: 400 })
     }
+    const { orderId } = parsed.data
 
     // Increment retry counter
     const currentCount = (retryCountMap.get(orderId) || 0) + 1
@@ -76,7 +78,10 @@ export async function POST(req: NextRequest) {
     // ── Step 3: Create a completely fresh return order with unique suffix ──
     const amount = Number(order.finalQuote ?? order.logisticsDeposit ?? 0)
     const customerName = order.customerName || 'Customer'
-    const customerPhone = order.customerPhone || '9999999999'
+    const customerPhone = order.customerPhone || ''
+    if (!customerPhone) {
+      throw new Error('Customer phone number is missing. Cannot book pickup.')
+    }
     const customerAddress = order.addressLine1 || 'Address not provided'
     const customerPincode = order.pincode || ''
     const customerCity = order.city || 'Unknown'

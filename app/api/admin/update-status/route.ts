@@ -2,6 +2,12 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
+import { z } from 'zod'
+
+const updateStatusSchema = z.object({
+  order_id: z.string().uuid('Invalid order ID format'),
+  new_status: z.string().min(1, 'new_status is required'),
+})
 
 export async function POST(req: NextRequest) {
     try {
@@ -11,15 +17,16 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ success: false, error: 'Unauthorized via NextAuth' }, { status: 401 })
         }
 
-        const { order_id, new_status } = await req.json()
-
-        if (!order_id || !new_status) {
-            return NextResponse.json({ success: false, error: 'order_id and new_status are required' }, { status: 400 })
+        const body = await req.json()
+        const parsed = updateStatusSchema.safeParse(body)
+        if (!parsed.success) {
+            return NextResponse.json({ success: false, error: parsed.error.issues[0]?.message || 'Invalid payload', details: parsed.error.flatten() }, { status: 400 })
         }
+        const { order_id, new_status } = parsed.data
 
         await prisma.order.update({
             where: { id: order_id },
-            data: { status: new_status },
+            data: { status: new_status as any },
         })
 
         // Trigger Notifications (WhatsApp/Email)

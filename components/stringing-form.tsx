@@ -15,6 +15,7 @@ import { useAuth } from '@/components/providers/auth-provider'
 import { useCartStore } from '@/store/useCartStore' 
 import { Trash2, Loader2, CheckCircle2, XCircle } from 'lucide-react' 
 import { Textarea } from '@/components/ui/textarea' 
+import { cn } from '@/lib/utils'
 
 interface StringingRacquetData { 
   id: string 
@@ -52,12 +53,13 @@ export function StringingForm() {
     id: Math.random().toString(36).substring(7), 
     brand: '', 
     model: '', 
-    stringName: 'BG 65', 
+    stringName: '', 
     tension: [24], 
     comments: '', 
   }) 
 
   const [racquets, setRacquets] = useState<StringingRacquetData[]>([createEmptyRacquet()]) 
+  const [errors, setErrors] = useState<Record<string, string>>({})
   const [loading, setLoading] = useState(false) 
   const [checkingPincode, setCheckingPincode] = useState(false) 
   const [pincodeStatus, setPincodeStatus] = useState<'idle' | 'valid' | 'invalid'>('idle') 
@@ -104,6 +106,13 @@ export function StringingForm() {
 
   const handleUpdateRacquet = (id: string, updates: Partial<StringingRacquetData>) => { 
     setRacquets(prev => prev.map(r => r.id === id ? { ...r, ...updates } : r)) 
+    if (updates.stringName) {
+      setErrors(prev => {
+        const next = { ...prev }
+        delete next[`stringName-${id}`]
+        return next
+      })
+    }
   } 
 
   const handleAddRacquet = () => { 
@@ -128,9 +137,22 @@ export function StringingForm() {
       return 
     } 
 
-    const missingDetails = racquets.some(r => !r.brand.trim() || !r.model.trim() || !r.stringName.trim()) 
+    const newErrors: Record<string, string> = {}
+    racquets.forEach((r) => {
+      if (!r.stringName) {
+        newErrors[`stringName-${r.id}`] = 'String type is required. Please select a string choice.'
+      }
+    })
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors)
+      toast.error('Please select a string choice for all racquets.')
+      return
+    }
+
+    const missingDetails = racquets.some(r => !r.brand.trim() || !r.model.trim()) 
     if (missingDetails) { 
-      toast.error('Please enter the brand, model, and select a string option for all racquets.') 
+      toast.error('Please enter the brand and model for all racquets.') 
       return 
     } 
 
@@ -326,9 +348,11 @@ export function StringingForm() {
                       <Select 
                         value={racquet.stringName} 
                         onValueChange={(value) => handleUpdateRacquet(racquet.id, { stringName: value })} 
-                        required 
                       > 
-                        <SelectTrigger id={`string-name-${racquet.id}`} className="mt-1 bg-white"> 
+                        <SelectTrigger 
+                          id={`string-name-${racquet.id}`} 
+                          className={cn("mt-1 bg-white", errors[`stringName-${racquet.id}`] && "border-red-500 focus:ring-red-500")}
+                        > 
                           <SelectValue placeholder="Select string type" /> 
                         </SelectTrigger> 
                         <SelectContent> 
@@ -339,6 +363,9 @@ export function StringingForm() {
                           ))} 
                         </SelectContent> 
                       </Select> 
+                      {errors[`stringName-${racquet.id}`] && (
+                        <p className="text-xs text-red-500 mt-1">{errors[`stringName-${racquet.id}`]}</p>
+                      )}
                     </div> 
                     <div> 
                       <Label className="text-gray-700">Stringing Tension: {racquet.tension[0]} lbs *</Label> 

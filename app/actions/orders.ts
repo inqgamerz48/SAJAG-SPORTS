@@ -95,10 +95,15 @@ export async function approveOrderForPickup(orderId: string) {
       const city = addressParts[addressParts.length - 2] || 'Unknown'
       const state = addressParts[addressParts.length - 1] || 'Unknown'
 
+      const customerPhone = profile.phone || ''
+      if (!customerPhone) {
+        throw new Error('Customer phone number is missing. Cannot book pickup.')
+      }
+
       const pickupResult = await createReversePickup({
         orderId: order.id,
         customerName: profile.full_name || 'Customer',
-        customerPhone: profile.phone || '9999999999',
+        customerPhone: customerPhone,
         customerAddress: profile.address || 'Address not provided',
         customerPincode: profile.pincode || '',
         customerCity: city,

@@ -1,38 +1,32 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { calculateRoundTripShipping } from '@/lib/shiprocket'
+import { z } from 'zod'
 
-/**
- * Calculate total for repair service:
- * - Repair price by racquet value: below ₹5K = ₹499, above ₹5K = ₹599
- * - Plus stringing cost if selected: BG65 (total ₹650 with repair), BG65 Titanium (total ₹700 with repair)
- * - Plus round-trip shipping (Shiprocket Leg A + Leg B)
- * - PLUS 18% GST on shipping only
- */
+const calculateTotalSchema = z.object({
+  serviceType: z.literal('repair', { errorMap: () => ({ message: 'This endpoint is for repair service only' }) }),
+  customerPincode: z.string().min(1, 'customerPincode is required'),
+  racketValue: z.number().min(0, 'racketValue must be positive'),
+  crackCount: z.number().int().min(1).max(10).optional(),
+  stringType: z.string().optional().nullable(),
+})
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
+    const parsed = calculateTotalSchema.safeParse(body)
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: parsed.error.issues[0]?.message || 'Invalid payload', details: parsed.error.flatten() },
+        { status: 400 }
+      )
+    }
     const {
       serviceType,
       customerPincode,
       racketValue,
       crackCount,
       stringType,
-    } = body
-
-    // Validate required fields for repair service
-    if (serviceType !== 'repair') {
-      return NextResponse.json(
-        { error: 'This endpoint is for repair service only' },
-        { status: 400 }
-      )
-    }
-
-    if (!customerPincode || !racketValue) {
-      return NextResponse.json(
-        { error: 'Missing required fields: customerPincode, racketValue' },
-        { status: 400 }
-      )
-    }
+    } = parsed.data
 
     // Extract pincode from address if full address provided
     const pincodeMatch = String(customerPincode || '').match(/\b\d{6}\b/)

@@ -20,6 +20,25 @@ const FORWARD_ORDER_STATUS_MAP: Record<string, string> = {
   'DELIVERED': 'Completed', // For forward leg, delivered to customer
 }
 
+import { z } from 'zod'
+
+const shiprocketWebhookSchema = z.object({
+  awb_code: z.any().optional(),
+  awb: z.any().optional(),
+  waybill: z.any().optional(),
+  current_status: z.any().optional(),
+  status: z.any().optional(),
+  shipment_status_label: z.any().optional(),
+  tracking_data: z.object({
+    awb_code: z.any().optional(),
+    awb: z.any().optional(),
+    waybill: z.any().optional(),
+    current_status: z.any().optional(),
+    status: z.any().optional(),
+    shipment_status_label: z.any().optional(),
+  }).optional(),
+}).passthrough()
+
 export async function POST(req: NextRequest) {
   try {
     // 1. Authenticate the webhook request
@@ -35,7 +54,13 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    const payload = await req.json()
+    const rawPayload = await req.json()
+    const parsed = shiprocketWebhookSchema.safeParse(rawPayload)
+    if (!parsed.success) {
+      console.warn('[Shiprocket Webhook] Invalid webhook payload format')
+      return NextResponse.json({ error: 'Invalid payload' }, { status: 400 })
+    }
+    const payload = parsed.data
     console.log('[Shiprocket Webhook Received Payload]:', JSON.stringify(payload, null, 2))
 
     const trackingData = payload.tracking_data || payload

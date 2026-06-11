@@ -3,25 +3,23 @@ import { prisma } from '@/lib/prisma'
 import { createReversePickup } from '@/lib/shiprocket'
 import { verifyRazorpaySignature } from '@/lib/razorpay'
 import { sendEmailNotification, sendSMSNotification, templates } from '@/lib/notifications'
+import { z } from 'zod'
 
-type VerifyPaymentPayload = {
-  orderId?: string
-  razorpay_order_id?: string
-  razorpay_payment_id?: string
-  razorpay_signature?: string
-}
+const verifyPaymentSchema = z.object({
+  orderId: z.string().min(1, 'orderId is required'),
+  razorpay_order_id: z.string().min(1, 'razorpay_order_id is required'),
+  razorpay_payment_id: z.string().min(1, 'razorpay_payment_id is required'),
+  razorpay_signature: z.string().min(1, 'razorpay_signature is required'),
+})
 
 export async function POST(req: NextRequest) {
   try {
-    const body = (await req.json()) as VerifyPaymentPayload
-    const orderId = body.orderId?.trim()
-    const razorpayOrderId = body.razorpay_order_id?.trim()
-    const razorpayPaymentId = body.razorpay_payment_id?.trim()
-    const razorpaySignature = body.razorpay_signature?.trim()
-
-    if (!orderId || !razorpayOrderId || !razorpayPaymentId || !razorpaySignature) {
-      return NextResponse.json({ success: false, error: 'Missing payment verification fields' }, { status: 400 })
+    const body = await req.json()
+    const parsed = verifyPaymentSchema.safeParse(body)
+    if (!parsed.success) {
+      return NextResponse.json({ success: false, error: parsed.error.issues[0]?.message || 'Invalid payload', details: parsed.error.flatten() }, { status: 400 })
     }
+    const { orderId, razorpay_order_id: razorpayOrderId, razorpay_payment_id: razorpayPaymentId, razorpay_signature: razorpaySignature } = parsed.data
 
     const signatureOk = verifyRazorpaySignature({
       razorpayOrderId,
@@ -123,7 +121,10 @@ export async function POST(req: NextRequest) {
 
       // Fire orderConfirmed notification
       const customerName = order.customerName || 'Customer'
-      const customerPhone = order.customerPhone || '9999999999'
+      const customerPhone = order.customerPhone || ''
+      if (!customerPhone) {
+        throw new Error('Customer phone number is missing. Cannot book pickup.')
+      }
       const email = order.customerEmail || null
       const confirmedTemplate = templates.orderConfirmed(order.id, customerName)
       if (email) {
@@ -147,7 +148,10 @@ export async function POST(req: NextRequest) {
 
     const amount = Number(order.finalQuote ?? order.logisticsDeposit ?? 0)
     const customerName = order.customerName || 'Customer'
-    const customerPhone = order.customerPhone || '9999999999'
+    const customerPhone = order.customerPhone || ''
+    if (!customerPhone) {
+      throw new Error('Customer phone number is missing. Cannot book pickup.')
+    }
     const customerAddress = order.addressLine1 || 'Address not provided'
     const customerPincode = order.pincode || ''
     const customerCity = order.city || 'Unknown'

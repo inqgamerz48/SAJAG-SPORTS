@@ -1,16 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { z } from 'zod';
+
+const trackOrderSchema = z.object({
+  orderId: z.string().min(1, 'Order ID is required'),
+  phone: z.string().min(1, 'Phone number is required'),
+})
 
 export async function POST(request: NextRequest) {
     try {
-        const { orderId, phone } = await request.json();
-
-        if (!orderId || !phone) {
+        const body = await request.json();
+        const parsed = trackOrderSchema.safeParse(body);
+        if (!parsed.success) {
             return NextResponse.json(
-                { success: false, error: 'Order ID and phone number are required' },
+                { success: false, error: 'Invalid payload', details: parsed.error.flatten() },
                 { status: 400 }
             );
         }
+        const { orderId, phone } = parsed.data;
 
         const cleanPhone = phone.replace(/[\s\-\(\)]/g, '');
 

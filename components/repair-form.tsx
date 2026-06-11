@@ -16,6 +16,7 @@ import { useCartStore } from '@/store/useCartStore'
 import { Trash2, Loader2, CheckCircle2, XCircle, Camera } from 'lucide-react'
 import { Textarea } from '@/components/ui/textarea'
 import { UploadDropzone } from '@/utils/uploadthing'
+import { cn } from '@/lib/utils'
 
 interface RacquetData {
   id: string
@@ -23,7 +24,7 @@ interface RacquetData {
   model: string
   tension_lbs: number
   stringType: string
-  racquetValueCategory: 'A' | 'B'
+  racquetValueCategory: 'A' | 'B' | ''
   numberOfCracks: string
   comments: string
   repairImageUrl?: string
@@ -50,13 +51,14 @@ export function RepairForm() {
     brand: '',
     model: '',
     tension_lbs: 24,
-    stringType: 'BG 65',
-    racquetValueCategory: 'A',
-    numberOfCracks: '1',
+    stringType: '',
+    racquetValueCategory: '',
+    numberOfCracks: '',
     comments: '',
   })
 
   const [racquets, setRacquets] = useState<RacquetData[]>([createEmptyRacquet()])
+  const [errors, setErrors] = useState<Record<string, string>>({})
   const [loading, setLoading] = useState(false)
   const [checkingPincode, setCheckingPincode] = useState(false)
   const [pincodeStatus, setPincodeStatus] = useState<'idle' | 'valid' | 'invalid'>('idle')
@@ -130,6 +132,16 @@ export function RepairForm() {
 
   const handleUpdateRacquet = (id: string, updates: Partial<RacquetData>) => {
     setRacquets(prev => prev.map(r => r.id === id ? { ...r, ...updates } : r))
+    const updatedKeys = Object.keys(updates)
+    if (updatedKeys.length > 0) {
+      setErrors(prev => {
+        const next = { ...prev }
+        updatedKeys.forEach(k => {
+          delete next[`${k}-${id}`]
+        })
+        return next
+      })
+    }
   }
 
   const handleAddRacquet = () => {
@@ -152,6 +164,25 @@ export function RepairForm() {
     const pincode = contactInfo.pincode
     if (!pincode || !/^\d{6}$/.test(pincode)) {
       toast.error('Please enter a valid 6-digit pincode.')
+      return
+    }
+
+    const newErrors: Record<string, string> = {}
+    racquets.forEach((r) => {
+      if (!r.racquetValueCategory) {
+        newErrors[`racquetValueCategory-${r.id}`] = 'Please select a value category.'
+      }
+      if (!r.numberOfCracks) {
+        newErrors[`numberOfCracks-${r.id}`] = 'Please select the number of cracks.'
+      }
+      if (!r.stringType) {
+        newErrors[`stringType-${r.id}`] = 'Please select a string choice.'
+      }
+    })
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors)
+      toast.error('Please resolve form validation errors.')
       return
     }
 
@@ -190,7 +221,7 @@ export function RepairForm() {
         let basePrice = racquet.racquetValueCategory === 'A' ? priceA : priceB
         let stringPrice = racquet.stringType ? STRING_PRICES[racquet.stringType as keyof typeof STRING_PRICES] || 0 : 0
 
-        const totalPrice = (basePrice * parseInt(racquet.numberOfCracks)) + stringPrice
+        const totalPrice = (basePrice * parseInt(racquet.numberOfCracks || '1')) + stringPrice
 
         addItem({
           name: `${racquet.brand} ${racquet.model} Repair${racquet.stringType ? ` + ${racquet.stringType}` : ''}`,
@@ -366,14 +397,14 @@ export function RepairForm() {
                       </div>
                     </div>
 
-                    {/* Pricing Fields */}
+                     {/* Pricing Fields */}
                     <div className="p-4 bg-white rounded-lg space-y-4 border border-gray-200">
                       <div>
                         <Label className="text-gray-700">Racquet Value Category *</Label>
                         <RadioGroup
                           value={racquet.racquetValueCategory}
                           onValueChange={(val: 'A' | 'B') => handleUpdateRacquet(racquet.id, { racquetValueCategory: val })}
-                          className="mt-2"
+                          className={cn("mt-2 p-2 rounded-md", errors[`racquetValueCategory-${racquet.id}`] && "border border-red-500 bg-red-50/20")}
                         >
                           <div className="flex items-center space-x-2">
                             <RadioGroupItem value="A" id={`cat-a-${racquet.id}`} />
@@ -388,6 +419,9 @@ export function RepairForm() {
                             </Label>
                           </div>
                         </RadioGroup>
+                        {errors[`racquetValueCategory-${racquet.id}`] && (
+                          <p className="text-xs text-red-500 mt-1">{errors[`racquetValueCategory-${racquet.id}`]}</p>
+                        )}
                       </div>
 
                       <div>
@@ -396,7 +430,10 @@ export function RepairForm() {
                           value={racquet.numberOfCracks}
                           onValueChange={(val) => handleUpdateRacquet(racquet.id, { numberOfCracks: val })}
                         >
-                          <SelectTrigger id={`cracks-${racquet.id}`} className="mt-1 bg-white">
+                          <SelectTrigger 
+                            id={`cracks-${racquet.id}`} 
+                            className={cn("mt-1 bg-white", errors[`numberOfCracks-${racquet.id}`] && "border-red-500 focus:ring-red-500")}
+                          >
                             <SelectValue placeholder="Select number of cracks" />
                           </SelectTrigger>
                           <SelectContent>
@@ -406,6 +443,9 @@ export function RepairForm() {
                             <SelectItem value="4">4 Cracks</SelectItem>
                           </SelectContent>
                         </Select>
+                        {errors[`numberOfCracks-${racquet.id}`] && (
+                          <p className="text-xs text-red-500 mt-1">{errors[`numberOfCracks-${racquet.id}`]}</p>
+                        )}
                       </div>
 
                       {/* Upload Photo Section */}
@@ -468,7 +508,10 @@ export function RepairForm() {
                           value={racquet.stringType}
                           onValueChange={(val) => handleUpdateRacquet(racquet.id, { stringType: val })}
                         >
-                          <SelectTrigger id={`string-choice-${racquet.id}`} className="mt-1 bg-white">
+                          <SelectTrigger 
+                            id={`string-choice-${racquet.id}`} 
+                            className={cn("mt-1 bg-white", errors[`stringType-${racquet.id}`] && "border-red-500 focus:ring-red-500")}
+                          >
                             <SelectValue placeholder="Select string" />
                           </SelectTrigger>
                           <SelectContent>
@@ -481,6 +524,9 @@ export function RepairForm() {
                               ))}
                           </SelectContent>
                         </Select>
+                        {errors[`stringType-${racquet.id}`] && (
+                          <p className="text-xs text-red-500 mt-1">{errors[`stringType-${racquet.id}`]}</p>
+                        )}
                       </div>
                     </div>
 
