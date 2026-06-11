@@ -34,7 +34,7 @@ type ForwardShipmentInput = {
 }
 
 const DEFAULT_STORE_NAME = 'Sajag Sports Store'
-const DEFAULT_STORE_PHONE = '9999999999'
+const DEFAULT_STORE_PHONE = process.env.STORE_PHONE || '9999999999'
 const DEFAULT_STORE_ADDRESS = 'Pune'
 const DEFAULT_STORE_CITY = 'Pune'
 const DEFAULT_STORE_STATE = 'Maharashtra'
@@ -115,19 +115,29 @@ function getStorePickupLocation() {
 }
 
 export function normalizePhone(phone: string): string {
-  const clean = phone.replace(/\D/g, '')
-  if (clean.length === 12 && clean.startsWith('91')) {
-    return clean.slice(2)
+  // 1. Strip any leading +91 or 91 prefix first
+  let clean = phone.trim().replace(/[^\d+]/g, '')
+  if (clean.startsWith('+91')) {
+    clean = clean.slice(3)
+  } else if (clean.startsWith('91')) {
+    clean = clean.slice(2)
   }
-  if (clean.length === 11 && clean.startsWith('0')) {
-    return clean.slice(1)
+  clean = clean.replace(/\D/g, '')
+
+  // 2. Then take only the last 10 digits
+  const result = clean.slice(-10)
+
+  // 3. Validate the result starts with 9, 8, 7, or 6
+  if (!/^[6-9]\d{9}$/.test(result)) {
+    throw new Error(`Invalid phone number: ${phone}. Result must be a 10-digit number starting with 6, 7, 8, or 9.`)
   }
-  return clean.slice(-10)
+
+  return result
 }
 
 export function validateShiprocketPayload(pickupPhone: string, pickupPincode: string) {
-  if (!/^\d{10}$/.test(pickupPhone) && !/^\+91\d{10}$/.test(pickupPhone)) {
-    throw new Error(`Invalid pickup phone number format: ${pickupPhone}. Must be a 10-digit number or starts with +91.`)
+  if (!/^[6-9]\d{9}$/.test(pickupPhone)) {
+    throw new Error(`Invalid phone number format: ${pickupPhone}. Must be a 10-digit number starting with 6, 7, 8, or 9.`)
   }
   if (!/^\d{6}$/.test(pickupPincode)) {
     throw new Error(`Invalid pickup pincode format: ${pickupPincode}. Must be a 6-digit number.`)
@@ -135,10 +145,14 @@ export function validateShiprocketPayload(pickupPhone: string, pickupPincode: st
 }
 
 export async function createReversePickup(input: ReversePickupInput): Promise<ShiprocketCreateResult> {
-  const cleanPhone = normalizePhone(input.customerPhone)
+  let cleanPhone = ''
+  let cleanStorePhone = ''
 
   try {
+    cleanPhone = normalizePhone(input.customerPhone)
+    cleanStorePhone = normalizePhone(process.env.STORE_PHONE || DEFAULT_STORE_PHONE)
     validateShiprocketPayload(cleanPhone, input.customerPincode)
+    validateShiprocketPayload(cleanStorePhone, DEFAULT_STORE_PINCODE)
   } catch (validationErr: any) {
     console.warn('[Shiprocket API] Validation failure before API call:', validationErr.message)
     return {
@@ -190,7 +204,7 @@ export async function createReversePickup(input: ReversePickupInput): Promise<Sh
       shipping_pincode: "411028",
       shipping_state: "Maharashtra",
       shipping_email: "store@sajagsports.com",
-      shipping_phone: "9999999999",
+      shipping_phone: cleanStorePhone,
       order_items: [
         {
           name: "Racquet Repair Service",
@@ -346,9 +360,10 @@ async function generatePickup(shipmentId: string, token: string): Promise<void> 
 export async function createForwardShipment(
   input: ForwardShipmentInput
 ): Promise<ShiprocketCreateResult> {
-  const cleanPhone = normalizePhone(input.customer_phone)
+  let cleanPhone = ''
 
   try {
+    cleanPhone = normalizePhone(input.customer_phone)
     validateShiprocketPayload(cleanPhone, input.customer_pincode)
   } catch (validationErr: any) {
     console.warn('[Shiprocket API] Forward validation failure before API call:', validationErr.message)
