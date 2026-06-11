@@ -376,6 +376,13 @@ async function generatePickup(shipmentId: string, token: string): Promise<void> 
     try {
       bodyText = await res.text()
     } catch (_) {}
+
+    // "Already in Pickup Queue" is not a real error — the pickup is already scheduled
+    if (res.status === 400 && bodyText.toLowerCase().includes('already in pickup queue')) {
+      console.info(`[Shiprocket API] Pickup already in queue for shipment ${shipmentId}. Treating as success.`)
+      return
+    }
+
     console.error(`[Shiprocket API] Pickup scheduling failed with HTTP ${res.status}. Response:`, bodyText)
     throw new Error(`Pickup scheduling failed with HTTP ${res.status}: ${bodyText}`)
   }
