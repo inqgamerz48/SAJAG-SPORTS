@@ -9,6 +9,9 @@ type RetryPayload = {
   orderId?: string
 }
 
+// In-memory retry counter per order (resets on server restart)
+const retryCountMap = new Map<string, number>()
+
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions)
   if (!session || (session.user as any)?.role !== 'admin') {
@@ -22,16 +25,19 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, error: 'orderId is required' }, { status: 400 })
     }
 
+    // Increment retry counter
+    const currentCount = (retryCountMap.get(orderId) || 0) + 1
+    retryCountMap.set(orderId, currentCount)
+
     const order = await prisma.order.findUnique({
       where: { id: orderId },
       include: { shipments: true },
     })
     if (!order) {
-      return NextResponse.json({ success: false, error: 'Order not found' }, { status: 404 })
+      return NextResponse.json({ success: false, error: 'Order not found', retryCount: currentCount }, { status: 404 })
     }
 
     // ── Step 1: Cancel ALL existing reverse Shiprocket orders ──
-    // This ensures Shiprocket doesn't hold stale data (wrong phone, etc.)
     const existingReverseShipments = order.shipments.filter(
       (shipment: any) =>
         shipment.provider === 'shiprocket' &&
@@ -40,11 +46,10 @@ export async function POST(req: NextRequest) {
 
     for (const shipment of existingReverseShipments) {
       if ((shipment as any).shiprocketOrderId) {
-        console.log(`[Admin Retry] Cancelling old Shiprocket order ${(shipment as any).shiprocketOrderId} for order ${order.id}`)
+        console.log(`[Admin Retry #${currentCount}] Cancelling old Shiprocket order ${(shipment as any).shiprocketOrderId} for order ${order.id}`)
         const cancelResult = await cancelShiprocketOrder((shipment as any).shiprocketOrderId)
         if (!cancelResult.success) {
-          // Log but don't block — the old order might already be cancelled or expired
-          console.warn(`[Admin Retry] Cancel returned non-success (continuing anyway):`, cancelResult.error)
+          console.warn(`[Admin Retry #${currentCount}] Cancel returned non-success (continuing anyway):`, cancelResult.error)
         }
       }
     }
@@ -68,7 +73,7 @@ export async function POST(req: NextRequest) {
       }),
     ])
 
-    // ── Step 3: Create a completely fresh return order ──
+    // ── Step 3: Create a completely fresh return order with unique suffix ──
     const amount = Number(order.finalQuote ?? order.logisticsDeposit ?? 0)
     const customerName = order.customerName || 'Customer'
     const customerPhone = order.customerPhone || '9999999999'
@@ -86,16 +91,17 @@ export async function POST(req: NextRequest) {
       customerCity,
       customerState,
       amount,
-    })
+    }, Date.now().toString())
 
     if (!shiprocketResult.success) {
       if (shiprocketResult.isValidationError) {
-        console.error('[Admin Retry] Validation failure for order:', order.id, shiprocketResult.error)
+        console.error(`[Admin Retry #${currentCount}] Validation failure for order:`, order.id, shiprocketResult.error)
         return NextResponse.json(
           {
             success: false,
             orderId: order.id,
             error: `Validation error: ${shiprocketResult.error}. Please correct the customer details.`,
+            retryCount: currentCount,
           },
           { status: 400 }
         )
@@ -141,6 +147,7 @@ export async function POST(req: NextRequest) {
           success: false,
           orderId: order.id,
           error: shiprocketResult.error || 'Shiprocket rejected reverse pickup creation',
+          retryCount: currentCount,
         },
         { status: 502 }
       )
@@ -190,6 +197,7 @@ export async function POST(req: NextRequest) {
       message: 'Reverse pickup created successfully.',
       awbCode: shiprocketResult.waybill || null,
       shiprocketOrderId: shiprocketResult.shiprocketOrderId || null,
+      retryCount: currentCount,
     })
   } catch (error) {
     console.error('Retry reverse pickup error:', error)

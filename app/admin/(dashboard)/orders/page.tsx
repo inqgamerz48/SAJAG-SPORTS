@@ -53,6 +53,8 @@ export default function OrdersFeedPage() {
     const [trackingData, setTrackingData] = useState<Record<string, any>>({});
     const [trackingLoading, setTrackingLoading] = useState<Record<string, boolean>>({});
     const [retryLoading, setRetryLoading] = useState<Record<string, boolean>>({});
+    const [retryResults, setRetryResults] = useState<Record<string, { type: 'success' | 'error'; message: string }>>({});
+    const [retryCounts, setRetryCounts] = useState<Record<string, number>>({});
     const [expanded, setExpanded] = useState<Record<string, boolean>>({});
     const [filter, setFilter] = useState<Filter>("active");
     const [search, setSearch] = useState("");
@@ -114,8 +116,23 @@ export default function OrdersFeedPage() {
         }
     };
 
+    const getRetryErrorMessage = (error: string): string => {
+        const lower = error.toLowerCase();
+        if (lower.includes('phone') || lower.includes('mobile no')) {
+            return '❌ Customer phone rejected by Shiprocket. Ask customer for alternate number.';
+        }
+        if (lower.includes('pincode') || lower.includes('serviceable')) {
+            return '❌ Pincode not serviceable by any courier.';
+        }
+        if (lower.includes('cancelled')) {
+            return '❌ Order conflict. Please try once more.';
+        }
+        return '❌ Pickup booking failed. Check logs.';
+    };
+
     const retryReversePickup = async (orderId: string) => {
         setRetryLoading(prev => ({ ...prev, [orderId]: true }));
+        setRetryResults(prev => { const next = { ...prev }; delete next[orderId]; return next; });
         try {
             const res = await fetch("/api/admin/retry-reverse-pickup", {
                 method: "POST",
@@ -123,13 +140,32 @@ export default function OrdersFeedPage() {
                 body: JSON.stringify({ orderId }),
             });
             const data = await res.json();
-            if (!res.ok || !data.success) {
-                throw new Error(data.error || "Failed to retry Shiprocket pickup");
+
+            // Update retry count from server response
+            if (data.retryCount) {
+                setRetryCounts(prev => ({ ...prev, [orderId]: data.retryCount }));
             }
-            toast.success(data.message || "Reverse pickup retry succeeded");
+
+            if (!res.ok || !data.success) {
+                const errorMsg = data.error || "Failed to retry Shiprocket pickup";
+                setRetryResults(prev => ({
+                    ...prev,
+                    [orderId]: { type: 'error', message: getRetryErrorMessage(errorMsg) }
+                }));
+                return;
+            }
+
+            const awb = data.awbCode || data.shiprocketOrderId || 'Pending';
+            setRetryResults(prev => ({
+                ...prev,
+                [orderId]: { type: 'success', message: `✅ Pickup booked! AWB: ${awb}` }
+            }));
             fetchOrders();
         } catch (err: any) {
-            toast.error(err?.message || "Reverse pickup retry failed");
+            setRetryResults(prev => ({
+                ...prev,
+                [orderId]: { type: 'error', message: getRetryErrorMessage(err?.message || '') }
+            }));
         } finally {
             setRetryLoading(prev => ({ ...prev, [orderId]: false }));
         }
@@ -528,11 +564,39 @@ export default function OrdersFeedPage() {
                                                         disabled={retryLoading[order.id]}
                                                         className="inline-flex items-center gap-1.5 text-xs px-3 py-2 rounded-md bg-amber-600 text-white hover:bg-amber-700 disabled:opacity-60"
                                                     >
-                                                        <RotateCcw className="w-3.5 h-3.5" />
-                                                        {retryLoading[order.id]
-                                                            ? "Retrying..."
-                                                : "Retry Shiprocket Pickup"}
+                                                        {retryLoading[order.id] ? (
+                                                            <>
+                                                                <svg className="animate-spin w-3.5 h-3.5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                                </svg>
+                                                                Retrying pickup booking...
+                                                            </>
+                                                        ) : (
+                                                            <>
+                                                                <RotateCcw className="w-3.5 h-3.5" />
+                                                                Retry Shiprocket Pickup
+                                                            </>
+                                                        )}
                                                     </button>
+
+                                                    {/* Result banner */}
+                                                    {retryResults[order.id] && (
+                                                        <div className={`mt-2 text-xs px-3 py-2 rounded-md font-medium ${
+                                                            retryResults[order.id].type === 'success'
+                                                                ? 'bg-green-100 text-green-800 border border-green-200'
+                                                                : 'bg-red-100 text-red-800 border border-red-200'
+                                                        }`}>
+                                                            {retryResults[order.id].message}
+                                                        </div>
+                                                    )}
+
+                                                    {/* Retry attempt counter */}
+                                                    {retryCounts[order.id] && (
+                                                        <p className="mt-1.5 text-[11px] text-gray-400">
+                                                            Attempted {retryCounts[order.id]} time{retryCounts[order.id] > 1 ? 's' : ''}
+                                                        </p>
+                                                    )}
                                                 </div>
                                             )}
 

@@ -154,7 +154,7 @@ export function validateShiprocketPayload(pickupPhone: string, pickupPincode: st
   }
 }
 
-export async function createReversePickup(input: ReversePickupInput): Promise<ShiprocketCreateResult> {
+export async function createReversePickup(input: ReversePickupInput, suffix?: string): Promise<ShiprocketCreateResult> {
   let cleanPhone = ''
   let cleanStorePhone = ''
 
@@ -193,8 +193,10 @@ export async function createReversePickup(input: ReversePickupInput): Promise<Sh
       authHeaderIsExactlyBearerToken: typeof token === 'string' && `Bearer ${token}` === `Bearer ${token}` && `Bearer ${token}`.startsWith('Bearer ')
     })
 
+    const shiprocketOrderId = input.orderId.replace(/-/g, '').slice(0, 20) + 'R' + (suffix || '')
+
     const payload = {
-      order_id: input.orderId.replace(/-/g, '').slice(0, 20) + 'R',
+      order_id: shiprocketOrderId,
       order_date: new Date().toISOString().replace(/T/, ' ').replace(/\..+/, ''),
       channel_id: "",
       pickup_customer_name: input.customerName || "Customer",
@@ -280,6 +282,18 @@ export async function createReversePickup(input: ReversePickupInput): Promise<Sh
       return {
         success: false,
         error: createData.message || 'Failed to create Shiprocket reverse pickup',
+        raw: createData
+      }
+    }
+
+    // Detect cancelled or conflicted order — do NOT proceed to AWB
+    const statusCode = createData.status_code ?? createData.statusCode
+    const statusStr = String(createData.status || '').toLowerCase()
+    if (statusCode === 27 || statusStr.includes('cancelled')) {
+      console.error('[Shiprocket API] Order created but status indicates CANCELLED:', createData)
+      return {
+        success: false,
+        error: 'Order was created in CANCELLED state. Please retry with a fresh ID.',
         raw: createData
       }
     }
