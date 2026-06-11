@@ -36,6 +36,7 @@ export async function POST(req: NextRequest) {
         shipment.isReverse &&
         Boolean(shipment.awbCode || shipment.shiprocketOrderId)
     )
+    /*
     if (validReverseShipment) {
       return NextResponse.json({
         success: true,
@@ -45,6 +46,7 @@ export async function POST(req: NextRequest) {
         shiprocketOrderId: validReverseShipment.shiprocketOrderId,
       })
     }
+    */
 
     // Clear stale reverse shipment rows created by previous failed attempts.
     const incompleteReverseShipmentIds = order.shipments
