@@ -6,6 +6,7 @@ import { toast } from "sonner";
 
 const steps = [
     { id: "Pending", label: "Order Received", icon: PackageOpen },
+    { id: "Return_Created", label: "Return Created", icon: PackageOpen },
     { id: "Pickup_Pending", label: "Pickup Arranged", icon: Truck },
     { id: "In_Workshop", label: "In Workshop", icon: MapPin },
     { id: "Repairing", label: "Under Repair", icon: AlertCircle },

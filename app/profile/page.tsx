@@ -14,6 +14,7 @@ export const dynamic = 'force-dynamic'
 function getStatusColor(status: string) {
     switch (status) {
         case 'Pending':
+        case 'Return_Created':
         case 'Pickup_Pending':
             return 'bg-yellow-100 text-yellow-800 border-yellow-200'
         case 'In_Workshop':
@@ -35,6 +36,7 @@ function getStatusColor(status: string) {
 function getStatusLabel(status: string) {
     switch (status) {
         case 'Pending': return 'Order Received'
+        case 'Return_Created': return 'Return Created'
         case 'Pickup_Pending': return 'Awaiting Pickup'
         case 'In_Workshop': return 'Received at Workshop'
         case 'Repairing': return 'Being Serviced'

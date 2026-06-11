@@ -61,6 +61,8 @@ export default function TrackOrderPage() {
 
     const getStatusIcon = (status: string) => {
         switch (status) {
+            case 'Return_Created':
+                return <Clock className="w-6 h-6 text-zinc-500" />
             case 'Pickup_Pending':
                 return <Clock className="w-6 h-6 text-yellow-500" />
             case 'In_Workshop':
@@ -78,6 +80,7 @@ export default function TrackOrderPage() {
 
     const getStatusText = (status: string) => {
         const statusMap: Record<string, string> = {
+            Return_Created: 'Return Created (Awaiting Courier Booking)',
             Pickup_Pending: 'Awaiting Pickup from Your Location',
             In_Workshop: 'Arrived at Sajag Workshop',
             Repairing: 'Under Selection/Repair (In Progress)',

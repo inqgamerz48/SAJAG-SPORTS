@@ -43,3 +43,6 @@ next-env.d.ts
 !README.md
 *.log
 
+
+.vercel
+.env*

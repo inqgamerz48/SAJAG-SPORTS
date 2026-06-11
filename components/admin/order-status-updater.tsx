@@ -62,6 +62,7 @@ export default function OrderStatusUpdater({ order }: { order: any }) {
                                 <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
+                                <SelectItem value="Return_Created">Return Created</SelectItem>
                                 <SelectItem value="Pickup_Pending">Pickup Pending</SelectItem>
                                 <SelectItem value="In_Workshop">In Workshop</SelectItem>
                                 <SelectItem value="Repairing">Repairing</SelectItem>

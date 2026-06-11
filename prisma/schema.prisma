@@ -41,6 +41,7 @@ model Product {
 
 enum OrderStatus {
   Pending
+  Return_Created
   Pickup_Pending
   Manual_Fulfillment_Required
   In_Workshop

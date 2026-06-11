@@ -219,7 +219,7 @@ export async function POST(req: NextRequest) {
             orderId: order.id,
             awbCode: shiprocketResult.waybill || null,
             shiprocketOrderId: shiprocketResult.shiprocketOrderId || null,
-            shipmentStatus: 'Pickup_Scheduled',
+            shipmentStatus: 'Return_Created',
             isReverse: true,
             provider: 'shiprocket',
           },
@@ -227,7 +227,7 @@ export async function POST(req: NextRequest) {
         prisma.order.update({
           where: { id: order.id },
           data: {
-            status: 'Pickup_Pending',
+            status: 'Return_Created',
             paymentStatus: 'fully_paid',
           },
         }),

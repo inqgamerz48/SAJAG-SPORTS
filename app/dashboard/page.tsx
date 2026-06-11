@@ -88,7 +88,7 @@ export default function CustomerDashboard() {
                                         </div>
                                         <Badge variant={
                                             order.status === 'Completed' ? 'default' :
-                                                order.status === 'Pickup_Pending' ? 'outline' : 'secondary'
+                                                order.status === 'Pickup_Pending' || order.status === 'Return_Created' ? 'outline' : 'secondary'
                                         }>
                                             {order.status.replace('_', ' ')}
                                         </Badge>

@@ -23,6 +23,7 @@ import { toast } from "sonner";
 
 const statusMap: Record<string, { label: string; color: string; icon: any }> = {
     "Pending": { label: "New Order", color: "bg-gray-100 text-gray-800", icon: PackageOpen },
+    "Return_Created": { label: "Return Created", color: "bg-zinc-100 text-zinc-800", icon: PackageOpen },
     "Pickup_Pending": { label: "Pending Pickup", color: "bg-blue-100 text-blue-800", icon: Truck },
     "In_Workshop": { label: "In Workshop", color: "bg-amber-100 text-amber-800", icon: MapPin },
     "Repairing": { label: "Under Repair", color: "bg-amber-200 text-amber-900", icon: AlertCircle },
@@ -35,6 +36,7 @@ const statusMap: Record<string, { label: string; color: string; icon: any }> = {
 
 const ACTIVE_STATUSES = new Set([
     "Pending",
+    "Return_Created",
     "Pickup_Pending",
     "In_Workshop",
     "Repairing",
