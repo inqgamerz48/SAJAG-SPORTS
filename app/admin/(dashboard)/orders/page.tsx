@@ -265,10 +265,7 @@ export default function OrdersFeedPage() {
                             reverseShipment?.awbCode || reverseShipment?.shiprocketOrderId
                         );
                         const awbCode = reverseShipment?.awbCode || null;
-                        const canRetryReversePickup =
-                            !hasValidReverseShipment &&
-                            (order.paymentStatus === "paid_manual_shipping_required" ||
-                                order.status === "Manual_Fulfillment_Required");
+                        const canRetryReversePickup = true;
 
                         return (
                             <div
