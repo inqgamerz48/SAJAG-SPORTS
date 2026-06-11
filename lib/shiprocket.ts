@@ -241,7 +241,7 @@ export async function createReversePickup(input: ReversePickupInput): Promise<Sh
     const createData = await createRes.json()
 
     console.log(
-      "[REVERSE PICKUP RESPONSE]",
+      "[REAL SHIPROCKET CREATE RESPONSE]",
       JSON.stringify(createData, null, 2)
     )
 
