@@ -117,20 +117,10 @@ function getStorePickupLocation() {
 export function normalizePhone(phone: string): string {
   const clean = phone.replace(/\D/g, '')
   if (clean.length === 12 && clean.startsWith('91')) {
-    // If the actual mobile number starts with '91' (e.g. 91xxxxxxxx),
-    // prepend '+' to make it '+9191xxxxxxxx' so Shiprocket strips '+91'
-    // and preserves the correct 10-digit mobile number.
-    if (clean.slice(2).startsWith('91')) {
-      return '+' + clean
-    }
     return clean.slice(2)
   }
   if (clean.length === 11 && clean.startsWith('0')) {
     return clean.slice(1)
-  }
-  // If it's a 10-digit number starting with '91', prepend '+91'
-  if (clean.length === 10 && clean.startsWith('91')) {
-    return '+91' + clean
   }
   return clean.slice(-10)
 }
