@@ -271,6 +271,13 @@ export default function OrdersFeedPage() {
                             order.serviceType &&
                             !hasValidReverseShipment;
 
+                        const uniqueShipments = order.shipments?.reduce((acc: any[], current: any) => {
+                            if (current.awbCode && !acc.some((s: any) => s.awbCode === current.awbCode)) {
+                                acc.push(current);
+                            }
+                            return acc;
+                        }, []) || [];
+
                         return (
                             <div
                                 key={order.id}
@@ -522,12 +529,12 @@ export default function OrdersFeedPage() {
                                                         <RotateCcw className="w-3.5 h-3.5" />
                                                         {retryLoading[order.id]
                                                             ? "Retrying..."
-                                                            : "Retry Shiprocket Pickup"}
+                                                : "Retry Shiprocket Pickup"}
                                                     </button>
                                                 </div>
                                             )}
 
-                                            {order.shipments && order.shipments.filter((s: any) => s.awbCode).map((shipment: any) => (
+                                            {uniqueShipments.map((shipment: any) => (
                                                 <div key={shipment.id} className="md:col-span-1 border rounded-lg p-3 bg-blue-50/50">
                                                     <div className="flex justify-between items-center mb-2">
                                                         <span className="text-xs font-semibold text-gray-700 flex items-center gap-1">
