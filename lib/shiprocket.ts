@@ -115,24 +115,34 @@ function getStorePickupLocation() {
 }
 
 export function normalizePhone(phone: string): string {
-  // 1. Strip any leading +91 or 91 prefix first
-  let clean = phone.trim().replace(/[^\d+]/g, '')
+  let clean = phone.trim()
+
+  // 1. Remove +91 or 0091 prefix only
   if (clean.startsWith('+91')) {
     clean = clean.slice(3)
-  } else if (clean.startsWith('91')) {
-    clean = clean.slice(2)
+  } else if (clean.startsWith('0091')) {
+    clean = clean.slice(4)
   }
+
+  // Remove formatting/non-digit characters
   clean = clean.replace(/\D/g, '')
 
-  // 2. Then take only the last 10 digits
-  const result = clean.slice(-10)
-
-  // 3. Validate the result starts with 9, 8, 7, or 6
-  if (!/^[6-9]\d{9}$/.test(result)) {
-    throw new Error(`Invalid phone number: ${phone}. Result must be a 10-digit number starting with 6, 7, 8, or 9.`)
+  // 2. Remove "91" prefix ONLY if total digits are 12 (country code was included)
+  if (clean.length === 12 && clean.startsWith('91')) {
+    clean = clean.slice(2)
   }
 
-  return result
+  // 3. Remove "0" prefix if 11 digits total (common domestic format)
+  if (clean.length === 11 && clean.startsWith('0')) {
+    clean = clean.slice(1)
+  }
+
+  // 4. Validate: exactly 10 digits, starts with 6/7/8/9
+  if (!/^[6-9]\d{9}$/.test(clean)) {
+    throw new Error(`Invalid phone number: ${phone}. Result must be exactly a 10-digit number starting with 6, 7, 8, or 9.`)
+  }
+
+  return clean
 }
 
 export function validateShiprocketPayload(pickupPhone: string, pickupPincode: string) {
