@@ -112,14 +112,14 @@ export async function approveOrderForPickup(orderId: string) {
           order_id: order.id,
           waybill: pickupResult.waybill,
           shiprocket_order_id: pickupResult.shiprocketOrderId,
-          shipment_status: 'Return_Created',
+          shipment_status: pickupResult.pickupScheduled ? 'Pickup_Scheduled' : 'Return_Created',
           is_reverse: true,
           provider: 'shiprocket',
         })
 
         await supabase
           .from('orders')
-          .update({ status: 'Return_Created' })
+          .update({ status: pickupResult.pickupScheduled ? 'Pickup_Pending' : 'Return_Created' })
           .eq('id', orderId)
 
         revalidatePath('/admin/dashboard')

@@ -7,6 +7,7 @@ type ShiprocketCreateResult = {
   raw?: unknown
   error?: string
   isValidationError?: boolean
+  pickupScheduled?: boolean
 }
 
 
@@ -259,10 +260,28 @@ export async function createReversePickup(input: ReversePickupInput): Promise<Sh
       }
     }
 
+    let realAwbCode: string | undefined
+    let pickupScheduled = false
+
+    if (createData.shipment_id) {
+      const shipmentId = createData.shipment_id.toString()
+      try {
+        console.log(`[Shiprocket API] Initiating auto AWB assignment for shipment ${shipmentId}...`)
+        realAwbCode = await assignAwb(shipmentId, token)
+        console.log(`[Shiprocket API] AWB assigned: ${realAwbCode}. Initiating auto pickup generation...`)
+        await generatePickup(shipmentId, token)
+        pickupScheduled = true
+        console.log(`[Shiprocket API] Auto pickup generation completed successfully for shipment ${shipmentId}.`)
+      } catch (courierErr: any) {
+        console.error('[Shiprocket API] Failed to auto-schedule courier:', courierErr)
+      }
+    }
+
     return {
       success: true,
       shiprocketOrderId: createData.order_id.toString(),
-      waybill: createData.shipment_id ? createData.shipment_id.toString() : undefined,
+      waybill: realAwbCode || (createData.shipment_id ? createData.shipment_id.toString() : undefined),
+      pickupScheduled,
       raw: createData
     }
   } catch (error: any) {
@@ -271,6 +290,56 @@ export async function createReversePickup(input: ReversePickupInput): Promise<Sh
       success: false,
       error: error.message || 'Graceful failure: Shiprocket service is unavailable',
     }
+  }
+}
+
+async function assignAwb(shipmentId: string, token: string): Promise<string> {
+  const endpoint = 'https://apiv2.shiprocket.in/v1/external/courier/assign/awb'
+  const res = await fetch(endpoint, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`
+    },
+    body: JSON.stringify({ shipment_id: shipmentId })
+  })
+
+  if (res.status !== 200) {
+    let bodyText = ''
+    try {
+      bodyText = await res.text()
+    } catch (_) {}
+    console.error(`[Shiprocket API] AWB assignment failed with HTTP ${res.status}. Response:`, bodyText)
+    throw new Error(`AWB assignment failed with HTTP ${res.status}: ${bodyText}`)
+  }
+
+  const data = await res.json()
+  const awb = data?.response?.data?.awb_code
+  if (!awb) {
+    console.error('[Shiprocket API] AWB assignment succeeded but response missing awb_code:', data)
+    throw new Error('No AWB code returned from Shiprocket')
+  }
+  return awb
+}
+
+async function generatePickup(shipmentId: string, token: string): Promise<void> {
+  const endpoint = 'https://apiv2.shiprocket.in/v1/external/courier/generate/pickup'
+  const res = await fetch(endpoint, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`
+    },
+    body: JSON.stringify({ shipment_id: [shipmentId] })
+  })
+
+  if (res.status !== 200) {
+    let bodyText = ''
+    try {
+      bodyText = await res.text()
+    } catch (_) {}
+    console.error(`[Shiprocket API] Pickup scheduling failed with HTTP ${res.status}. Response:`, bodyText)
+    throw new Error(`Pickup scheduling failed with HTTP ${res.status}: ${bodyText}`)
   }
 }
 
@@ -348,10 +417,28 @@ export async function createForwardShipment(
       }
     }
 
+    let realAwbCode: string | undefined
+    let pickupScheduled = false
+
+    if (createData.shipment_id) {
+      const shipmentId = createData.shipment_id.toString()
+      try {
+        console.log(`[Shiprocket API] Initiating auto AWB assignment for forward shipment ${shipmentId}...`)
+        realAwbCode = await assignAwb(shipmentId, token)
+        console.log(`[Shiprocket API] AWB assigned: ${realAwbCode}. Initiating auto pickup generation...`)
+        await generatePickup(shipmentId, token)
+        pickupScheduled = true
+        console.log(`[Shiprocket API] Auto pickup generation completed successfully for forward shipment ${shipmentId}.`)
+      } catch (courierErr: any) {
+        console.error('[Shiprocket API] Failed to auto-schedule forward courier:', courierErr)
+      }
+    }
+
     return {
       success: true,
       shiprocketOrderId: createData.order_id.toString(),
-      waybill: createData.shipment_id ? createData.shipment_id.toString() : undefined,
+      waybill: realAwbCode || (createData.shipment_id ? createData.shipment_id.toString() : undefined),
+      pickupScheduled,
       raw: createData
     }
   } catch (error: any) {

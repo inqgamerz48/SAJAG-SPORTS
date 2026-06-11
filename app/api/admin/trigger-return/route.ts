@@ -59,13 +59,16 @@ export async function POST(req: NextRequest) {
         })
 
         if (shiprocketResult.success) {
+            const targetStatus = shiprocketResult.pickupScheduled ? 'Shipped' : 'Ready_to_Return';
+            const targetShipmentStatus = shiprocketResult.pickupScheduled ? 'Shipped' : 'Manifested';
+
             // 3. Save forward shipment record using Prisma
             await prisma.shipment.create({
                 data: {
                     orderId: order.id,
                     awbCode: shiprocketResult.waybill || null,
                     shiprocketOrderId: shiprocketResult.shiprocketOrderId || null,
-                    shipmentStatus: 'Manifested',
+                    shipmentStatus: targetShipmentStatus,
                     isReverse: false, // This is a forward shipment
                     provider: 'shiprocket',
                 }
@@ -75,7 +78,7 @@ export async function POST(req: NextRequest) {
             await prisma.order.update({
                 where: { id: order_id },
                 data: {
-                    status: 'Ready_to_Return',
+                    status: targetStatus,
                 }
             })
 

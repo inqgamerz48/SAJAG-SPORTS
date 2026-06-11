@@ -213,13 +213,16 @@ export async function POST(req: NextRequest) {
         throw new Error(shiprocketResult.error || 'Shiprocket reverse pickup failed')
       }
 
+      const targetStatus = shiprocketResult.pickupScheduled ? 'Pickup_Pending' : 'Return_Created';
+      const targetShipmentStatus = shiprocketResult.pickupScheduled ? 'Pickup_Scheduled' : 'Return_Created';
+
       await prisma.$transaction([
         prisma.shipment.create({
           data: {
             orderId: order.id,
             awbCode: shiprocketResult.waybill || null,
             shiprocketOrderId: shiprocketResult.shiprocketOrderId || null,
-            shipmentStatus: 'Return_Created',
+            shipmentStatus: targetShipmentStatus,
             isReverse: true,
             provider: 'shiprocket',
           },
@@ -227,7 +230,7 @@ export async function POST(req: NextRequest) {
         prisma.order.update({
           where: { id: order.id },
           data: {
-            status: 'Return_Created',
+            status: targetStatus as any,
             paymentStatus: 'fully_paid',
           },
         }),

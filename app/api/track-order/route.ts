@@ -50,6 +50,10 @@ export async function POST(request: NextRequest) {
         // Find if any order item is a service
         const serviceItem = order.orderItems.find((item: any) => item.serviceType);
 
+        // Select the active shipment depending on the phase of the order
+        const isForwardPhase = ['Ready_to_Return', 'Shipped', 'Completed'].includes(order.status)
+        const activeShipment = order.shipments.find(s => s.isReverse === !isForwardPhase) || order.shipments[0]
+
         return NextResponse.json({
             success: true,
             order: {
@@ -68,8 +72,8 @@ export async function POST(request: NextRequest) {
                 created_at: order.createdAt,
                 racquet_brand: serviceItem?.racquetBrand,
                 racquet_model: serviceItem?.racquetModel,
-                awb_code: order.shipments[0]?.awbCode,
-                shiprocket_awb_code: order.shipments[0]?.awbCode, // backward-compatible response key
+                awb_code: activeShipment?.awbCode || null,
+                shiprocket_awb_code: activeShipment?.awbCode || null, // backward-compatible response key
             },
         });
     } catch (error) {

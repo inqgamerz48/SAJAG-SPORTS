@@ -97,7 +97,7 @@ export default function OrdersFeedPage() {
     };
 
     const trackShipment = async (orderId: string, awbCode: string) => {
-        setTrackingLoading(prev => ({ ...prev, [orderId]: true }));
+        setTrackingLoading(prev => ({ ...prev, [awbCode]: true }));
         try {
             const res = await fetch("/api/admin/shiprocket-track", {
                 method: "POST",
@@ -106,11 +106,11 @@ export default function OrdersFeedPage() {
             });
             if (!res.ok) throw new Error("Failed");
             const data = await res.json();
-            setTrackingData(prev => ({ ...prev, [orderId]: data }));
+            setTrackingData(prev => ({ ...prev, [awbCode]: data }));
         } catch (err) {
             toast.error("Failed to fetch tracking data");
         } finally {
-            setTrackingLoading(prev => ({ ...prev, [orderId]: false }));
+            setTrackingLoading(prev => ({ ...prev, [awbCode]: false }));
         }
     };
 
@@ -266,8 +266,10 @@ export default function OrdersFeedPage() {
                         const hasValidReverseShipment = Boolean(
                             reverseShipment?.awbCode || reverseShipment?.shiprocketOrderId
                         );
-                        const awbCode = reverseShipment?.awbCode || null;
-                        const canRetryReversePickup = true;
+                        const canRetryReversePickup =
+                            order.paymentStatus === "fully_paid" &&
+                            order.serviceType &&
+                            !hasValidReverseShipment;
 
                         return (
                             <div
@@ -525,38 +527,39 @@ export default function OrdersFeedPage() {
                                                 </div>
                                             )}
 
-                                            {awbCode && (
-                                                <div className="md:col-span-1 border rounded-lg p-3 bg-blue-50/50">
+                                            {order.shipments && order.shipments.filter((s: any) => s.awbCode).map((shipment: any) => (
+                                                <div key={shipment.id} className="md:col-span-1 border rounded-lg p-3 bg-blue-50/50">
                                                     <div className="flex justify-between items-center mb-2">
-                                                        <span className="text-xs font-semibold text-gray-700">
-                                                            AWB: {awbCode}
+                                                        <span className="text-xs font-semibold text-gray-700 flex items-center gap-1">
+                                                            <span className="capitalize">{shipment.isReverse ? 'Reverse' : 'Forward'} AWB:</span>
+                                                            <span className="font-mono">{shipment.awbCode}</span>
                                                         </span>
                                                         <button
-                                                            onClick={() => trackShipment(order.id, awbCode)}
-                                                            disabled={trackingLoading[order.id]}
+                                                            onClick={() => trackShipment(order.id, shipment.awbCode)}
+                                                            disabled={trackingLoading[shipment.awbCode]}
                                                             className="text-xs text-blue-600 hover:text-blue-800 font-medium"
                                                         >
-                                                            {trackingLoading[order.id]
+                                                            {trackingLoading[shipment.awbCode]
                                                                 ? "Loading..."
                                                                 : "Track Live"}
                                                         </button>
                                                     </div>
-                                                    {trackingData[order.id] && (
+                                                    {trackingData[shipment.awbCode] && (
                                                         <div className="text-xs text-gray-600 mt-2">
                                                             Status:{" "}
                                                             <span className="font-medium text-blue-700">
-                                                                {trackingData[order.id]?.status || "Not Found"}
+                                                                {trackingData[shipment.awbCode]?.status || "Not Found"}
                                                             </span>
-                                                            {trackingData[order.id]?.current_location && (
+                                                            {trackingData[shipment.awbCode]?.current_location && (
                                                                 <div className="mt-1">
                                                                     Location:{" "}
-                                                                    {trackingData[order.id].current_location}
+                                                                    {trackingData[shipment.awbCode].current_location}
                                                                 </div>
                                                             )}
                                                         </div>
                                                     )}
                                                 </div>
-                                            )}
+                                            ))}
                                         </div>
                                     </div>
                                 )}
