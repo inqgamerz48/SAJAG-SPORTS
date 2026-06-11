@@ -269,7 +269,7 @@ export default function OrdersFeedPage() {
                         const canRetryReversePickup =
                             order.paymentStatus === "fully_paid" &&
                             order.serviceType &&
-                            !hasValidReverseShipment;
+                            (order.status === "Pending" || order.status === "Return_Created");
 
                         const uniqueShipments = order.shipments?.reduce((acc: any[], current: any) => {
                             if (current.awbCode && !acc.some((s: any) => s.awbCode === current.awbCode)) {
