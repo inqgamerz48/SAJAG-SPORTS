@@ -267,9 +267,11 @@ export default function OrdersFeedPage() {
                             reverseShipment?.awbCode || reverseShipment?.shiprocketOrderId
                         );
                         const canRetryReversePickup =
-                            order.paymentStatus === "fully_paid" &&
+                            (order.paymentStatus === "fully_paid" || order.paymentStatus === "paid_manual_shipping_required") &&
                             order.serviceType &&
-                            (order.status === "Pending" || order.status === "Return_Created");
+                            (order.status === "Pending" ||
+                             order.status === "Return_Created" ||
+                             order.status === "Manual_Fulfillment_Required");
 
                         const uniqueShipments = order.shipments?.reduce((acc: any[], current: any) => {
                             if (current.awbCode && !acc.some((s: any) => s.awbCode === current.awbCode)) {
