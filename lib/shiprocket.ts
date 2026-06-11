@@ -488,6 +488,39 @@ export async function createForwardShipment(
   }
 }
 
+export async function cancelShiprocketOrder(shiprocketOrderId: string): Promise<{
+  success: boolean
+  error?: string
+}> {
+  try {
+    const token = await getShiprocketToken()
+    const res = await fetch('https://apiv2.shiprocket.in/v1/external/orders/cancel', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify({ ids: [Number(shiprocketOrderId)] }),
+    })
+
+    if (res.status !== 200) {
+      let bodyText = ''
+      try {
+        bodyText = await res.text()
+      } catch (_) {}
+      console.error(`[Shiprocket API] Cancel order failed with HTTP ${res.status}. Response:`, bodyText)
+      return { success: false, error: `Cancel failed with HTTP ${res.status}: ${bodyText}` }
+    }
+
+    const data = await res.json()
+    console.log('[Shiprocket API] Cancel order response:', JSON.stringify(data, null, 2))
+    return { success: true }
+  } catch (error: any) {
+    console.error('[Shiprocket API] Cancel order exception:', error)
+    return { success: false, error: error.message || 'Failed to cancel Shiprocket order' }
+  }
+}
+
 export async function trackShipment(awbCode: string): Promise<{
   success: boolean
   data?: unknown

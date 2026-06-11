@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import { createReversePickup } from '@/lib/shiprocket'
+import { createReversePickup, cancelShiprocketOrder } from '@/lib/shiprocket'
 import { sendEmailNotification, sendSMSNotification, templates } from '@/lib/notifications'
 
 type RetryPayload = {
@@ -30,38 +30,31 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, error: 'Order not found' }, { status: 404 })
     }
 
-    const validReverseShipment = order.shipments.find(
+    // ── Step 1: Cancel ALL existing reverse Shiprocket orders ──
+    // This ensures Shiprocket doesn't hold stale data (wrong phone, etc.)
+    const existingReverseShipments = order.shipments.filter(
       (shipment: any) =>
         shipment.provider === 'shiprocket' &&
-        shipment.isReverse &&
-        Boolean(shipment.awbCode || shipment.shiprocketOrderId)
+        shipment.isReverse
     )
-    /*
-    if (validReverseShipment) {
-      return NextResponse.json({
-        success: true,
-        orderId: order.id,
-        message: 'Reverse pickup already exists for this order.',
-        awbCode: validReverseShipment.awbCode,
-        shiprocketOrderId: validReverseShipment.shiprocketOrderId,
-      })
-    }
-    */
 
-    // Clear stale reverse shipment rows created by previous failed attempts.
-    const incompleteReverseShipmentIds = order.shipments
-      .filter(
-        (shipment: any) =>
-          shipment.provider === 'shiprocket' &&
-          shipment.isReverse &&
-          !shipment.awbCode &&
-          !shipment.shiprocketOrderId
-      )
-      .map((shipment: any) => shipment.id)
+    for (const shipment of existingReverseShipments) {
+      if ((shipment as any).shiprocketOrderId) {
+        console.log(`[Admin Retry] Cancelling old Shiprocket order ${(shipment as any).shiprocketOrderId} for order ${order.id}`)
+        const cancelResult = await cancelShiprocketOrder((shipment as any).shiprocketOrderId)
+        if (!cancelResult.success) {
+          // Log but don't block — the old order might already be cancelled or expired
+          console.warn(`[Admin Retry] Cancel returned non-success (continuing anyway):`, cancelResult.error)
+        }
+      }
+    }
+
+    // ── Step 2: Clean up ALL reverse shipment rows + reset order state ──
+    const reverseShipmentIds = existingReverseShipments.map((s: any) => s.id)
 
     await prisma.$transaction([
       prisma.shipment.deleteMany({
-        where: { id: { in: incompleteReverseShipmentIds } },
+        where: { id: { in: reverseShipmentIds } },
       }),
       prisma.order.update({
         where: { id: order.id },
@@ -75,6 +68,7 @@ export async function POST(req: NextRequest) {
       }),
     ])
 
+    // ── Step 3: Create a completely fresh return order ──
     const amount = Number(order.finalQuote ?? order.logisticsDeposit ?? 0)
     const customerName = order.customerName || 'Customer'
     const customerPhone = order.customerPhone || '9999999999'
