@@ -23,7 +23,26 @@ export async function POST(req: Request) {
             throw new Error(trackingData.error || "Shiprocket API returned an error");
         }
 
-        return NextResponse.json(trackingData);
+        const rawData = trackingData.data as any;
+        const shipmentTrack = rawData?.tracking_data?.shipment_track?.[0];
+
+        if (!shipmentTrack) {
+            const errorMsg = rawData?.tracking_data?.error || "No tracking activities found for this AWB.";
+            return NextResponse.json({
+                success: true,
+                status: "Not Found",
+                current_location: null,
+                awb_code: awbCode,
+                message: errorMsg
+            });
+        }
+
+        return NextResponse.json({
+            success: true,
+            status: shipmentTrack.current_status || "Not Found",
+            current_location: shipmentTrack.current_location || null,
+            awb_code: shipmentTrack.awb_code || awbCode
+        });
 
     } catch (error) {
         console.error("Error fetching Shiprocket tracking:", error);
