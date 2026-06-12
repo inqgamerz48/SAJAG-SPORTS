@@ -113,6 +113,10 @@ model Shipment {
   shipmentStatus      String?  @map("shipment_status")
   isReverse           Boolean  @default(false) @map("is_reverse")
   provider            String   @default("shiprocket")
+  courierName         String?  @map("courier_name")
+  courierRate         Decimal? @map("courier_rate") @db.Decimal(10, 2)
+  courierRating       Decimal? @map("courier_rating") @db.Decimal(3, 2)
+  isFallback          Boolean  @default(false) @map("is_fallback")
   createdAt           DateTime @default(now()) @map("created_at")
   updatedAt           DateTime @default(now()) @updatedAt @map("updated_at")
 

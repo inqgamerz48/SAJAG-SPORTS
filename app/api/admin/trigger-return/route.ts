@@ -82,6 +82,10 @@ export async function POST(req: NextRequest) {
                     shipmentStatus: targetShipmentStatus,
                     isReverse: false, // This is a forward shipment
                     provider: 'shiprocket',
+                    courierName: shiprocketResult.courierName || null,
+                    courierRate: shiprocketResult.courierRate ?? null,
+                    courierRating: shiprocketResult.courierRating ?? null,
+                    isFallback: shiprocketResult.isFallback ?? false,
                 }
             })
 

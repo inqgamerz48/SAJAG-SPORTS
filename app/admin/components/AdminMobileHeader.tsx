@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, ShoppingCart, Package, LogOut, Menu, X } from "lucide-react";
+import { LayoutDashboard, ShoppingCart, Package, LogOut, Menu, X, Truck } from "lucide-react";
 import { signOut } from "next-auth/react";
 import { useState } from "react";
 
@@ -10,6 +10,7 @@ const navItems = [
     { name: "Dashboard", href: "/admin/dashboard", icon: LayoutDashboard },
     { name: "Orders", href: "/admin/orders", icon: ShoppingCart },
     { name: "Inventory", href: "/admin/inventory", icon: Package },
+    { name: "Logistics", href: "/admin/logistics", icon: Truck },
 ];
 
 export default function AdminMobileHeader() {

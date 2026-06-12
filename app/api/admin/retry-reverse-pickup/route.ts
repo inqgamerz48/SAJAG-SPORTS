@@ -170,6 +170,10 @@ export async function POST(req: NextRequest) {
           shipmentStatus: targetShipmentStatus,
           isReverse: true,
           provider: 'shiprocket',
+          courierName: shiprocketResult.courierName || null,
+          courierRate: shiprocketResult.courierRate ?? null,
+          courierRating: shiprocketResult.courierRating ?? null,
+          isFallback: shiprocketResult.isFallback ?? false,
         },
       }),
       prisma.order.update({

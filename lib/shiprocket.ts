@@ -8,6 +8,10 @@ type ShiprocketCreateResult = {
   error?: string
   isValidationError?: boolean
   pickupScheduled?: boolean
+  courierName?: string
+  courierRate?: number
+  courierRating?: number
+  isFallback?: boolean
 }
 
 
@@ -298,6 +302,10 @@ export async function createReversePickup(input: ReversePickupInput, suffix?: st
 
     let realAwbCode: string | undefined
     let pickupScheduled = false
+    let courierName: string | undefined
+    let courierRate: number | undefined
+    let courierRating: number | undefined
+    let isFallback = false
 
     if (createData.shipment_id) {
       const shipmentId = createData.shipment_id.toString()
@@ -317,11 +325,17 @@ export async function createReversePickup(input: ReversePickupInput, suffix?: st
             filtered.sort((a: any, b: any) => a.rateVal - b.rateVal)
             const bestCourier = filtered[0]
             selectedCourierId = Number(bestCourier.courier_company_id)
+            courierName = bestCourier.courier_name
+            courierRate = bestCourier.rateVal
+            courierRating = bestCourier.ratingVal
+            isFallback = false
             console.log(`[Shiprocket Smart Courier] Selected Reverse Courier: ${bestCourier.courier_name}, Rate: ₹${bestCourier.rateVal}, Rating: ${bestCourier.ratingVal}`)
           } else {
+            isFallback = true
             console.log(`[Shiprocket Smart Courier] No reverse courier found with rating >= 3.5. Falling back.`)
           }
         } catch (courierSelErr) {
+          isFallback = true
           console.error('[Shiprocket Smart Courier] Error selecting reverse courier:', courierSelErr)
         }
 
@@ -342,7 +356,11 @@ export async function createReversePickup(input: ReversePickupInput, suffix?: st
       shiprocketOrderId: createData.order_id.toString(),
       waybill: realAwbCode,
       pickupScheduled,
-      raw: createData
+      raw: createData,
+      courierName,
+      courierRate,
+      courierRating,
+      isFallback,
     }
   } catch (error: any) {
     console.error('[Shiprocket API] Create reverse pickup exception:', error)
@@ -504,6 +522,10 @@ export async function createForwardShipment(
 
     let realAwbCode: string | undefined
     let pickupScheduled = false
+    let courierName: string | undefined
+    let courierRate: number | undefined
+    let courierRating: number | undefined
+    let isFallback = false
 
     if (createData.shipment_id) {
       const shipmentId = createData.shipment_id.toString()
@@ -523,11 +545,17 @@ export async function createForwardShipment(
             filtered.sort((a: any, b: any) => a.rateVal - b.rateVal)
             const bestCourier = filtered[0]
             selectedCourierId = Number(bestCourier.courier_company_id)
+            courierName = bestCourier.courier_name
+            courierRate = bestCourier.rateVal
+            courierRating = bestCourier.ratingVal
+            isFallback = false
             console.log(`[Shiprocket Smart Courier] Selected Forward Courier: ${bestCourier.courier_name}, Rate: ₹${bestCourier.rateVal}, Rating: ${bestCourier.ratingVal}`)
           } else {
+            isFallback = true
             console.log(`[Shiprocket Smart Courier] No forward courier found with rating >= 3.5. Falling back.`)
           }
         } catch (courierSelErr) {
+          isFallback = true
           console.error('[Shiprocket Smart Courier] Error selecting forward courier:', courierSelErr)
         }
 
@@ -548,7 +576,11 @@ export async function createForwardShipment(
       shiprocketOrderId: createData.order_id.toString(),
       waybill: realAwbCode,
       pickupScheduled,
-      raw: createData
+      raw: createData,
+      courierName,
+      courierRate,
+      courierRating,
+      isFallback,
     }
   } catch (error: any) {
     console.error('[Shiprocket API] Create forward shipment exception:', error)

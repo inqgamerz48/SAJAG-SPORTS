@@ -69,7 +69,11 @@ export async function GET(req: NextRequest) {
               data: {
                 awbCode: result.waybill || null,
                 shiprocketOrderId: result.shiprocketOrderId || null,
-                shipmentStatus: 'Pickup_Scheduled'
+                shipmentStatus: 'Pickup_Scheduled',
+                courierName: result.courierName || null,
+                courierRate: result.courierRate ?? null,
+                courierRating: result.courierRating ?? null,
+                isFallback: result.isFallback ?? false,
               }
             }),
             prisma.order.update({
@@ -101,7 +105,11 @@ export async function GET(req: NextRequest) {
               data: {
                 awbCode: result.waybill || null,
                 shiprocketOrderId: result.shiprocketOrderId || null,
-                shipmentStatus: 'Shipped'
+                shipmentStatus: 'Shipped',
+                courierName: result.courierName || null,
+                courierRate: result.courierRate ?? null,
+                courierRating: result.courierRating ?? null,
+                isFallback: result.isFallback ?? false,
               }
             }),
             prisma.order.update({

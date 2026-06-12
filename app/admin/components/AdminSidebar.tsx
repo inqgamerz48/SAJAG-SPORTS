@@ -2,13 +2,14 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Users, ShoppingCart, Package, Settings, LogOut } from "lucide-react";
+import { LayoutDashboard, Users, ShoppingCart, Package, Settings, LogOut, Truck } from "lucide-react";
 import { signOut } from "next-auth/react";
 
 const navItems = [
     { name: "Dashboard", href: "/admin/dashboard", icon: LayoutDashboard },
     { name: "Orders", href: "/admin/orders", icon: ShoppingCart },
     { name: "Inventory", href: "/admin/inventory", icon: Package },
+    { name: "Logistics", href: "/admin/logistics", icon: Truck },
     { name: "Settings", href: "/admin/settings", icon: Settings },
 ];
 

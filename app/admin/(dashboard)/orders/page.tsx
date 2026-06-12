@@ -617,8 +617,28 @@ export default function OrdersFeedPage() {
                                                                 : "Track Live"}
                                                         </button>
                                                     </div>
+
+                                                    {shipment.courierName && (
+                                                        <div className="text-[11px] text-gray-600 border-t pt-1.5 mt-1.5 space-y-0.5">
+                                                            <div>
+                                                                <span className="font-semibold text-gray-500">Courier:</span> {shipment.courierName}
+                                                            </div>
+                                                            <div className="flex justify-between">
+                                                                <span><span className="font-semibold text-gray-500">Rate:</span> ₹{Number(shipment.courierRate).toFixed(2)}</span>
+                                                                <span><span className="font-semibold text-gray-500">Rating:</span> ⭐{Number(shipment.courierRating).toFixed(1)}</span>
+                                                            </div>
+                                                            <div className="mt-1">
+                                                                {shipment.isFallback ? (
+                                                                    <span className="inline-flex px-1.5 py-0.5 rounded text-[10px] bg-amber-100 text-amber-800 font-medium">Auto-assigned Fallback</span>
+                                                                ) : (
+                                                                    <span className="inline-flex px-1.5 py-0.5 rounded text-[10px] bg-green-100 text-green-800 font-medium">Smart Selected Cheapest</span>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    )}
+
                                                     {trackingData[shipment.awbCode] && (
-                                                        <div className="text-xs text-gray-600 mt-2">
+                                                        <div className="text-xs text-gray-600 mt-2 border-t pt-2">
                                                             Status:{" "}
                                                             <span className="font-medium text-blue-700">
                                                                 {trackingData[shipment.awbCode]?.status || "Not Found"}
