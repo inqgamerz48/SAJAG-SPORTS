@@ -302,8 +302,31 @@ export async function createReversePickup(input: ReversePickupInput, suffix?: st
     if (createData.shipment_id) {
       const shipmentId = createData.shipment_id.toString()
       try {
+        let selectedCourierId: number | undefined
+        try {
+          const couriers = await getServiceableCouriers(input.customerPincode, storeEnv.STORE_PINCODE, 0.5, false)
+          const filtered = couriers
+            .map((c: any) => {
+              const rating = parseFloat(String(c.rating || 0))
+              const rate = parseFloat(String(c.rate ?? c.freight_charge ?? Infinity))
+              return { ...c, ratingVal: rating, rateVal: rate }
+            })
+            .filter((c: any) => c.ratingVal >= 3.5 && c.rateVal < Infinity)
+          
+          if (filtered.length > 0) {
+            filtered.sort((a: any, b: any) => a.rateVal - b.rateVal)
+            const bestCourier = filtered[0]
+            selectedCourierId = Number(bestCourier.courier_company_id)
+            console.log(`[Shiprocket Smart Courier] Selected Reverse Courier: ${bestCourier.courier_name}, Rate: ₹${bestCourier.rateVal}, Rating: ${bestCourier.ratingVal}`)
+          } else {
+            console.log(`[Shiprocket Smart Courier] No reverse courier found with rating >= 3.5. Falling back.`)
+          }
+        } catch (courierSelErr) {
+          console.error('[Shiprocket Smart Courier] Error selecting reverse courier:', courierSelErr)
+        }
+
         console.log(`[Shiprocket API] Initiating auto AWB assignment for shipment ${shipmentId}...`)
-        realAwbCode = await assignAwb(shipmentId, token)
+        realAwbCode = await assignAwb(shipmentId, token, selectedCourierId)
         console.log(`[Shiprocket API] AWB assigned: ${realAwbCode}. Initiating auto pickup generation...`)
         await generatePickup(shipmentId, token)
         pickupScheduled = true
@@ -330,15 +353,19 @@ export async function createReversePickup(input: ReversePickupInput, suffix?: st
   }
 }
 
-async function assignAwb(shipmentId: string, token: string): Promise<string> {
+async function assignAwb(shipmentId: string, token: string, courierId?: number): Promise<string> {
   const endpoint = 'https://apiv2.shiprocket.in/v1/external/courier/assign/awb'
+  const body: any = { shipment_id: shipmentId }
+  if (courierId !== undefined) {
+    body.courier_id = courierId
+  }
   const res = await fetch(endpoint, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${token}`
     },
-    body: JSON.stringify({ shipment_id: shipmentId })
+    body: JSON.stringify(body)
   })
 
   if (res.status !== 200) {
@@ -481,8 +508,31 @@ export async function createForwardShipment(
     if (createData.shipment_id) {
       const shipmentId = createData.shipment_id.toString()
       try {
+        let selectedCourierId: number | undefined
+        try {
+          const couriers = await getServiceableCouriers(store.pin, input.customer_pincode, 0.5, false)
+          const filtered = couriers
+            .map((c: any) => {
+              const rating = parseFloat(String(c.rating || 0))
+              const rate = parseFloat(String(c.rate ?? c.freight_charge ?? Infinity))
+              return { ...c, ratingVal: rating, rateVal: rate }
+            })
+            .filter((c: any) => c.ratingVal >= 3.5 && c.rateVal < Infinity)
+          
+          if (filtered.length > 0) {
+            filtered.sort((a: any, b: any) => a.rateVal - b.rateVal)
+            const bestCourier = filtered[0]
+            selectedCourierId = Number(bestCourier.courier_company_id)
+            console.log(`[Shiprocket Smart Courier] Selected Forward Courier: ${bestCourier.courier_name}, Rate: ₹${bestCourier.rateVal}, Rating: ${bestCourier.ratingVal}`)
+          } else {
+            console.log(`[Shiprocket Smart Courier] No forward courier found with rating >= 3.5. Falling back.`)
+          }
+        } catch (courierSelErr) {
+          console.error('[Shiprocket Smart Courier] Error selecting forward courier:', courierSelErr)
+        }
+
         console.log(`[Shiprocket API] Initiating auto AWB assignment for forward shipment ${shipmentId}...`)
-        realAwbCode = await assignAwb(shipmentId, token)
+        realAwbCode = await assignAwb(shipmentId, token, selectedCourierId)
         console.log(`[Shiprocket API] AWB assigned: ${realAwbCode}. Initiating auto pickup generation...`)
         await generatePickup(shipmentId, token)
         pickupScheduled = true
@@ -583,6 +633,44 @@ export async function trackShipment(awbCode: string): Promise<{
   }
 }
 
+export async function getServiceableCouriers(
+  pickupPincode: string,
+  deliveryPincode: string,
+  weight: number,
+  isCod: boolean = false
+): Promise<any[]> {
+  try {
+    const token = await getShiprocketToken()
+    const codVal = isCod ? 1 : 0
+    const url = new URL('https://apiv2.shiprocket.in/v1/external/courier/serviceability/')
+    url.searchParams.append('pickup_postcode', pickupPincode)
+    url.searchParams.append('delivery_postcode', deliveryPincode)
+    url.searchParams.append('weight', String(weight))
+    url.searchParams.append('cod', String(codVal))
+
+    const res = await fetch(url.toString(), {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    })
+
+    if (res.status !== 200) {
+      console.error(`[Shiprocket API] courier serviceability failed with HTTP ${res.status}`)
+      return []
+    }
+
+    const data = await res.json()
+    if (data?.data?.available_courier_companies && Array.isArray(data.data.available_courier_companies)) {
+      return data.data.available_courier_companies
+    }
+    return []
+  } catch (error) {
+    console.error('[Shiprocket API] Error in getServiceableCouriers:', error)
+    return []
+  }
+}
+
 export async function calculateSingleLegShipping(
   pincode: string
 ): Promise<{ success: boolean; legA: number; legB: number; total: number; grandTotal: number; error?: string }> {
@@ -603,8 +691,8 @@ export async function calculateRoundTripShipping(
     return { success: false, legA: 0, legB: 0, total: 0, grandTotal: 0, error: 'Invalid pincode. Please enter a valid 6-digit pincode.' }
   }
 
-  const legA = 120
-  const legB = 120
+  const legA = 150
+  const legB = 150
   const total = legA + legB
 
   return { success: true, legA, legB, total, grandTotal: total }
