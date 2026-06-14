@@ -1,4 +1,4 @@
-import { createUploadthing, type FileRouter } from "uploadthing/next";
+import { createUploadthing, type FileRouter } from "uploadthing/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { createServerClient } from "@supabase/ssr";
@@ -33,7 +33,7 @@ export const ourFileRouter = {
             return { userId: user.userId };
         })
         .onUploadComplete(async ({ metadata, file }) => {
-            return { url: file.url };
+            return { url: file.ufsUrl };
         }),
     repairImage: f({ image: { maxFileSize: "4MB", maxFileCount: 1 } })
         .middleware(async () => {
@@ -41,8 +41,8 @@ export const ourFileRouter = {
             return { userId: user.userId };
         })
         .onUploadComplete(async ({ metadata, file }) => {
-            console.log("Repair image upload complete:", file.url);
-            return { url: file.url };
+            console.log("Repair image upload complete:", file.ufsUrl);
+            return { url: file.ufsUrl };
         }),
 } satisfies FileRouter;
 
