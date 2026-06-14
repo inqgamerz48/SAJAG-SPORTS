@@ -37,8 +37,8 @@ export const ourFileRouter = {
         }),
     repairImage: f({ image: { maxFileSize: "4MB", maxFileCount: 1 } })
         .middleware(async () => {
-            const user = await checkAuth();
-            return { userId: user.userId };
+            // Public endpoint: Allow guest users (e.g., customers from ads without accounts) to upload repair images.
+            return { userId: "guest" };
         })
         .onUploadComplete(async ({ metadata, file }) => {
             console.log("Repair image upload complete:", file.ufsUrl);
