@@ -69,8 +69,21 @@ export async function POST(req: NextRequest) {
             subtotal += (item.price * item.quantity);
         })
 
+        // Calculate discount based on repair items count
+        let discount = 0
+        try {
+            const repairItems = items.filter((item: any) => item.type === 'service' && item.serviceType === 'repair')
+            const numRepairRackets = repairItems.reduce((sum: number, item: any) => sum + (item.quantity || 1), 0)
+            if (numRepairRackets === 2) discount = 100
+            else if (numRepairRackets === 3) discount = 150
+            else if (numRepairRackets >= 4) discount = 200
+        } catch (err) {
+            console.error('Failed to calculate discount on quote API:', err)
+            discount = 0
+        }
+
         const shippingTotal = shippingResult.total || 0
-        const grandTotal = subtotal + shippingTotal
+        const grandTotal = Math.max(0, subtotal - discount) + shippingTotal
 
         return NextResponse.json({
             success: true,
@@ -80,6 +93,7 @@ export async function POST(req: NextRequest) {
                 shippingCost: shippingTotal,
                 legA: shippingResult.legA || 0,
                 legB: shippingResult.legB || 0,
+                discount: discount,
                 total: grandTotal,
                 shippingMessage: requiresShipping
                     ? (hasServices ? `Round-trip service active for ${pin}` : `Delivery calculated for ${pin}`)

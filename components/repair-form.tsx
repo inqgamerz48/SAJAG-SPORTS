@@ -579,30 +579,56 @@ export function RepairForm() {
 
 
           {/* Pricing Estimation Bottom Bar */}
-          <div className="bg-gray-50 border-t p-6 rounded-b-xl border border-gray-200 mt-6">
-            <div className="flex justify-between items-center mb-4">
-              <span className="text-gray-600 font-medium">Expected Total for {racquets.length} Racquet{racquets.length > 1 ? 's' : ''}:</span>
-              <span className="text-2xl font-bold text-gray-900">
-                {formatCurrency(
-                  racquets.reduce((total, r) => {
-                    let base = r.racquetValueCategory === 'A' ? priceA : priceB;
-                    let string = r.stringType ? STRING_PRICES[r.stringType as keyof typeof STRING_PRICES] || 0 : 0;
-                    return total + ((base * parseInt(r.numberOfCracks || '1')) + string);
-                  }, 0)
-                )}
-              </span>
-            </div>
+          {(() => {
+            const originalPrice = racquets.reduce((total, r) => {
+              let base = r.racquetValueCategory === 'A' ? priceA : priceB;
+              let string = r.stringType ? STRING_PRICES[r.stringType as keyof typeof STRING_PRICES] || 0 : 0;
+              return total + ((base * parseInt(r.numberOfCracks || '1')) + string);
+            }, 0);
 
-            <Button
-              type="submit"
-              variant="brand"
-              size="lg"
-              className="w-full text-lg py-6 shadow-xl animate-pulse-glow bg-brand-orange hover:bg-brand-orange/90"
-              disabled={loading || checkingPincode || pincodeStatus === 'invalid'}
-            >
-              {loading ? 'Calculating Quote...' : 'Add to Cart'}
-            </Button>
-          </div>
+            let discount = 0;
+            try {
+              const numRackets = racquets.length;
+              if (numRackets === 2) discount = 100;
+              else if (numRackets === 3) discount = 150;
+              else if (numRackets >= 4) discount = 200;
+            } catch (err) {
+              console.error('Discount calculation failed:', err);
+            }
+
+            const finalPrice = Math.max(0, originalPrice - discount);
+
+            return (
+              <div className="bg-gray-50 border-t p-6 rounded-b-xl border border-gray-200 mt-6 space-y-3">
+                <div className="flex justify-between items-center text-sm text-gray-600">
+                  <span>Original Price:</span>
+                  <span className="font-medium">{formatCurrency(originalPrice)}</span>
+                </div>
+                {discount > 0 && (
+                  <div className="flex justify-between items-center text-sm text-green-600 font-medium">
+                    <span>Multi-racquet Discount ({racquets.length} rackets):</span>
+                    <span>-{formatCurrency(discount)}</span>
+                  </div>
+                )}
+                <div className="flex justify-between items-center pt-2 border-t border-gray-200">
+                  <span className="text-gray-800 font-bold">Estimated Final Total:</span>
+                  <span className="text-2xl font-black text-gray-900">
+                    {formatCurrency(finalPrice)}
+                  </span>
+                </div>
+
+                <Button
+                  type="submit"
+                  variant="brand"
+                  size="lg"
+                  className="w-full text-lg py-6 shadow-xl animate-pulse-glow bg-brand-orange hover:bg-brand-orange/90 mt-2"
+                  disabled={loading || checkingPincode || pincodeStatus === 'invalid'}
+                >
+                  {loading ? 'Calculating Quote...' : 'Add to Cart'}
+                </Button>
+              </div>
+            );
+          })()}
 
         </form>
       </CardContent>

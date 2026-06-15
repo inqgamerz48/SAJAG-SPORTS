@@ -28,6 +28,7 @@ interface CostBreakdown {
     legA: number
     legB: number
     subtotal: number
+    discount?: number
     total: number
     shippingMessage?: string
 }
@@ -474,6 +475,13 @@ export default function CheckoutPage() {
                                         <span>Items Subtotal</span>
                                         <span className="font-medium text-gray-900">₹{getTotalPrice().toLocaleString()}</span>
                                     </div>
+
+                                    {costBreakdown && costBreakdown.discount && costBreakdown.discount > 0 ? (
+                                        <div className="flex justify-between text-green-600 font-medium">
+                                            <span>Multi-racquet Discount</span>
+                                            <span>-₹{costBreakdown.discount.toLocaleString()}</span>
+                                        </div>
+                                    ) : null}
 
                                     {!pincode || pincode.length !== 6 ? (
                                         <div className="flex justify-between text-gray-500 pb-2">

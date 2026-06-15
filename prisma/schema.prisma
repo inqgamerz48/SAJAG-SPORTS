@@ -72,6 +72,7 @@ model Order {
   reversePickupBookedAt DateTime? @map("reverse_pickup_booked_at")
   logisticsDeposit  Decimal?     @map("logistics_deposit") @db.Decimal(10, 2)
   finalQuote        Decimal?     @map("final_quote") @db.Decimal(10, 2)
+  discount          Decimal?     @map("discount") @db.Decimal(10, 2)
   createdAt         DateTime     @default(now()) @map("created_at")
   updatedAt         DateTime     @default(now()) @updatedAt @map("updated_at")
   

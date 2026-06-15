@@ -210,9 +210,6 @@ export function HomePageClient({ initialProducts, accessoriesProducts }: { initi
                                             <p className="text-sm text-gray-600 mt-1">Pan-India Service</p>
                                         </div>
                                     </div>
-                                    <p className="text-gray-700 mb-4">
-                                        We offer crack racket repair services across India. Courier your racket to us, and our experts will repair and return it safely, with clear post-repair tension limits for durability and safety.
-                                    </p>
                                     <ul className="space-y-2 mb-4">
                                         <li className="flex items-center gap-2 text-sm text-gray-600">
                                             <span className="text-brand-orange font-bold">✓</span>
@@ -231,7 +228,7 @@ export function HomePageClient({ initialProducts, accessoriesProducts }: { initi
                                         <p className="font-semibold mb-2">Important Tension Guidelines (After Repair)</p>
                                         <p className="mb-1">⚠️ Tension limits after repair are strictly followed for player safety and racket durability.</p>
                                         <p className="mb-1">• Rackets with 2 cracks: <span className="font-medium">Max 24 lbs</span></p>
-                                        <p className="mb-1">• Rackets with broken frame (after full repair): <span className="font-medium">Max 26 lbs</span></p>
+                                        <p className="mb-1">• Rackets with broken frame (after repair) ~27lbs. For safer and longer racket life, we recommend 25-26lbs</p>
                                         <p>✅ For safer performance and longer racket life, we strongly recommend stringing at <span className="font-medium">25 lbs or below</span>.</p>
                                     </div>
                                     <Button variant="brand" className="w-full" asChild>

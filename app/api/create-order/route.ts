@@ -39,6 +39,7 @@ type CreateOrderPayload = {
   items?: CheckoutItem[]
   costBreakdown?: {
     total?: number
+    discount?: number
   }
 }
 
@@ -98,6 +99,7 @@ const createOrderSchema = z.object({
   items: z.array(checkoutItemSchema).max(50).optional(),
   costBreakdown: z.object({
     total: z.number().optional(),
+    discount: z.number().optional(),
   }).optional(),
 })
 
@@ -136,8 +138,43 @@ export async function POST(req: NextRequest) {
 
     const isExistingOrder = Boolean(existingOrderId)
 
-    const order = isExistingOrder
-      ? await prisma.order.update({
+    // Calculate discount value safely with fallbacks
+    let discountVal: number | null = null
+    try {
+      const repairItems = payload.items?.filter((item) => item.type === 'service' && item.serviceType === 'repair') || []
+      const numRepairRackets = repairItems.reduce((sum, item) => sum + (item.quantity || 1), 0)
+      if (numRepairRackets === 2) discountVal = 100
+      else if (numRepairRackets === 3) discountVal = 150
+      else if (numRepairRackets >= 4) discountVal = 200
+    } catch (e) {
+      console.error('Failed to calculate discount value on order creation:', e)
+    }
+
+    let order
+    if (isExistingOrder) {
+      try {
+        order = await prisma.order.update({
+          where: { id: existingOrderId },
+          data: {
+            customerName,
+            customerEmail,
+            customerPhone,
+            addressLine1: address.line1,
+            city: address.city,
+            state: address.state,
+            pincode: address.pincode,
+            status: 'Pending',
+            paymentStatus: 'pending',
+            logisticsDeposit: new Prisma.Decimal(amount),
+            reversePickupBookedAt: null,
+            razorpayPaymentId: null,
+            razorpaySignature: null,
+            discount: discountVal !== null ? new Prisma.Decimal(discountVal) : null,
+          },
+        })
+      } catch (dbErr) {
+        console.error('Failed to update order with discount field, retrying without it:', dbErr)
+        order = await prisma.order.update({
           where: { id: existingOrderId },
           data: {
             customerName,
@@ -155,7 +192,48 @@ export async function POST(req: NextRequest) {
             razorpaySignature: null,
           },
         })
-      : await prisma.order.create({
+      }
+    } else {
+      try {
+        order = await prisma.order.create({
+          data: {
+            serviceType:
+              payload.items?.find((item) => item.type === 'service')?.serviceType ||
+              payload.items?.[0]?.serviceType ||
+              'repair',
+            customerName,
+            customerEmail,
+            customerPhone,
+            addressLine1: address.line1,
+            city: address.city,
+            state: address.state,
+            pincode: address.pincode,
+            status: 'Pending',
+            paymentStatus: 'pending',
+            logisticsDeposit: new Prisma.Decimal(amount),
+            discount: discountVal !== null ? new Prisma.Decimal(discountVal) : null,
+            orderItems:
+              payload.items && payload.items.length > 0
+                ? {
+                    create: payload.items.map((item) => ({
+                      quantity: item.quantity || 1,
+                      priceAtPurchase: new Prisma.Decimal(Number(item.price || 0)),
+                      serviceType: item.type === 'service' ? item.serviceType || null : null,
+                      racquetBrand: item.racquetBrand || null,
+                      racquetModel: item.racquetModel || null,
+                      tensionLbs: item.tension || null,
+                      stringName: item.stringName || null,
+                      comments: item.comments || null,
+                      repairImageUrl: item.repairImageUrl || null,
+                      color: item.color || null,
+                    })),
+                  }
+                : undefined,
+          },
+        })
+      } catch (dbErr) {
+        console.error('Failed to create order with discount field, retrying without it:', dbErr)
+        order = await prisma.order.create({
           data: {
             serviceType:
               payload.items?.find((item) => item.type === 'service')?.serviceType ||
@@ -190,6 +268,8 @@ export async function POST(req: NextRequest) {
                 : undefined,
           },
         })
+      }
+    }
 
     let razorpayOrder
     try {
