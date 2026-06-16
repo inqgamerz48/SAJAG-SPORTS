@@ -4,9 +4,11 @@ import { prisma } from '@/lib/prisma'
 import { createRazorpayOrder } from '@/lib/razorpay'
 import { getRazorpayEnv } from '@/lib/env'
 import { z } from 'zod'
+import { STRING_PRICES } from '@/lib/pricing'
 
 type CheckoutItem = {
   id?: string
+  productId?: string
   type?: 'service' | 'physical'
   serviceType?: string
   racquetBrand?: string
@@ -40,6 +42,7 @@ type CreateOrderPayload = {
   costBreakdown?: {
     total?: number
     discount?: number
+    shippingCost?: number
   }
 }
 
@@ -67,6 +70,7 @@ function extractAddress(payload: CreateOrderPayload) {
 
 const checkoutItemSchema = z.object({
   id: z.string().optional(),
+  productId: z.string().uuid().optional(),
   type: z.enum(['service', 'physical']).optional(),
   serviceType: z.string().max(100).optional(),
   racquetBrand: z.string().max(100).optional(),
@@ -100,6 +104,7 @@ const createOrderSchema = z.object({
   costBreakdown: z.object({
     total: z.number().optional(),
     discount: z.number().optional(),
+    shippingCost: z.number().optional(),
   }).optional(),
 })
 
@@ -138,17 +143,112 @@ export async function POST(req: NextRequest) {
 
     const isExistingOrder = Boolean(existingOrderId)
 
-    // Calculate discount value safely with fallbacks
-    let discountVal: number | null = null
-    try {
-      const repairItems = payload.items?.filter((item) => item.type === 'service' && item.serviceType === 'repair') || []
-      const numRepairRackets = repairItems.reduce((sum, item) => sum + (item.quantity || 1), 0)
-      if (numRepairRackets === 2) discountVal = 100
-      else if (numRepairRackets === 3) discountVal = 150
-      else if (numRepairRackets >= 4) discountVal = 200
-    } catch (e) {
-      console.error('Failed to calculate discount value on order creation:', e)
+    // Server-side price validation to prevent pricing manipulation
+    let calculatedSubtotal = 0
+    const settings = await prisma.settings.findFirst()
+    const priceA = Number(settings?.repairPriceBelow4k ?? 550)
+    const priceB = Number(settings?.repairPriceAbove4k ?? 850)
+
+    if (payload.items && payload.items.length > 0) {
+      for (const item of payload.items) {
+        let expectedItemPrice = 0
+        const qty = item.quantity || 1
+
+        if (item.type === 'physical') {
+          if (!item.productId) {
+            return NextResponse.json({ success: false, error: 'Product ID is required for physical items' }, { status: 400 })
+          }
+          // Look up the physical product price in the DB
+          const dbProduct = await prisma.product.findUnique({ where: { id: item.productId } })
+          if (!dbProduct) {
+            return NextResponse.json({ success: false, error: `Product not found: ${item.productId}` }, { status: 400 })
+          }
+          expectedItemPrice = Number(dbProduct.price)
+        } else if (item.type === 'service') {
+          if (item.serviceType === 'stringing') {
+            expectedItemPrice = item.stringName ? (STRING_PRICES[item.stringName] || 0) : 0
+          } else if (item.serviceType === 'repair') {
+            const stringPrice = item.stringName ? (STRING_PRICES[item.stringName] || 0) : 0
+            // Since cracks and category category are not sent explicitly, we verify if the item.price
+            // is a mathematically valid combination: price = basePrice * cracks + stringPrice
+            let isValid = false
+            const itemPriceValue = item.price || 0
+            for (const base of [priceA, priceB]) {
+              for (let cracks = 1; cracks <= 4; cracks++) {
+                if (base * cracks + stringPrice === itemPriceValue) {
+                  isValid = true
+                  break
+                }
+              }
+              if (isValid) break
+            }
+            if (!isValid) {
+              return NextResponse.json({ 
+                success: false, 
+                error: 'Pricing mismatch detected on repair service item' 
+              }, { status: 400 })
+            }
+            expectedItemPrice = itemPriceValue
+          } else {
+            return NextResponse.json({ success: false, error: 'Unknown service type' }, { status: 400 })
+          }
+        } else {
+          return NextResponse.json({ success: false, error: 'Invalid item type' }, { status: 400 })
+        }
+
+        if (item.price !== undefined && item.price !== expectedItemPrice) {
+          return NextResponse.json({ 
+            success: false, 
+            error: `Pricing discrepancy detected on item: ${item.racquetBrand || ''} ${item.racquetModel || item.productId || ''}` 
+          }, { status: 400 })
+        }
+
+        calculatedSubtotal += expectedItemPrice * qty
+      }
     }
+
+    // Verify discount value
+    let expectedDiscount = 0
+    const repairItems = payload.items?.filter((item) => item.type === 'service' && item.serviceType === 'repair') || []
+    const numRepairRackets = repairItems.reduce((sum, item) => sum + (item.quantity || 1), 0)
+    if (numRepairRackets === 2) expectedDiscount = 100
+    else if (numRepairRackets === 3) expectedDiscount = 150
+    else if (numRepairRackets >= 4) expectedDiscount = 200
+
+    // Verify shipping cost
+    const hasServices = payload.items?.some((item) => item.type === 'service') || false
+    const hasPhysical = payload.items?.some((item) => item.type === 'physical') || false
+    const requiresShipping = hasServices || hasPhysical
+
+    let expectedShipping = 0
+    if (requiresShipping) {
+      if (hasServices) {
+        expectedShipping = 300 // Round-trip shipping
+      } else if (hasPhysical) {
+        expectedShipping = 120 // Single-leg shipping
+      }
+    }
+
+    // Check for coupon free shipping eligibility
+    const canUseCoupon = !hasServices && calculatedSubtotal >= 700
+    const isCouponApplied = canUseCoupon && payload.costBreakdown?.shippingCost === 0
+
+    if (isCouponApplied) {
+      expectedShipping = 0
+    }
+
+    const expectedTotal = Math.max(0, calculatedSubtotal - expectedDiscount) + expectedShipping
+
+    // Tolerance check to prevent floating point issues
+    if (Math.abs(amount - expectedTotal) > 0.05) {
+      return NextResponse.json({ 
+        success: false, 
+        error: 'Payment amount mismatch. Order creation rejected.' 
+      }, { status: 400 })
+    }
+
+    // Calculate discount value safely with fallbacks
+    let discountVal: number | null = expectedDiscount
 
     let order
     if (isExistingOrder) {
@@ -218,6 +318,7 @@ export async function POST(req: NextRequest) {
                     create: payload.items.map((item) => ({
                       quantity: item.quantity || 1,
                       priceAtPurchase: new Prisma.Decimal(Number(item.price || 0)),
+                      productId: item.productId || null,
                       serviceType: item.type === 'service' ? item.serviceType || null : null,
                       racquetBrand: item.racquetBrand || null,
                       racquetModel: item.racquetModel || null,
@@ -255,6 +356,7 @@ export async function POST(req: NextRequest) {
                     create: payload.items.map((item) => ({
                       quantity: item.quantity || 1,
                       priceAtPurchase: new Prisma.Decimal(Number(item.price || 0)),
+                      productId: item.productId || null,
                       serviceType: item.type === 'service' ? item.serviceType || null : null,
                       racquetBrand: item.racquetBrand || null,
                       racquetModel: item.racquetModel || null,
