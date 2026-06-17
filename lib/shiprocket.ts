@@ -312,8 +312,8 @@ export async function createReversePickup(input: ReversePickupInput, suffix?: st
       try {
         let selectedCourierId: number | undefined
         try {
-          const couriers = await getServiceableCouriers(input.customerPincode, storeEnv.STORE_PINCODE, 0.5, false)
-          const filtered = couriers
+          const couriers = await getServiceableCouriers(input.customerPincode, storeEnv.STORE_PINCODE, 0.5, false, true)
+          let filtered = couriers
             .map((c: any) => {
               const rating = parseFloat(String(c.rating || 0))
               const rate = parseFloat(String(c.rate ?? c.freight_charge ?? Infinity))
@@ -321,6 +321,18 @@ export async function createReversePickup(input: ReversePickupInput, suffix?: st
             })
             .filter((c: any) => c.ratingVal >= 3.5 && c.rateVal < Infinity)
           
+          if (filtered.length === 0) {
+            // Fallback: relax rating requirement to select the cheapest available return courier
+            filtered = couriers
+              .map((c: any) => {
+                const rating = parseFloat(String(c.rating || 0))
+                const rate = parseFloat(String(c.rate ?? c.freight_charge ?? Infinity))
+                return { ...c, ratingVal: rating, rateVal: rate }
+              })
+              .filter((c: any) => c.rateVal < Infinity)
+            isFallback = true
+          }
+
           if (filtered.length > 0) {
             filtered.sort((a: any, b: any) => a.rateVal - b.rateVal)
             const bestCourier = filtered[0]
@@ -328,11 +340,11 @@ export async function createReversePickup(input: ReversePickupInput, suffix?: st
             courierName = bestCourier.courier_name
             courierRate = bestCourier.rateVal
             courierRating = bestCourier.ratingVal
-            isFallback = false
-            console.log(`[Shiprocket Smart Courier] Selected Reverse Courier: ${bestCourier.courier_name}, Rate: ₹${bestCourier.rateVal}, Rating: ${bestCourier.ratingVal}`)
+            if (!isFallback) isFallback = false
+            console.log(`[Shiprocket Smart Courier] Selected Reverse Courier: ${bestCourier.courier_name}, Rate: ₹${bestCourier.rateVal}, Rating: ${bestCourier.ratingVal}, isFallback: ${isFallback}`)
           } else {
             isFallback = true
-            console.log(`[Shiprocket Smart Courier] No reverse courier found with rating >= 3.5. Falling back.`)
+            console.log(`[Shiprocket Smart Courier] No reverse courier found at all. Falling back to Shiprocket default assignment.`)
           }
         } catch (courierSelErr) {
           isFallback = true
@@ -532,8 +544,8 @@ export async function createForwardShipment(
       try {
         let selectedCourierId: number | undefined
         try {
-          const couriers = await getServiceableCouriers(store.pin, input.customer_pincode, 0.5, false)
-          const filtered = couriers
+          const couriers = await getServiceableCouriers(store.pin, input.customer_pincode, 0.5, false, false)
+          let filtered = couriers
             .map((c: any) => {
               const rating = parseFloat(String(c.rating || 0))
               const rate = parseFloat(String(c.rate ?? c.freight_charge ?? Infinity))
@@ -541,6 +553,18 @@ export async function createForwardShipment(
             })
             .filter((c: any) => c.ratingVal >= 3.5 && c.rateVal < Infinity)
           
+          if (filtered.length === 0) {
+            // Fallback: relax rating requirement to select the cheapest available forward courier
+            filtered = couriers
+              .map((c: any) => {
+                const rating = parseFloat(String(c.rating || 0))
+                const rate = parseFloat(String(c.rate ?? c.freight_charge ?? Infinity))
+                return { ...c, ratingVal: rating, rateVal: rate }
+              })
+              .filter((c: any) => c.rateVal < Infinity)
+            isFallback = true
+          }
+
           if (filtered.length > 0) {
             filtered.sort((a: any, b: any) => a.rateVal - b.rateVal)
             const bestCourier = filtered[0]
@@ -548,11 +572,11 @@ export async function createForwardShipment(
             courierName = bestCourier.courier_name
             courierRate = bestCourier.rateVal
             courierRating = bestCourier.ratingVal
-            isFallback = false
-            console.log(`[Shiprocket Smart Courier] Selected Forward Courier: ${bestCourier.courier_name}, Rate: ₹${bestCourier.rateVal}, Rating: ${bestCourier.ratingVal}`)
+            if (!isFallback) isFallback = false
+            console.log(`[Shiprocket Smart Courier] Selected Forward Courier: ${bestCourier.courier_name}, Rate: ₹${bestCourier.rateVal}, Rating: ${bestCourier.ratingVal}, isFallback: ${isFallback}`)
           } else {
             isFallback = true
-            console.log(`[Shiprocket Smart Courier] No forward courier found with rating >= 3.5. Falling back.`)
+            console.log(`[Shiprocket Smart Courier] No forward courier found at all. Falling back to Shiprocket default assignment.`)
           }
         } catch (courierSelErr) {
           isFallback = true
@@ -669,7 +693,8 @@ export async function getServiceableCouriers(
   pickupPincode: string,
   deliveryPincode: string,
   weight: number,
-  isCod: boolean = false
+  isCod: boolean = false,
+  isReturn: boolean = false
 ): Promise<any[]> {
   try {
     const token = await getShiprocketToken()
@@ -679,6 +704,7 @@ export async function getServiceableCouriers(
     url.searchParams.append('delivery_postcode', deliveryPincode)
     url.searchParams.append('weight', String(weight))
     url.searchParams.append('cod', String(codVal))
+    url.searchParams.append('is_return', isReturn ? '1' : '0')
 
     const res = await fetch(url.toString(), {
       method: 'GET',
