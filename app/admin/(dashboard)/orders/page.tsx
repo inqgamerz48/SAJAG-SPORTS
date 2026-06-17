@@ -364,16 +364,26 @@ export default function OrdersFeedPage() {
                                         </div>
                                     </div>
 
-                                    <div className="text-right">
+                                    <div className="text-right flex flex-col items-end gap-1">
                                         <p className="text-xs text-gray-500">Payment</p>
-                                        <p className="font-semibold text-gray-900 capitalize text-sm">
-                                            {order.paymentStatus?.replace(/_/g, " ") || "—"}
-                                            {order.finalQuote
-                                                ? ` • ₹${Number(order.finalQuote).toLocaleString()}`
-                                                : order.logisticsDeposit
-                                                ? ` • ₹${Number(order.logisticsDeposit).toLocaleString()}`
-                                                : ""}
-                                        </p>
+                                        <div className="flex items-center gap-1.5 flex-wrap justify-end">
+                                            <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold border uppercase tracking-wider ${
+                                                order.paymentStatus === 'fully_paid' || order.paymentStatus === 'paid'
+                                                    ? 'bg-green-50 text-green-700 border-green-200'
+                                                    : order.paymentStatus === 'pending'
+                                                    ? 'bg-red-50 text-red-700 border-red-200'
+                                                    : 'bg-amber-50 text-amber-700 border-amber-200'
+                                            }`}>
+                                                {order.paymentStatus?.replace(/_/g, " ") || "—"}
+                                            </span>
+                                            <span className="font-bold text-gray-900 text-sm">
+                                                {order.finalQuote
+                                                    ? `₹${Number(order.finalQuote).toLocaleString()}`
+                                                    : order.logisticsDeposit
+                                                    ? `₹${Number(order.logisticsDeposit).toLocaleString()}`
+                                                    : ""}
+                                            </span>
+                                        </div>
                                     </div>
                                 </div>
 
