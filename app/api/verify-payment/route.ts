@@ -245,7 +245,7 @@ export async function POST(req: NextRequest) {
       ])
 
       const awb = shiprocketResult.waybill || shiprocketResult.shiprocketOrderId || 'Pending';
-      const pickupTemplate = templates.pickupScheduled(order.id, awb);
+      const pickupTemplate = templates.pickupScheduled(order.id, awb, customerName);
       if (email) {
         sendEmailNotification({
           to: email,

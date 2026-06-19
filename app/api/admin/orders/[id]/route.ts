@@ -40,9 +40,10 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
         });
 
         if (data.status === 'Completed' && existingOrder?.status !== 'Completed') {
+            const customerName = updatedOrder.customerName || updatedOrder.customer?.fullName || 'Customer';
             const customerEmail = updatedOrder.customerEmail || updatedOrder.customer?.email;
             const customerPhone = updatedOrder.customerPhone || updatedOrder.customer?.phone;
-            const completeTemplate = templates.orderCompleted(updatedOrder.id);
+            const completeTemplate = templates.orderCompleted(updatedOrder.id, customerName);
 
             if (customerEmail) {
                 sendEmailNotification({

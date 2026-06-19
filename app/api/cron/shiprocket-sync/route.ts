@@ -1,14 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { createReversePickup, createForwardShipment } from '@/lib/shiprocket'
+import { sendEmailNotification, sendSMSNotification, templates } from '@/lib/notifications'
 
 export async function GET(req: NextRequest) {
   // 1. Authenticate the cron request
-  const authHeader = req.headers.get('Authorization')
   const cronSecret = process.env.CRON_SECRET || process.env.NEXTAUTH_SECRET
-
-  if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
-    console.warn('[Shiprocket Cron Sync] Unauthorized cron request')
+  if (!cronSecret) {
+    console.error('[Cron] No CRON_SECRET or NEXTAUTH_SECRET configured — rejecting request')
+    return NextResponse.json({ error: 'Server misconfigured' }, { status: 500 })
+  }
+  const authHeader = req.headers.get('authorization')
+  if (authHeader !== `Bearer ${cronSecret}`) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
@@ -63,7 +66,7 @@ export async function GET(req: NextRequest) {
         })
 
         if (result.success && result.pickupScheduled) {
-          await prisma.$transaction([
+          const [updatedShipment] = await prisma.$transaction([
             prisma.shipment.update({
               where: { id: shipment.id },
               data: {
@@ -83,6 +86,16 @@ export async function GET(req: NextRequest) {
           ])
           processedCount++
           console.log(`[Shiprocket Cron Sync] Successfully scheduled reverse pickup for order ${order.id}.`)
+
+          const pickupTemplate = templates.pickupScheduled(order.id, updatedShipment.awbCode || 'Pending')
+          const customerEmail = order.customerEmail || profile?.email
+          const customerPhone = order.customerPhone || profile?.phone
+          if (customerEmail) {
+            sendEmailNotification({ to: customerEmail, subject: pickupTemplate.subject, text: pickupTemplate.text }).catch(err => console.error('Cron pickup email failed', err))
+          }
+          if (customerPhone) {
+            sendSMSNotification(customerPhone, pickupTemplate.sms).catch(err => console.error('Cron pickup SMS failed', err))
+          }
         }
       } else {
         // Retry forward logistics allocation
@@ -99,7 +112,7 @@ export async function GET(req: NextRequest) {
         })
 
         if (result.success && result.pickupScheduled) {
-          await prisma.$transaction([
+          const [updatedShipment] = await prisma.$transaction([
             prisma.shipment.update({
               where: { id: shipment.id },
               data: {
@@ -119,6 +132,16 @@ export async function GET(req: NextRequest) {
           ])
           processedCount++
           console.log(`[Shiprocket Cron Sync] Successfully scheduled forward shipment for order ${order.id}.`)
+
+          const shipTemplate = templates.shipmentShipped(order.id, updatedShipment.awbCode || 'Pending')
+          const customerEmail = order.customerEmail || profile?.email
+          const customerPhone = order.customerPhone || profile?.phone
+          if (customerEmail) {
+            sendEmailNotification({ to: customerEmail, subject: shipTemplate.subject, text: shipTemplate.text }).catch(err => console.error('Cron shipment email failed', err))
+          }
+          if (customerPhone) {
+            sendSMSNotification(customerPhone, shipTemplate.sms).catch(err => console.error('Cron shipment SMS failed', err))
+          }
         }
       }
     }

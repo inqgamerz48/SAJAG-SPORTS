@@ -98,7 +98,7 @@ export async function POST(req: NextRequest) {
             })
 
             // 5. Notify customer of return shipment
-            const returnTemplate = templates.shipmentShipped(order.id, shiprocketResult.waybill || 'Pending')
+            const returnTemplate = templates.shipmentShipped(order.id, shiprocketResult.waybill || 'Pending', profile.fullName || 'Customer')
             if (profile.email) {
                 sendEmailNotification({
                     to: profile.email,
