@@ -1,8 +1,0 @@
-{
-  "crons": [
-    {
-      "path": "/api/cron/shiprocket-sync",
-      "schedule": "*/15 * * * *"
-    }
-  ]
-}
