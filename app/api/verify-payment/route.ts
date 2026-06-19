@@ -217,16 +217,62 @@ export async function POST(req: NextRequest) {
         throw new Error(shiprocketResult.error || 'Shiprocket reverse pickup failed')
       }
 
-      const targetStatus = shiprocketResult.pickupScheduled ? 'Pickup_Pending' : 'Return_Created';
-      const targetShipmentStatus = shiprocketResult.pickupScheduled ? 'Pickup_Scheduled' : 'Return_Created';
+      if (!shiprocketResult.pickupScheduled) {
+        console.warn('[Verify Payment] Shiprocket order created but no pickup scheduled for order:', order.id)
 
+        await prisma.$transaction([
+          prisma.shipment.create({
+            data: {
+              orderId: order.id,
+              awbCode: null,
+              shiprocketOrderId: shiprocketResult.shiprocketOrderId || null,
+              shipmentStatus: 'Return_Created',
+              isReverse: true,
+              provider: 'shiprocket',
+              courierName: shiprocketResult.courierName || null,
+              courierRate: shiprocketResult.courierRate ?? null,
+              courierRating: shiprocketResult.courierRating ?? null,
+              isFallback: shiprocketResult.isFallback ?? false,
+            },
+          }),
+          prisma.order.update({
+            where: { id: order.id },
+            data: {
+              status: 'Manual_Fulfillment_Required',
+              paymentStatus: 'paid_manual_shipping_required',
+              reversePickupBookedAt: null,
+            },
+          }),
+        ])
+
+        // Send admin alert only (no customer notification)
+        const adminTemplate = templates.pickupFailedAdminAlert(
+          order.id,
+          customerName,
+          'Shiprocket order created successfully but no AWB/pickup was scheduled.'
+        )
+        sendEmailNotification({
+          to: process.env.ADMIN_EMAIL || 'admin@sajagsports.com',
+          subject: adminTemplate.subject,
+          text: adminTemplate.text
+        }).catch(err => console.error('Failed to send admin alert email', err))
+
+        return NextResponse.json({
+          success: true,
+          orderId: order.id,
+          manualShippingRequired: true,
+          message: 'Payment received successfully. Our team will arrange pickup manually.',
+        })
+      }
+
+      // If scheduled successfully:
       await prisma.$transaction([
         prisma.shipment.create({
           data: {
             orderId: order.id,
             awbCode: shiprocketResult.waybill || null,
             shiprocketOrderId: shiprocketResult.shiprocketOrderId || null,
-            shipmentStatus: targetShipmentStatus,
+            shipmentStatus: 'Pickup_Scheduled',
             isReverse: true,
             provider: 'shiprocket',
             courierName: shiprocketResult.courierName || null,
@@ -238,7 +284,7 @@ export async function POST(req: NextRequest) {
         prisma.order.update({
           where: { id: order.id },
           data: {
-            status: targetStatus as any,
+            status: 'Pickup_Pending',
             paymentStatus: 'fully_paid',
           },
         }),

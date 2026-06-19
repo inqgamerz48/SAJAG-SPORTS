@@ -1,4 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
+
+// CRON DEACTIVATED - Commented out the sync logic as requested.
+// We are now marking orders as Manual_Fulfillment_Required immediately if AWB auto-creation fails.
+
+export async function GET(req: NextRequest) {
+  return NextResponse.json({ error: 'Cron service deactivated' }, { status: 404 })
+}
+
+/*
 import { prisma } from '@/lib/prisma'
 import { createReversePickup, createForwardShipment } from '@/lib/shiprocket'
 import { sendEmailNotification, sendSMSNotification, templates } from '@/lib/notifications'
@@ -152,3 +161,4 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Cron execution failed', details: error.message }, { status: 500 })
   }
 }
+*/
