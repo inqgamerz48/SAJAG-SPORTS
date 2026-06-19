@@ -54,7 +54,14 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const rawPayload = await req.json()
+    let rawPayload: any
+    try {
+      rawPayload = await req.json()
+    } catch (e) {
+      console.warn('[Shiprocket Webhook] Empty or invalid JSON received. Returning 200 OK for handshake.')
+      return NextResponse.json({ success: true, message: 'Webhook active' })
+    }
+
     const parsed = shiprocketWebhookSchema.safeParse(rawPayload)
     if (!parsed.success) {
       console.warn('[Shiprocket Webhook] Invalid webhook payload format')
@@ -69,8 +76,8 @@ export async function POST(req: NextRequest) {
     const statusLabel = (trackingData.shipment_status_label || currentStatus || '').toString().toUpperCase().trim()
 
     if (!awb) {
-      console.warn('[Shiprocket Webhook] Webhook request missing tracking code/AWB')
-      return NextResponse.json({ error: 'AWB not provided' }, { status: 400 })
+      console.log('[Shiprocket Webhook] Webhook request missing tracking code/AWB. Assuming test ping and returning 200 OK.')
+      return NextResponse.json({ success: true, message: 'Test ping received successfully' })
     }
 
     // 2. Find matching database shipment record
