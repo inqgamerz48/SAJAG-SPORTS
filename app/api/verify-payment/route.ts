@@ -245,7 +245,7 @@ export async function POST(req: NextRequest) {
           }),
         ])
 
-        // Send admin alert only (no customer notification)
+        // Send admin alert only
         const adminTemplate = templates.pickupFailedAdminAlert(
           order.id,
           customerName,
@@ -256,6 +256,20 @@ export async function POST(req: NextRequest) {
           subject: adminTemplate.subject,
           text: adminTemplate.text
         }).catch(err => console.error('Failed to send admin alert email', err))
+
+        // Send customer fallback notification
+        const customerFailureTemplate = templates.pickupFailedCustomer(order.id, customerName)
+        if (email) {
+          sendEmailNotification({
+            to: email,
+            subject: customerFailureTemplate.subject,
+            text: customerFailureTemplate.text,
+            html: customerFailureTemplate.html
+          }).catch(err => console.error('Failed to send customer fallback email', err))
+        }
+        if (customerPhone) {
+          sendSMSNotification(customerPhone, customerFailureTemplate.sms).catch(err => console.error('Failed to send customer fallback SMS', err))
+        }
 
         return NextResponse.json({
           success: true,

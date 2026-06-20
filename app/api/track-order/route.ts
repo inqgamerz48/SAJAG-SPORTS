@@ -81,6 +81,9 @@ export async function POST(request: NextRequest) {
                 racquet_model: serviceItem?.racquetModel,
                 awb_code: activeShipment?.awbCode || null,
                 shiprocket_awb_code: activeShipment?.awbCode || null, // backward-compatible response key
+                courier_name: activeShipment?.courierName || null,
+                tension_lbs: serviceItem?.tensionLbs || null,
+                string_name: serviceItem?.stringName || null,
             },
         });
     } catch (error) {

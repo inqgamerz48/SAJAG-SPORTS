@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
-import { Search, Package, CheckCircle2, Clock, XCircle, Truck } from 'lucide-react'
+import { Search, Package, CheckCircle2, Clock, XCircle, Truck, MapPin, AlertCircle, Sparkles } from 'lucide-react'
 
 interface OrderStatus {
     id: string
@@ -21,6 +21,35 @@ interface OrderStatus {
     final_quote?: number
     logistics_deposit?: number
     payment_status?: string
+    courier_name?: string
+    tension_lbs?: number
+    string_name?: string
+}
+
+// Visual step definition matching all core lifecycles and fallback states
+const steps = [
+    { id: "Pending", label: "Order Confirmed", icon: CheckCircle2 },
+    { id: "Manual_Fulfillment_Required", label: "Manual Collection Arranged", icon: AlertCircle },
+    { id: "Return_Created", label: "Return Created", icon: Package },
+    { id: "Pickup_Pending", label: "Pickup Arranged", icon: Truck },
+    { id: "In_Workshop", label: "Arrived at Workshop", icon: MapPin },
+    { id: "Repairing", label: "Under Repair", icon: AlertCircle },
+    { id: "Ready_to_Return", label: "Repair Completed", icon: Sparkles },
+    { id: "Shipped", label: "Shipped Back", icon: Truck },
+    { id: "Completed", label: "Delivered", icon: CheckCircle2 }
+]
+
+const friendlyDescriptions: Record<string, string> = {
+    Pending: "Your repair/stringing order has been confirmed. Payment captured successfully.",
+    Manual_Fulfillment_Required: "We are coordinating your pickup manually. Our support team will contact you shortly.",
+    Return_Created: "Return shipment order created. Awaiting courier allocation.",
+    Pickup_Pending: "Pickup is scheduled. Please keep the racquet packed and ready for collection.",
+    In_Workshop: "Your racquet has arrived safely at our workshop and is currently in processing.",
+    Repairing: "Our master technicians are currently working on your racquet.",
+    Ready_to_Return: "Repair work completed successfully! The racquet passed quality control checks.",
+    Shipped: "Your racquet has been shipped back to your address. AWB tracking is active.",
+    Completed: "Your racquet has been delivered safely. Thank you for choosing Sajag Sports!",
+    Cancelled: "This order has been cancelled."
 }
 
 export default function TrackOrderPage() {
@@ -59,50 +88,41 @@ export default function TrackOrderPage() {
         }
     }
 
-    const getStatusIcon = (status: string) => {
-        switch (status) {
-            case 'Return_Created':
-                return <Clock className="w-6 h-6 text-zinc-500" />
-            case 'Pickup_Pending':
-                return <Clock className="w-6 h-6 text-yellow-500" />
-            case 'In_Workshop':
-                return <Package className="w-6 h-6 text-blue-500" />
-            case 'Repairing':
-                return <Truck className="w-6 h-6 text-orange-500" />
-            case 'Ready_to_Return':
-                return <Package className="w-6 h-6 text-green-500" />
-            case 'Completed':
-                return <CheckCircle2 className="w-6 h-6 text-emerald-500" />
-            default:
-                return <Clock className="w-6 h-6 text-gray-500" />
-        }
-    }
+    const currentStepIndex = order ? steps.findIndex(s => s.id === order.status) : -1
 
     const getStatusText = (status: string) => {
         const statusMap: Record<string, string> = {
-            Return_Created: 'Return Created (Awaiting Courier Booking)',
-            Pickup_Pending: 'Awaiting Pickup from Your Location',
-            In_Workshop: 'Arrived at Sajag Workshop',
-            Repairing: 'Under Selection/Repair (In Progress)',
-            Ready_to_Return: 'Repair Completed - QC Passed',
-            Completed: 'Returned & Delivered',
+            Pending: 'Order Confirmed',
+            Manual_Fulfillment_Required: 'Manual Collection Required',
+            Return_Created: 'Return Created',
+            Pickup_Pending: 'Awaiting Pickup',
+            In_Workshop: 'Arrived at Workshop',
+            Repairing: 'Under Repair',
+            Ready_to_Return: 'QC Passed & Ready to Return',
+            Shipped: 'Shipped Back',
+            Completed: 'Delivered',
+            Cancelled: 'Cancelled'
         }
         return statusMap[status] || status.replace('_', ' ')
     }
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-zinc-950 via-zinc-900 to-zinc-950 py-12 px-4">
-            <div className="max-w-2xl mx-auto">
+        <div className="min-h-screen bg-gradient-to-br from-zinc-950 via-zinc-900 to-zinc-950 py-24 px-4 sm:px-6 lg:px-8">
+            <div className="max-w-3xl mx-auto">
                 <div className="text-center mb-8">
-                    <h1 className="text-4xl font-bold text-white mb-2">Track Your Order</h1>
-                    <p className="text-zinc-400">Enter your order details to check the status</p>
+                    <h1 className="text-4xl font-extrabold text-white tracking-tight sm:text-5xl">
+                        Track <span className="text-lime-500">Your Repair</span>
+                    </h1>
+                    <p className="mt-4 text-zinc-400 text-lg">
+                        Enter your Order ID and phone number to trace your racquet's repair lifecycle in real-time.
+                    </p>
                 </div>
 
-                <Card className="bg-zinc-900/50 border-zinc-800 backdrop-blur-sm">
+                <Card className="bg-zinc-900/50 border-zinc-800 backdrop-blur-sm shadow-xl">
                     <CardHeader>
-                        <CardTitle className="text-white">Order Tracking</CardTitle>
+                        <CardTitle className="text-white">Order Search</CardTitle>
                         <CardDescription className="text-zinc-400">
-                            Enter your Order ID and phone number to track your repair or stringing service
+                            Provide search details below to access current repair and logistics status.
                         </CardDescription>
                     </CardHeader>
                     <CardContent>
@@ -112,11 +132,11 @@ export default function TrackOrderPage() {
                                 <Input
                                     id="orderId"
                                     type="text"
-                                    placeholder="e.g., 123e4567-e89b-12d3-a456-426614174000"
+                                    placeholder="e.g., 550e8400-e29b-41d4-a716-446655440000"
                                     value={orderId}
                                     onChange={(e) => setOrderId(e.target.value)}
                                     required
-                                    className="bg-zinc-800 border-zinc-700 text-white placeholder:text-zinc-500"
+                                    className="bg-zinc-800 border-zinc-700 text-white placeholder:text-zinc-500 mt-1"
                                 />
                             </div>
 
@@ -129,7 +149,7 @@ export default function TrackOrderPage() {
                                     value={phone}
                                     onChange={(e) => setPhone(e.target.value)}
                                     required
-                                    className="bg-zinc-800 border-zinc-700 text-white placeholder:text-zinc-500"
+                                    className="bg-zinc-800 border-zinc-700 text-white placeholder:text-zinc-500 mt-1"
                                 />
                             </div>
 
@@ -142,12 +162,12 @@ export default function TrackOrderPage() {
                             <Button
                                 type="submit"
                                 disabled={loading}
-                                className="w-full bg-lime-500 hover:bg-lime-600 text-zinc-900 font-semibold"
+                                className="w-full bg-lime-500 hover:bg-lime-600 text-zinc-900 font-bold"
                             >
                                 {loading ? (
                                     <>
                                         <Clock className="w-4 h-4 mr-2 animate-spin" />
-                                        Tracking...
+                                        Fetching details...
                                     </>
                                 ) : (
                                     <>
@@ -161,90 +181,168 @@ export default function TrackOrderPage() {
                 </Card>
 
                 {order && (
-                    <Card className="mt-6 bg-zinc-900/50 border-zinc-800 backdrop-blur-sm">
-                        <CardHeader>
-                            <div className="flex items-center justify-between">
+                    <Card className="mt-8 bg-zinc-900/50 border-zinc-800 backdrop-blur-sm shadow-xl">
+                        <CardHeader className="border-b border-zinc-800">
+                            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                                 <div>
                                     <CardTitle className="text-white">Order Details</CardTitle>
                                     <CardDescription className="text-zinc-400">
-                                        {order.service_type === 'repair' ? 'Repair Service' : 'Stringing Service'}
+                                        {order.service_type === 'repair' ? 'Frame Repair Service' : 'Stringing Service'}
                                     </CardDescription>
                                 </div>
-                                {getStatusIcon(order.status)}
+                                <div className="flex items-center gap-2 p-2 bg-zinc-800/80 rounded-lg border border-zinc-700">
+                                    <span className="text-xs text-zinc-400 uppercase tracking-wider font-semibold">Status:</span>
+                                    <span className="text-sm font-bold text-lime-400">{getStatusText(order.status)}</span>
+                                </div>
                             </div>
                         </CardHeader>
-                        <CardContent className="space-y-4">
-                            <div className="grid grid-cols-2 gap-4">
+                        <CardContent className="space-y-6 pt-6">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                                 <div>
                                     <p className="text-zinc-500 text-sm">Customer Name</p>
-                                    <p className="text-white font-medium">{order.customer_name}</p>
+                                    <p className="text-white font-semibold text-base mt-0.5">{order.customer_name}</p>
                                 </div>
                                 <div>
-                                    <p className="text-zinc-500 text-sm">Order Date</p>
-                                    <p className="text-white font-medium">
-                                        {new Date(order.created_at).toLocaleDateString()}
+                                    <p className="text-zinc-500 text-sm">Order Placed Date</p>
+                                    <p className="text-white font-semibold text-base mt-0.5">
+                                        {new Date(order.created_at).toLocaleDateString(undefined, {
+                                            year: 'numeric',
+                                            month: 'long',
+                                            day: 'numeric'
+                                        })}
                                     </p>
                                 </div>
+                                {order.racquet_brand && order.racquet_model && (
+                                    <div className="sm:col-span-2">
+                                        <p className="text-zinc-500 text-sm">Racquet Details</p>
+                                        <p className="text-white font-semibold text-base mt-0.5">
+                                            {order.racquet_brand} {order.racquet_model}
+                                        </p>
+                                    </div>
+                                )}
                             </div>
 
-                            {order.racquet_brand && order.racquet_model && (
-                                <div>
-                                    <p className="text-zinc-500 text-sm">Racquet</p>
-                                    <p className="text-white font-medium">
-                                        {order.racquet_brand} {order.racquet_model}
-                                    </p>
-                                </div>
-                            )}
-
-                            <div className="pt-4 border-t border-zinc-800">
-                                <p className="text-zinc-500 text-sm mb-2">Current Status</p>
-                                <div className="flex items-center gap-3 p-3 bg-zinc-800/50 rounded-lg">
-                                    {getStatusIcon(order.status)}
-                                    <p className="text-white font-medium">{getStatusText(order.status)}</p>
-                                </div>
+                            {/* Friendly Explanations box */}
+                            <div className="p-4 bg-lime-500/5 rounded-xl border border-lime-500/10">
+                                <p className="text-sm text-lime-400/90 font-medium">
+                                    {friendlyDescriptions[order.status] || friendlyDescriptions.Pending}
+                                </p>
                             </div>
 
+                            {/* Action Required: Payment Capture Card */}
                             {order.payment_status === 'pending' && (order.final_quote || order.logistics_deposit) && (
-                                <div className="pt-4 border-t border-zinc-800">
-                                    <p className="text-zinc-500 text-sm mb-2">Payment Required</p>
-                                    <div className="flex items-center justify-between p-3 bg-brand-orange/10 rounded-lg border border-brand-orange/20">
-                                        <div>
-                                            <p className="text-zinc-300 text-xs">Amount Due</p>
-                                            <p className="text-white font-bold text-lg">₹{order.final_quote || order.logistics_deposit}</p>
-                                        </div>
-                                        <Button
-                                            onClick={() => router.push(`/pay/${order.id}`)}
-                                            className="bg-brand-orange hover:bg-brand-orange/90 text-white"
-                                        >
-                                            Pay Now
-                                        </Button>
+                                <div className="p-4 bg-orange-500/5 rounded-xl border border-orange-500/10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                                    <div>
+                                        <p className="text-zinc-400 text-xs uppercase tracking-wider font-semibold">Payment Required</p>
+                                        <p className="text-white font-bold text-xl mt-0.5">₹{order.final_quote || order.logistics_deposit}</p>
+                                    </div>
+                                    <Button
+                                        onClick={() => router.push(`/pay/${order.id}`)}
+                                        className="bg-orange-500 hover:bg-orange-600 text-white font-semibold shadow-md"
+                                    >
+                                        Proceed to Pay
+                                    </Button>
+                                </div>
+                            )}
+
+                            {/* Racquet Specifications (Tension, String Type) */}
+                            {(order.string_name || order.tension_lbs) && (
+                                <div className="p-4 bg-zinc-800/20 rounded-xl border border-zinc-800/80">
+                                    <p className="text-zinc-400 text-xs uppercase tracking-wider font-bold mb-3">Racquet Specifications</p>
+                                    <div className="grid grid-cols-2 gap-4 text-sm">
+                                        {order.string_name && (
+                                            <div>
+                                                <span className="text-zinc-500">String:</span>
+                                                <span className="text-white font-semibold ml-1.5">{order.string_name}</span>
+                                            </div>
+                                        )}
+                                        {order.tension_lbs && (
+                                            <div>
+                                                <span className="text-zinc-500">Tension:</span>
+                                                <span className="text-white font-semibold ml-1.5">{order.tension_lbs} lbs</span>
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                             )}
 
+                            {/* Shipment Details (Courier, AWB) */}
                             {(order.waybill || order.shiprocket_awb_code) && (
-                                <div className="pt-4 border-t border-zinc-800">
-                                    <p className="text-zinc-500 text-sm mb-2">Tracking Information</p>
-                                    <div className="p-3 bg-zinc-800/50 rounded-lg">
-                                        <p className="text-zinc-400 text-sm">{order.waybill ? 'Waybill' : 'AWB Code'}</p>
-                                        <p className="text-white font-mono font-medium">{order.waybill || order.shiprocket_awb_code}</p>
-                                        <Button
-                                            variant="outline"
-                                            size="sm"
-                                            className="mt-2 border-zinc-700 text-lime-500 hover:bg-zinc-800"
-                                            onClick={() => {
-                                                const trackingUrl = order.waybill
-                                                    ? `https://www.shiprocket.com/track/package/${order.waybill}`
-                                                    : `https://shiprocket.co/tracking/${order.shiprocket_awb_code}`
-                                                window.open(trackingUrl, '_blank')
-                                            }}
-                                        >
-                                            <Truck className="w-4 h-4 mr-2" />
-                                            Track Shipment
-                                        </Button>
+                                <div className="p-4 bg-zinc-800/40 rounded-xl border border-zinc-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                                    <div className="space-y-1">
+                                        <p className="text-zinc-500 text-xs uppercase tracking-wider font-semibold">Shipment Details</p>
+                                        {order.courier_name && (
+                                            <p className="text-zinc-300 text-sm">
+                                                Courier: <span className="text-white font-semibold">{order.courier_name}</span>
+                                            </p>
+                                        )}
+                                        <p className="text-zinc-400 text-sm">
+                                            AWB: <span className="text-white font-mono font-bold">{order.waybill || order.shiprocket_awb_code}</span>
+                                        </p>
                                     </div>
+                                    <Button
+                                        variant="outline"
+                                        className="border-zinc-700 text-lime-400 hover:bg-zinc-800 font-semibold"
+                                        onClick={() => {
+                                            const trackingUrl = order.waybill
+                                                ? `https://www.shiprocket.com/track/package/${order.waybill}`
+                                                : `https://shiprocket.co/tracking/${order.shiprocket_awb_code}`
+                                            window.open(trackingUrl, '_blank')
+                                        }}
+                                    >
+                                        <Truck className="w-4 h-4 mr-2" />
+                                        Track Shipment
+                                    </Button>
                                 </div>
                             )}
+
+                            {/* Step Timeline */}
+                            <div className="pt-6 border-t border-zinc-800">
+                                <p className="text-zinc-500 text-sm font-semibold mb-6">Service Progress Timeline</p>
+                                <div className="relative pl-6 space-y-6">
+                                    {/* Vertical Line */}
+                                    <div className="absolute left-9 top-3 bottom-3 w-0.5 bg-zinc-800" />
+
+                                    {steps.map((step, index) => {
+                                        const isCompleted = currentStepIndex >= index && currentStepIndex !== -1
+                                        const isCurrent = currentStepIndex === index
+                                        const Icon = step.icon
+
+                                        // Hide Manual Collection stage if the status doesn't match and order progress is past it
+                                        if (step.id === 'Manual_Fulfillment_Required' && order.status !== 'Manual_Fulfillment_Required') {
+                                            return null
+                                        }
+
+                                        return (
+                                            <div key={step.id} className="relative flex items-start gap-4">
+                                                {/* Node Circle */}
+                                                <div className={`z-10 flex items-center justify-center w-8 h-8 rounded-full border-2 border-zinc-950 transition-all duration-300
+                                                    ${isCompleted 
+                                                        ? 'bg-lime-500 text-zinc-950 shadow-[0_0_8px_rgba(132,204,22,0.3)]' 
+                                                        : 'bg-zinc-900 text-zinc-600 border-zinc-800'
+                                                    }
+                                                `}>
+                                                    <Icon className="w-4 h-4" />
+                                                </div>
+
+                                                {/* Text Label */}
+                                                <div className="flex-1 pt-1">
+                                                    <h3 className={`text-base font-semibold transition-all duration-300
+                                                        ${isCompleted ? 'text-white' : 'text-zinc-600'}
+                                                    `}>
+                                                        {step.label}
+                                                    </h3>
+                                                    {isCurrent && (
+                                                        <p className="text-xs text-lime-400 mt-0.5">
+                                                            Currently in this phase.
+                                                        </p>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        )
+                                    })}
+                                </div>
+                            </div>
                         </CardContent>
                     </Card>
                 )}

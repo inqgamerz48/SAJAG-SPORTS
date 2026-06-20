@@ -3,6 +3,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { createReversePickup } from '@/lib/shiprocket'
 import { revalidatePath } from 'next/cache'
+import { sendEmailNotification, sendSMSNotification, templates } from '@/lib/notifications'
 
 interface CreateOrderParams {
   service_type: 'stringing' | 'repair'
@@ -85,6 +86,11 @@ export async function approveOrderForPickup(orderId: string) {
     return { success: false, error: 'Order not found' }
   }
 
+  // Defensive check: Prevent double approvals/duplicate emails
+  if (order.status !== 'Pending') {
+    return { success: false, error: 'Order has already been approved or processed' }
+  }
+
   const profile = order.profiles as any
 
   if (order.service_type === 'Frame Repair' && profile?.pincode) {
@@ -127,12 +133,87 @@ export async function approveOrderForPickup(orderId: string) {
           .update({ status: pickupResult.pickupScheduled ? 'Pickup_Pending' : 'Return_Created' })
           .eq('id', orderId)
 
+        // Notify customer on status transitions
+        const email = profile.email || null
+        const customerName = profile.full_name || 'Customer'
+
+        if (pickupResult.pickupScheduled) {
+          const awb = pickupResult.waybill || pickupResult.shiprocketOrderId || 'Pending'
+          const pickupTemplate = templates.pickupScheduled(order.id, awb, customerName)
+          if (email) {
+            sendEmailNotification({
+              to: email,
+              subject: pickupTemplate.subject,
+              text: pickupTemplate.text,
+              html: pickupTemplate.html
+            }).catch(err => console.error('Failed to send pickupScheduled email in approveOrder', err))
+          }
+          if (customerPhone) {
+            sendSMSNotification(customerPhone, pickupTemplate.sms).catch(err => console.error('Failed to send pickupScheduled SMS in approveOrder', err))
+          }
+        } else {
+          const failureTemplate = templates.pickupFailedCustomer(order.id, customerName)
+          if (email) {
+            sendEmailNotification({
+              to: email,
+              subject: failureTemplate.subject,
+              text: failureTemplate.text,
+              html: failureTemplate.html
+            }).catch(err => console.error('Failed to send customer pickupFailed email in approveOrder', err))
+          }
+          if (customerPhone) {
+            sendSMSNotification(customerPhone, failureTemplate.sms).catch(err => console.error('Failed to send customer pickupFailed SMS in approveOrder', err))
+          }
+        }
+
         revalidatePath('/admin/dashboard')
         return { success: true }
       } else {
+        // Fallback to manual logistics handling on creation failure
+        await supabase
+          .from('orders')
+          .update({ status: 'Manual_Fulfillment_Required' })
+          .eq('id', orderId)
+
+        const customerName = profile.full_name || 'Customer'
+        const email = profile.email || null
+        const failureTemplate = templates.pickupFailedCustomer(order.id, customerName)
+        if (email) {
+          sendEmailNotification({
+            to: email,
+            subject: failureTemplate.subject,
+            text: failureTemplate.text,
+            html: failureTemplate.html
+          }).catch(err => console.error('Failed to send customer pickupFailed email on error in approveOrder', err))
+        }
+        if (customerPhone) {
+          sendSMSNotification(customerPhone, failureTemplate.sms).catch(err => console.error('Failed to send customer pickupFailed SMS on error in approveOrder', err))
+        }
+
         return { success: false, error: pickupResult.error || 'Failed to create Shiprocket pickup' }
       }
     } catch (err: any) {
+      // Fallback on unexpected exceptions
+      await supabase
+        .from('orders')
+        .update({ status: 'Manual_Fulfillment_Required' })
+        .eq('id', orderId)
+
+      const customerName = profile?.full_name || 'Customer'
+      const email = profile?.email || null
+      const failureTemplate = templates.pickupFailedCustomer(order.id, customerName)
+      if (email) {
+        sendEmailNotification({
+          to: email,
+          subject: failureTemplate.subject,
+          text: failureTemplate.text,
+          html: failureTemplate.html
+        }).catch(err => console.error('Failed to send customer pickupFailed email on exception in approveOrder', err))
+      }
+      if (profile?.phone) {
+        sendSMSNotification(profile.phone, failureTemplate.sms).catch(err => console.error('Failed to send customer pickupFailed SMS on exception in approveOrder', err))
+      }
+
       return { success: false, error: err.message || 'Shiprocket error' }
     }
   }
