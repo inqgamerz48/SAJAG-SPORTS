@@ -39,6 +39,13 @@ const steps = [
     { id: "Completed", label: "Delivered", icon: CheckCircle2 }
 ]
 
+const storeSteps = [
+    { id: "Pending", label: "Order Confirmed", icon: CheckCircle2 },
+    { id: "Processing", label: "Processing", icon: Clock },
+    { id: "Shipped", label: "Shipped", icon: Truck },
+    { id: "Completed", label: "Delivered", icon: CheckCircle2 }
+]
+
 const friendlyDescriptions: Record<string, string> = {
     Pending: "Your repair/stringing order has been confirmed. Payment captured successfully.",
     Manual_Fulfillment_Required: "We are coordinating your pickup manually. Our support team will contact you shortly.",
@@ -49,6 +56,14 @@ const friendlyDescriptions: Record<string, string> = {
     Ready_to_Return: "Repair work completed successfully! The racquet passed quality control checks.",
     Shipped: "Your racquet has been shipped back to your address. AWB tracking is active.",
     Completed: "Your racquet has been delivered safely. Thank you for choosing Sajag Sports!",
+    Cancelled: "This order has been cancelled."
+}
+
+const friendlyStoreDescriptions: Record<string, string> = {
+    Pending: "Your store order has been confirmed successfully! We are preparing your items for delivery.",
+    Processing: "We are processing your order and preparing it for shipment.",
+    Shipped: "Your package has been handed over to our courier partner. AWB tracking is active.",
+    Completed: "Your order has been delivered successfully. Thank you for shopping with Sajag Sports!",
     Cancelled: "This order has been cancelled."
 }
 
@@ -88,7 +103,29 @@ export default function TrackOrderPage() {
         }
     }
 
-    const currentStepIndex = order ? steps.findIndex(s => s.id === order.status) : -1
+    const isStoreOrder = order && (order.service_type === 'Products Only' || order.service_type === 'store' || order.service_type === 'physical')
+
+    let activeSteps = steps
+    let currentStepIndex = -1
+
+    if (order) {
+        if (isStoreOrder) {
+            activeSteps = storeSteps
+            if (order.status === 'Pending') {
+                currentStepIndex = 0
+            } else if (order.status === 'Shipped') {
+                currentStepIndex = 2
+            } else if (order.status === 'Completed') {
+                currentStepIndex = 3
+            } else if (order.status === 'Cancelled') {
+                currentStepIndex = -1
+            } else {
+                currentStepIndex = 1 // Processing intermediate state
+            }
+        } else {
+            currentStepIndex = steps.findIndex(s => s.id === order.status)
+        }
+    }
 
     const getStatusText = (status: string) => {
         const statusMap: Record<string, string> = {
@@ -99,11 +136,27 @@ export default function TrackOrderPage() {
             In_Workshop: 'Arrived at Workshop',
             Repairing: 'Under Repair',
             Ready_to_Return: 'QC Passed & Ready to Return',
-            Shipped: 'Shipped Back',
+            Shipped: isStoreOrder ? 'Shipped' : 'Shipped Back',
             Completed: 'Delivered',
             Cancelled: 'Cancelled'
         }
+        
+        if (isStoreOrder && !['Pending', 'Shipped', 'Completed', 'Cancelled'].includes(status)) {
+            return 'Processing'
+        }
+
         return statusMap[status] || status.replace('_', ' ')
+    }
+
+    const getDescriptionText = () => {
+        if (!order) return ''
+        if (isStoreOrder) {
+            if (['Pending', 'Shipped', 'Completed', 'Cancelled'].includes(order.status)) {
+                return friendlyStoreDescriptions[order.status]
+            }
+            return friendlyStoreDescriptions.Processing
+        }
+        return friendlyDescriptions[order.status] || friendlyDescriptions.Pending
     }
 
     return (
@@ -111,10 +164,12 @@ export default function TrackOrderPage() {
             <div className="max-w-3xl mx-auto">
                 <div className="text-center mb-8">
                     <h1 className="text-4xl font-extrabold text-white tracking-tight sm:text-5xl">
-                        Track <span className="text-lime-500">Your Repair</span>
+                        Track <span className="text-lime-500">{order && isStoreOrder ? 'Your Order' : 'Your Repair'}</span>
                     </h1>
                     <p className="mt-4 text-zinc-400 text-lg">
-                        Enter your Order ID and phone number to trace your racquet's repair lifecycle in real-time.
+                        {order && isStoreOrder
+                            ? "Enter your Order ID and phone number to trace your shipment in real-time."
+                            : "Enter your Order ID and phone number to trace your racquet's repair lifecycle in real-time."}
                     </p>
                 </div>
 
@@ -187,7 +242,11 @@ export default function TrackOrderPage() {
                                 <div>
                                     <CardTitle className="text-white">Order Details</CardTitle>
                                     <CardDescription className="text-zinc-400">
-                                        {order.service_type === 'repair' ? 'Frame Repair Service' : 'Stringing Service'}
+                                        {order.service_type === 'repair' 
+                                            ? 'Frame Repair Service' 
+                                            : order.service_type === 'stringing' 
+                                                ? 'Stringing Service' 
+                                                : 'Store Purchase'}
                                     </CardDescription>
                                 </div>
                                 <div className="flex items-center gap-2 p-2 bg-zinc-800/80 rounded-lg border border-zinc-700">
@@ -225,7 +284,7 @@ export default function TrackOrderPage() {
                             {/* Friendly Explanations box */}
                             <div className="p-4 bg-lime-500/5 rounded-xl border border-lime-500/10">
                                 <p className="text-sm text-lime-400/90 font-medium">
-                                    {friendlyDescriptions[order.status] || friendlyDescriptions.Pending}
+                                    {getDescriptionText()}
                                 </p>
                             </div>
 
@@ -298,12 +357,14 @@ export default function TrackOrderPage() {
 
                             {/* Step Timeline */}
                             <div className="pt-6 border-t border-zinc-800">
-                                <p className="text-zinc-500 text-sm font-semibold mb-6">Service Progress Timeline</p>
+                                <p className="text-zinc-500 text-sm font-semibold mb-6">
+                                    {isStoreOrder ? 'Delivery Progress Timeline' : 'Service Progress Timeline'}
+                                </p>
                                 <div className="relative pl-6 space-y-6">
                                     {/* Vertical Line */}
                                     <div className="absolute left-9 top-3 bottom-3 w-0.5 bg-zinc-800" />
 
-                                    {steps.map((step, index) => {
+                                    {activeSteps.map((step, index) => {
                                         const isCompleted = currentStepIndex >= index && currentStepIndex !== -1
                                         const isCurrent = currentStepIndex === index
                                         const Icon = step.icon

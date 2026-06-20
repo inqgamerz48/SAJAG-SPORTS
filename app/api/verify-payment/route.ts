@@ -106,8 +106,46 @@ export async function POST(req: NextRequest) {
       })
     }
 
+    const isStoreOrder = order.serviceType === 'store' || (order.orderItems && order.orderItems.length > 0 && order.orderItems.every(
+      (item: any) => !item.serviceType
+    ))
+
+    if (isStoreOrder) {
+      await prisma.order.update({
+        where: { id: order.id },
+        data: {
+          status: 'Pending',
+          paymentStatus: 'fully_paid',
+        },
+      })
+
+      const customerName = order.customerName || 'Customer'
+      const customerPhone = order.customerPhone || ''
+      const email = order.customerEmail || null
+      const confirmedTemplate = templates.orderConfirmed(order.id, customerName, false)
+      
+      if (email) {
+        sendEmailNotification({
+          to: email,
+          subject: confirmedTemplate.subject,
+          text: confirmedTemplate.text,
+          html: confirmedTemplate.html
+        }).catch(err => console.error('Failed to send store orderConfirmed email', err))
+      }
+      if (customerPhone) {
+        sendSMSNotification(customerPhone, confirmedTemplate.sms).catch(err => console.error('Failed to send store orderConfirmed SMS', err))
+      }
+
+      return NextResponse.json({
+        success: true,
+        orderId: order.id,
+        manualShippingRequired: false,
+        message: 'Payment verified. Store purchase order confirmed successfully.',
+      })
+    }
+
     const isAllStringing = order.orderItems && order.orderItems.length > 0 && order.orderItems.every(
-      (item) => item.serviceType === 'stringing'
+      (item: any) => item.serviceType === 'stringing'
     )
 
     if (isAllStringing) {

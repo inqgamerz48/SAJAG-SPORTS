@@ -250,6 +250,11 @@ export async function POST(req: NextRequest) {
     // Calculate discount value safely with fallbacks
     let discountVal: number | null = expectedDiscount
 
+    const hasService = payload.items?.some((item) => item.type === 'service') || false
+    const orderServiceType = hasService
+      ? (payload.items?.find((item) => item.type === 'service')?.serviceType || 'repair')
+      : 'store'
+
     let order
     if (isExistingOrder) {
       try {
@@ -297,10 +302,7 @@ export async function POST(req: NextRequest) {
       try {
         order = await prisma.order.create({
           data: {
-            serviceType:
-              payload.items?.find((item) => item.type === 'service')?.serviceType ||
-              payload.items?.[0]?.serviceType ||
-              'repair',
+            serviceType: orderServiceType,
             customerName,
             customerEmail,
             customerPhone,
@@ -336,10 +338,7 @@ export async function POST(req: NextRequest) {
         console.error('Failed to create order with discount field, retrying without it:', dbErr)
         order = await prisma.order.create({
           data: {
-            serviceType:
-              payload.items?.find((item) => item.type === 'service')?.serviceType ||
-              payload.items?.[0]?.serviceType ||
-              'repair',
+            serviceType: orderServiceType,
             customerName,
             customerEmail,
             customerPhone,

@@ -147,6 +147,14 @@ function getBaseHtmlLayout(title: string, contentHtml: string): string {
 </html>`;
 }
 
+export function getAppUrl(): string {
+    const url = process.env.NEXT_PUBLIC_APP_URL || 
+                process.env.NEXTAUTH_URL || 
+                (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null) || 
+                'http://localhost:3000';
+    return url.replace(/\/$/, '');
+}
+
 /**
  * Send Email Notification using Nodemailer
  */
@@ -212,27 +220,42 @@ export async function sendSMSNotification(phone: string, message: string) {
  * Notification Templates
  */
 export const templates = {
-    orderConfirmed: (orderId: string, name: string) => {
-        const text = `Hi ${name},\n\nYour order #${orderId} has been confirmed. We have initiated the pickup process. You can track your order status live at ${process.env.NEXT_PUBLIC_APP_URL}/track\n\nRegards,\nSajag Sports Team`;
+    orderConfirmed: (orderId: string, name: string, isService: boolean = true) => {
+        const appUrl = getAppUrl();
+        const text = isService
+            ? `Hi ${name},\n\nYour order #${orderId} has been confirmed. We have initiated the pickup process. You can track your order status live at ${appUrl}/track\n\nRegards,\nSajag Sports Team`
+            : `Hi ${name},\n\nYour order #${orderId} has been confirmed. We are preparing your items for delivery. You can track your order status live at ${appUrl}/track\n\nRegards,\nSajag Sports Team`;
         const html = getBaseHtmlLayout(
             'Order Confirmed',
-            `<p>Hi <strong>${name}</strong>,</p>
-             <p>Your racquet repair order has been confirmed successfully. We have initiated the reverse pickup process with our courier partner.</p>
-             <div class="details-box">
-               <div class="details-row"><div class="details-label">Order ID:</div><div class="details-value">#${orderId}</div></div>
-               <div class="details-row"><div class="details-label">Status:</div><div class="details-value">Confirmed</div></div>
-             </div>
-             <p>Next steps: Please pack your racquet securely and keep it ready for collection. Our courier partner will contact you shortly.</p>
-             <a href="${process.env.NEXT_PUBLIC_APP_URL}/track" class="btn">Track Order Live</a>`
+            isService
+                ? `<p>Hi <strong>${name}</strong>,</p>
+                 <p>Your racquet repair order has been confirmed successfully. We have initiated the reverse pickup process with our courier partner.</p>
+                 <div class="details-box">
+                   <div class="details-row"><div class="details-label">Order ID:</div><div class="details-value">#${orderId}</div></div>
+                   <div class="details-row"><div class="details-label">Status:</div><div class="details-value">Confirmed</div></div>
+                 </div>
+                 <p>Next steps: Please pack your racquet securely and keep it ready for collection. Our courier partner will contact you shortly.</p>
+                 <a href="${appUrl}/track" class="btn">Track Order Live</a>`
+                : `<p>Hi <strong>${name}</strong>,</p>
+                 <p>Your store order has been confirmed successfully! We are preparing your items for delivery.</p>
+                 <div class="details-box">
+                   <div class="details-row"><div class="details-label">Order ID:</div><div class="details-value">#${orderId}</div></div>
+                   <div class="details-row"><div class="details-label">Status:</div><div class="details-value">Confirmed</div></div>
+                 </div>
+                 <p>Next steps: Once your order is shipped, we will notify you with the tracking details. You can check the live status of your order anytime using the link below.</p>
+                 <a href="${appUrl}/track" class="btn">Track Order Live</a>`
         );
         return {
             subject: `Order Confirmed - #${orderId} - Sajag Sports`,
             text,
             html,
-            sms: `Hi ${name}, your Sajag Sports order #${orderId} is confirmed. Our courier partner will contact you for pickup. Track: ${process.env.NEXT_PUBLIC_APP_URL}/track`
+            sms: isService
+                ? `Hi ${name}, your Sajag Sports order #${orderId} is confirmed. Our courier partner will contact you for pickup. Track: ${appUrl}/track`
+                : `Hi ${name}, your Sajag Sports order #${orderId} is confirmed. We are preparing it for delivery. Track: ${appUrl}/track`
         };
     },
     pickupScheduled: (orderId: string, awb: string, customerName: string = 'Customer') => {
+        const appUrl = getAppUrl();
         const trackingUrl = `https://shiprocket.co/tracking/${awb}`;
         const text = `Hi ${customerName},\n\nYour racquet pickup has been scheduled successfully.\n\nOrder ID: ${orderId}\nAWB Number: ${awb}\nTrack Shipment: ${trackingUrl}\n\nPlease keep the racquet packed and ready for collection.\n\nRegards,\nSajag Sports Team`;
         const html = getBaseHtmlLayout(
@@ -255,7 +278,8 @@ export const templates = {
         };
     },
     quoteReady: (orderId: string, amount: number, customerName: string = 'Customer') => {
-        const payUrl = `${process.env.NEXT_PUBLIC_APP_URL}/pay/${orderId}`;
+        const appUrl = getAppUrl();
+        const payUrl = `${appUrl}/pay/${orderId}`;
         const text = `Hi ${customerName},\n\nOur surgeons have analyzed your racquet. The final repair cost is ₹${amount}.\n\nPlease review and pay now to proceed with the repairs: ${payUrl}\n\nRegards,\nSajag Sports Team`;
         const html = getBaseHtmlLayout(
             'Repair Quote Ready',
@@ -304,39 +328,63 @@ export const templates = {
         text: `Logistics alert. Order #${orderId} failed local pre-validation checks before calling Shiprocket.\n\nCustomer: ${customer}\nReason: ${reason}\n\nRequired Action: Please update the customer's phone/address details on the admin panel and retry shipment creation manually.`,
         sms: `Sajag Sports Alert: Pre-validation checks failed for Order #${orderId}. Reason: ${reason}`
     }),
-    shipmentShipped: (orderId: string, awb: string, customerName: string = 'Customer') => {
+    shipmentShipped: (orderId: string, awb: string, customerName: string = 'Customer', isService: boolean = true) => {
         const trackingUrl = `https://shiprocket.co/tracking/${awb}`;
-        const text = `Hi ${customerName},\n\nYour racket shipment has been processed successfully.\n\nOrder ID: ${orderId}\nAWB Number: ${awb}\nTrack Shipment: ${trackingUrl}\n\nYou can use the tracking link above to follow your shipment in real time.\n\nIf you have any questions, simply reply to this email or contact Sajag Sports support.\n\nRegards,\nSajag Sports Team`;
+        const text = isService
+            ? `Hi ${customerName},\n\nYour racquet shipment has been processed successfully.\n\nOrder ID: ${orderId}\nAWB Number: ${awb}\nTrack Shipment: ${trackingUrl}\n\nYou can use the tracking link above to follow your shipment in real time.\n\nIf you have any questions, simply reply to this email or contact Sajag Sports support.\n\nRegards,\nSajag Sports Team`
+            : `Hi ${customerName},\n\nYour store order shipment has been processed successfully.\n\nOrder ID: ${orderId}\nAWB Number: ${awb}\nTrack Shipment: ${trackingUrl}\n\nYou can use the tracking link above to follow your shipment in real time.\n\nIf you have any questions, simply reply to this email or contact Sajag Sports support.\n\nRegards,\nSajag Sports Team`;
         const html = getBaseHtmlLayout(
-            'Your Sajag Sports Shipment is Ready 🚚',
-            `<p>Hi <strong>${customerName}</strong>,</p>
-             <p>Your racquet repairs are complete! We have processed and shipped your racquet back to you.</p>
-             <div class="details-box">
-               <div class="details-row"><div class="details-label">Order ID:</div><div class="details-value">#${orderId}</div></div>
-               <div class="details-row"><div class="details-label">AWB Number:</div><div class="details-value">${awb}</div></div>
-               <div class="details-row"><div class="details-label">Tracking URL:</div><div class="details-value"><a href="${trackingUrl}" target="_blank">${trackingUrl}</a></div></div>
-             </div>
-             <p>Next steps: You can use the tracking button below to follow your shipment in real time. If you have any questions or feedback, feel free to reply to this email.</p>
-             <a href="${trackingUrl}" class="btn">Track Delivery Live</a>`
+            isService ? 'Your Sajag Sports Shipment is Ready 🚚' : 'Your Sajag Sports Order is Shipped 🚚',
+            isService
+                ? `<p>Hi <strong>${customerName}</strong>,</p>
+                 <p>Your racquet repairs are complete! We have processed and shipped your racquet back to you.</p>
+                 <div class="details-box">
+                   <div class="details-row"><div class="details-label">Order ID:</div><div class="details-value">#${orderId}</div></div>
+                   <div class="details-row"><div class="details-label">AWB Number:</div><div class="details-value">${awb}</div></div>
+                   <div class="details-row"><div class="details-label">Tracking URL:</div><div class="details-value"><a href="${trackingUrl}" target="_blank">${trackingUrl}</a></div></div>
+                 </div>
+                 <p>Next steps: You can use the tracking button below to follow your shipment in real time. If you have any questions or feedback, feel free to reply to this email.</p>
+                 <a href="${trackingUrl}" class="btn">Track Delivery Live</a>`
+                : `<p>Hi <strong>${customerName}</strong>,</p>
+                 <p>Your order has been shipped successfully! We are sending your items to your address.</p>
+                 <div class="details-box">
+                   <div class="details-row"><div class="details-label">Order ID:</div><div class="details-value">#${orderId}</div></div>
+                   <div class="details-row"><div class="details-label">AWB Number:</div><div class="details-value">${awb}</div></div>
+                   <div class="details-row"><div class="details-label">Tracking URL:</div><div class="details-value"><a href="${trackingUrl}" target="_blank">${trackingUrl}</a></div></div>
+                 </div>
+                 <p>Next steps: You can use the tracking button below to follow your shipment in real time.</p>
+                 <a href="${trackingUrl}" class="btn">Track Delivery Live</a>`
         );
         return {
-            subject: `Your Sajag Sports Shipment is Ready 🚚`,
+            subject: isService ? `Your Sajag Sports Shipment is Ready 🚚` : `Your Sajag Sports Order is Shipped 🚚`,
             text,
             html,
-            sms: `Sajag Sports: Your racquet has been shipped back. AWB: ${awb}. Track: ${trackingUrl}`
+            sms: isService
+                ? `Sajag Sports: Your racquet has been shipped back. AWB: ${awb}. Track: ${trackingUrl}`
+                : `Sajag Sports: Your order has been shipped. AWB: ${awb}. Track: ${trackingUrl}`
         };
     },
-    orderCompleted: (orderId: string, customerName: string = 'Customer') => {
-        const text = `Hi ${customerName},\n\nYour racquet repair order #${orderId} is completed and delivered successfully. Thank you for choosing Sajag Sports!\n\nRegards,\nSajag Sports Team`;
+    orderCompleted: (orderId: string, customerName: string = 'Customer', isService: boolean = true) => {
+        const text = isService
+            ? `Hi ${customerName},\n\nYour racquet repair order #${orderId} is completed and delivered successfully. Thank you for choosing Sajag Sports!\n\nRegards,\nSajag Sports Team`
+            : `Hi ${customerName},\n\nYour store order #${orderId} is completed and delivered successfully. Thank you for choosing Sajag Sports!\n\nRegards,\nSajag Sports Team`;
         const html = getBaseHtmlLayout(
             'Order Completed',
-            `<p>Hi <strong>${customerName}</strong>,</p>
-             <p>Your racquet repair order has been delivered and completed successfully.</p>
-             <div class="details-box">
-               <div class="details-row"><div class="details-label">Order ID:</div><div class="details-value">#${orderId}</div></div>
-               <div class="details-row"><div class="details-label">Status:</div><div class="details-value" style="color: #10b981; font-weight: 600;">Delivered & Completed</div></div>
-             </div>
-             <p>Thank you for choosing Sajag Sports! We hope your racquet feels as good as new on the court.</p>`
+            isService
+                ? `<p>Hi <strong>${customerName}</strong>,</p>
+                 <p>Your racquet repair order has been delivered and completed successfully.</p>
+                 <div class="details-box">
+                   <div class="details-row"><div class="details-label">Order ID:</div><div class="details-value">#${orderId}</div></div>
+                   <div class="details-row"><div class="details-label">Status:</div><div class="details-value" style="color: #10b981; font-weight: 600;">Delivered & Completed</div></div>
+                 </div>
+                 <p>Thank you for choosing Sajag Sports! We hope your racquet feels as good as new on the court.</p>`
+                : `<p>Hi <strong>${customerName}</strong>,</p>
+                 <p>Your store order has been delivered and completed successfully.</p>
+                 <div class="details-box">
+                   <div class="details-row"><div class="details-label">Order ID:</div><div class="details-value">#${orderId}</div></div>
+                   <div class="details-row"><div class="details-label">Status:</div><div class="details-value" style="color: #10b981; font-weight: 600;">Delivered & Completed</div></div>
+                 </div>
+                 <p>Thank you for choosing Sajag Sports! We hope you love your new purchase.</p>`
         );
         return {
             subject: `Order Completed - #${orderId} - Sajag Sports`,

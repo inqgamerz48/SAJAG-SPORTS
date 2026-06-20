@@ -3,7 +3,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { createReversePickup } from '@/lib/shiprocket'
 import { revalidatePath } from 'next/cache'
-import { sendEmailNotification, sendSMSNotification, templates } from '@/lib/notifications'
+import { sendEmailNotification, sendSMSNotification, templates, getAppUrl } from '@/lib/notifications'
 
 interface CreateOrderParams {
   service_type: 'stringing' | 'repair'
@@ -256,7 +256,7 @@ export async function updateFinalQuote(orderId: string, finalQuote: number) {
     return { success: false, error: error.message }
   }
 
-  const paymentUrl = `${process.env.NEXT_PUBLIC_APP_URL}/pay/${orderId}`
+  const paymentUrl = `${getAppUrl()}/pay/${orderId}`
 
   revalidatePath('/admin/dashboard')
   return {
