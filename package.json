@@ -29,6 +29,7 @@
     "@types/nodemailer": "^7.0.9",
     "@uploadthing/react": "^7.3.3",
     "@vercel/analytics": "^1.6.1",
+    "@vercel/speed-insights": "^2.0.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.0",
     "cmdk": "^1.0.0",

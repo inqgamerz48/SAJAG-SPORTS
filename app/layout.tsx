@@ -3,6 +3,7 @@ import { Toaster } from "@/components/ui/sonner"
 import { AuthProvider } from "@/components/providers/auth-provider"
 import { CartProvider } from "@/components/products/cart-context"
 import { Analytics } from "@vercel/analytics/react"
+import { SpeedInsights } from "@vercel/speed-insights/next"
 import "./globals.css"
 import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
@@ -42,6 +43,7 @@ export default function RootLayout({
           </CartProvider>
         </AuthProvider>
         <Analytics />
+        <SpeedInsights />
       </body>
     </html>
   )
