@@ -4,6 +4,38 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { sendEmailNotification, sendSMSNotification, templates } from "@/lib/notifications";
 
+export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
+    const session = await getServerSession(authOptions);
+
+    if (!session || (session.user as any).role !== "admin") {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    try {
+        const { id } = await params;
+        const order = await prisma.order.findUnique({
+            where: { id },
+            include: {
+                customer: true,
+                orderItems: true,
+                shipments: true,
+            }
+        });
+
+        if (!order) {
+            return NextResponse.json({ error: "Order not found" }, { status: 404 });
+        }
+
+        return NextResponse.json(order);
+    } catch (error) {
+        console.error("Error fetching order:", error);
+        return NextResponse.json({ 
+            error: "Failed to fetch order", 
+            reason: "An unexpected database error occurred while retrieving order details." 
+        }, { status: 500 });
+    }
+}
+
 export async function PUT(req: Request, { params }: { params: Promise<{ id: string }> }) {
     const session = await getServerSession(authOptions);
 

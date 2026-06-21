@@ -63,6 +63,11 @@ export default function OrdersFeedPage() {
     const [totalPages, setTotalPages] = useState(1);
     const [totalItems, setTotalItems] = useState(0);
 
+    const [confirmShipOrder, setConfirmShipOrder] = useState<any | null>(null);
+    const [shippingLoading, setShippingLoading] = useState(false);
+    const [liveOrderData, setLiveOrderData] = useState<any | null>(null);
+    const [fetchingLiveOrder, setFetchingLiveOrder] = useState(false);
+
     useEffect(() => {
         fetchOrders(page);
     }, [page]);
@@ -95,6 +100,46 @@ export default function OrdersFeedPage() {
             fetchOrders();
         } catch (err) {
             toast.error("Could not update order status");
+        }
+    };
+
+    const handleInitiateReturnDelivery = async (order: any) => {
+        setConfirmShipOrder(order);
+        setFetchingLiveOrder(true);
+        setLiveOrderData(null);
+        try {
+            const res = await fetch(`/api/admin/orders/${order.id}`);
+            if (!res.ok) throw new Error("Failed to fetch live order details");
+            const data = await res.json();
+            setLiveOrderData(data);
+        } catch (err) {
+            toast.error("Could not load latest customer details. Showing local cached details.");
+            setLiveOrderData(order);
+        } finally {
+            setFetchingLiveOrder(false);
+        }
+    };
+
+    const handleConfirmShip = async () => {
+        if (!confirmShipOrder) return;
+        setShippingLoading(true);
+        try {
+            const res = await fetch("/api/admin/trigger-return", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ order_id: confirmShipOrder.id }),
+            });
+            const data = await res.json();
+            if (!res.ok || !data.success) {
+                throw new Error(data.reason || data.error || "Failed to trigger return shipment");
+            }
+            toast.success("Return delivery triggered successfully!");
+            setConfirmShipOrder(null);
+            fetchOrders(page);
+        } catch (err: any) {
+            toast.error(err.message || "Failed to trigger return shipment");
+        } finally {
+            setShippingLoading(false);
         }
     };
 
@@ -564,6 +609,21 @@ export default function OrdersFeedPage() {
                                                 </select>
                                             </div>
 
+                                            {order.status === "Ready_to_Return" && (
+                                                <div className="md:col-span-1 border rounded-lg p-3 bg-green-50/60">
+                                                    <p className="text-xs text-green-800 mb-2 font-medium">
+                                                        Order is ready to return to customer.
+                                                    </p>
+                                                    <button
+                                                        onClick={() => handleInitiateReturnDelivery(order)}
+                                                        className="inline-flex items-center gap-1.5 text-xs px-3 py-2 rounded-md bg-green-600 text-white hover:bg-green-700 transition"
+                                                    >
+                                                        <Truck className="w-3.5 h-3.5" />
+                                                        Initiate Return Delivery
+                                                    </button>
+                                                </div>
+                                            )}
+
                                             {canRetryReversePickup && (
                                                 <div className="md:col-span-1 border rounded-lg p-3 bg-amber-50/60">
                                                     <p className="text-xs text-amber-800 mb-2">
@@ -692,6 +752,91 @@ export default function OrdersFeedPage() {
                     >
                         Next
                     </button>
+                </div>
+            )}
+
+            {/* Confirmation Modal */}
+            {confirmShipOrder && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
+                    <div className="relative w-full max-w-md bg-white rounded-xl shadow-xl border overflow-hidden animate-in zoom-in-95 duration-200">
+                        {/* Header */}
+                        <div className="px-6 py-4 border-b bg-gray-50/80 flex items-center gap-3">
+                            <div className="p-2 bg-green-100 rounded-lg text-green-600">
+                                <Truck className="w-5 h-5" />
+                            </div>
+                            <div>
+                                <h3 className="font-bold text-gray-950">Initiate Return Delivery</h3>
+                                <p className="text-xs text-gray-500">Order #{confirmShipOrder.id.split("-")[0]}</p>
+                            </div>
+                        </div>
+
+                        {/* Content */}
+                        <div className="p-6 space-y-4">
+                            {fetchingLiveOrder ? (
+                                <div className="flex flex-col items-center justify-center py-6 gap-2 text-gray-500">
+                                    <svg className="animate-spin w-6 h-6 text-green-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                    </svg>
+                                    <p className="text-xs font-medium">Fetching live customer details...</p>
+                                </div>
+                            ) : liveOrderData ? (
+                                <div className="space-y-3 text-sm">
+                                    <p className="text-xs text-gray-500 font-medium uppercase tracking-wider">Delivery Details</p>
+                                    <div className="bg-gray-50 rounded-lg p-3.5 border space-y-2">
+                                        <div>
+                                            <span className="text-xs text-gray-400 block font-semibold uppercase">Customer Name</span>
+                                            <span className="font-semibold text-gray-800">{liveOrderData.customer?.fullName || liveOrderData.customerName || "—"}</span>
+                                        </div>
+                                        <div>
+                                            <span className="text-xs text-gray-400 block font-semibold uppercase">Phone Number</span>
+                                            <span className="font-mono text-gray-800 font-bold">{liveOrderData.customer?.phone || liveOrderData.customerPhone || "—"}</span>
+                                        </div>
+                                        <div>
+                                            <span className="text-xs text-gray-400 block font-semibold uppercase">Shipping Address</span>
+                                            <span className="text-gray-700 leading-relaxed">
+                                                {[liveOrderData.addressLine1, liveOrderData.city, liveOrderData.state, liveOrderData.pincode].filter(Boolean).join(", ") || "—"}
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div className="rounded-md bg-amber-50 border border-amber-200 p-3 text-xs text-amber-800 flex gap-2">
+                                        <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                                        <p>
+                                            <strong>Important:</strong> Ensure the phone number and address above are correct. This will book a live forward courier in Shiprocket.
+                                        </p>
+                                    </div>
+                                </div>
+                            ) : null}
+                        </div>
+
+                        {/* Footer */}
+                        <div className="px-6 py-4 bg-gray-50 border-t flex justify-end gap-3">
+                            <button
+                                onClick={() => setConfirmShipOrder(null)}
+                                disabled={shippingLoading}
+                                className="px-4 py-2 border border-gray-200 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-100 transition disabled:opacity-50"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleConfirmShip}
+                                disabled={shippingLoading || fetchingLiveOrder}
+                                className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-md text-sm font-semibold shadow-sm transition disabled:opacity-60 flex items-center gap-1.5"
+                            >
+                                {shippingLoading ? (
+                                    <>
+                                        <svg className="animate-spin w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                        </svg>
+                                        Booking courier...
+                                    </>
+                                ) : (
+                                    "Confirm & Ship"
+                                )}
+                            </button>
+                        </div>
+                    </div>
                 </div>
             )}
         </div>
