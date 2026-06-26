@@ -41,32 +41,41 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ success: false, error: 'Order not found' }, { status: 404 })
         }
 
-        const profile = order.customer
+        const rawAddress = order.addressLine1 || order.customer?.address || ''
+        const addressParts = rawAddress ? rawAddress.split(',').map((s: string) => s.trim()) : []
 
-        if (!profile) {
-            return NextResponse.json({ success: false, error: 'Customer profile not found for this order' }, { status: 400 })
+        const customer = {
+            name: order.customerName || order.customer?.fullName || 'Customer',
+            email: order.customerEmail || order.customer?.email || undefined,
+            phone: order.customerPhone || order.customer?.phone || '',
+            address: rawAddress || 'Address not provided',
+            city: order.city || addressParts[addressParts.length - 2] || 'Unknown',
+            state: order.state || addressParts[addressParts.length - 1] || 'Unknown',
+            pincode: order.pincode || order.customer?.pincode || '',
         }
 
-        // Extract city/state from address
-        const addressParts = (profile.address || '').split(',').map((s: string) => s.trim())
-        const city = addressParts[addressParts.length - 2] || 'Unknown'
-        const state = addressParts[addressParts.length - 1] || 'Unknown'
+        if (!customer.phone) {
+            return NextResponse.json({ success: false, error: 'Customer phone number is missing.' }, { status: 400 })
+        }
 
-        const customerPhone = profile.phone || ''
-        if (!customerPhone) {
-            throw new Error('Customer phone number is missing. Cannot book pickup.')
+        if (!rawAddress) {
+            return NextResponse.json({ success: false, error: 'Customer address is missing.' }, { status: 400 })
+        }
+
+        if (!customer.pincode) {
+            return NextResponse.json({ success: false, error: 'Customer pincode is missing.' }, { status: 400 })
         }
 
         // 2. Create forward shipment via Shiprocket
         const shiprocketResult = await createForwardShipment({
             order_id: order.id,
-            customer_name: profile.fullName || 'Customer',
-            customer_email: profile.email,
-            customer_phone: customerPhone,
-            customer_address: profile.address || 'Address not provided',
-            customer_pincode: profile.pincode || '',
-            customer_city: city,
-            customer_state: state,
+            customer_name: customer.name,
+            customer_email: customer.email,
+            customer_phone: customer.phone,
+            customer_address: customer.address,
+            customer_pincode: customer.pincode,
+            customer_city: customer.city,
+            customer_state: customer.state,
         })
 
         if (shiprocketResult.success) {
@@ -98,16 +107,16 @@ export async function POST(req: NextRequest) {
             })
 
             // 5. Notify customer of return shipment
-            const returnTemplate = templates.shipmentShipped(order.id, shiprocketResult.waybill || 'Pending', profile.fullName || 'Customer')
-            if (profile.email) {
+            const returnTemplate = templates.shipmentShipped(order.id, shiprocketResult.waybill || 'Pending', customer.name)
+            if (customer.email) {
                 sendEmailNotification({
-                    to: profile.email,
+                    to: customer.email,
                     subject: returnTemplate.subject,
                     text: returnTemplate.text
                 }).catch(err => console.error('Failed to send shipmentShipped email', err))
             }
-            if (profile.phone) {
-                sendSMSNotification(profile.phone, returnTemplate.sms).catch(err => console.error('Failed to send shipmentShipped SMS', err))
+            if (customer.phone) {
+                sendSMSNotification(customer.phone, returnTemplate.sms).catch(err => console.error('Failed to send shipmentShipped SMS', err))
             }
 
             return NextResponse.json({

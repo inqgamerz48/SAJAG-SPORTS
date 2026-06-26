@@ -107,7 +107,7 @@ export async function POST(req: NextRequest) {
       targetOrderStatus = FORWARD_ORDER_STATUS_MAP[statusLabel] || null
     }
 
-    const previousOrderStatus = shipment.order?.status
+    let transitionOccurred = false
 
     // 4. Update status in database
     await prisma.$transaction(async (tx) => {
@@ -118,15 +118,21 @@ export async function POST(req: NextRequest) {
 
       if (targetOrderStatus) {
         console.log(`[Shiprocket Webhook] Updating order ${shipment.orderId} status to ${targetOrderStatus}`)
-        await tx.order.update({
-          where: { id: shipment.orderId },
+        const res = await tx.order.updateMany({
+          where: {
+            id: shipment.orderId,
+            NOT: { status: targetOrderStatus as any }
+          },
           data: { status: targetOrderStatus as any }
         })
+        if (res.count > 0) {
+          transitionOccurred = true
+        }
       }
     })
 
     // 5. Trigger notifications on status transitions
-    if (targetOrderStatus && targetOrderStatus !== previousOrderStatus) {
+    if (transitionOccurred) {
       const order = shipment.order
       const profile = order.customer
       const name = order.customerName || profile?.fullName || 'Customer'

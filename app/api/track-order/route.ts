@@ -38,7 +38,7 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        const customerPhone = order.customer?.phone || '';
+        const customerPhone = order.customerPhone || order.customer?.phone || '';
         const cleanOrderPhone = customerPhone.replace(/[\s\-\(\)]/g, '');
 
         // Verify phone number
@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
             const orderPhoneLast10 = cleanOrderPhone.slice(-10);
             const inputPhoneLast10 = cleanPhone.slice(-10);
 
-            if (orderPhoneLast10 !== inputPhoneLast10 && cleanOrderPhone !== "") {
+            if (!cleanOrderPhone || orderPhoneLast10 !== inputPhoneLast10) {
                 return NextResponse.json(
                     { success: false, error: 'Phone number does not match order records' },
                     { status: 403 }

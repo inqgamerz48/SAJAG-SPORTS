@@ -29,20 +29,24 @@ export async function GET() {
         const averageOrderValue = countResult > 0 ? (totalRevenue / countResult).toFixed(2) : 0;
 
         // 3. Best Selling Items (OrderItems frequency)
-        const orderItems = await prisma.orderItem.findMany();
+        const groupedItems = await prisma.orderItem.groupBy({
+            by: ['productId', 'serviceType', 'racquetBrand', 'racquetModel', 'priceAtPurchase'],
+            _sum: { quantity: true }
+        });
         const itemCounts: Record<string, { name: string, count: number, revenue: number }> = {};
 
-        orderItems.forEach((item: any) => {
-            const key = item.productId || item.serviceType || "Unknown";
-            const name = item.productId
-                ? `Product ID: ${item.productId}`
-                : `${item.serviceType} (${item.racquetBrand || 'Any'} ${item.racquetModel || 'Model'})`;
+        groupedItems.forEach((group: any) => {
+            const key = group.productId || group.serviceType || "Unknown";
+            const name = group.productId
+                ? `Product ID: ${group.productId}`
+                : `${group.serviceType} (${group.racquetBrand || 'Any'} ${group.racquetModel || 'Model'})`;
+            const qty = group._sum.quantity || 0;
 
             if (!itemCounts[key]) {
                 itemCounts[key] = { name, count: 0, revenue: 0 };
             }
-            itemCounts[key].count += item.quantity;
-            itemCounts[key].revenue += Number(item.priceAtPurchase) * item.quantity;
+            itemCounts[key].count += qty;
+            itemCounts[key].revenue += Number(group.priceAtPurchase || 0) * qty;
         });
 
         const bestSelling = Object.values(itemCounts)
